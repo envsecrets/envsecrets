@@ -1,0 +1,62 @@
+table:
+  name: workspaces
+  schema: public
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+array_relationships:
+  - name: invites
+    using:
+      foreign_key_constraint_on:
+        column: workspace_id
+        table:
+          name: invites
+          schema: public
+  - name: memberships
+    using:
+      foreign_key_constraint_on:
+        column: workspace_id
+        table:
+          name: memberships
+          schema: public
+  - name: projects
+    using:
+      foreign_key_constraint_on:
+        column: workspace_id
+        table:
+          name: projects
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - name
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+        - created_at
+        - updated_at
+        - id
+        - user_id
+      filter:
+        memberships:
+          user_id:
+            _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check: null
