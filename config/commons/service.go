@@ -1,12 +1,5 @@
 package commons
 
-import "os"
-
-var (
-	EXECUTABLE, _ = os.Executable()
-	HOME_DIR, _   = os.UserHomeDir()
-)
-
 /* type Service interface {
 	Save(config *Project) error
 	Fetch() (*Project, error)

@@ -1,11 +1,13 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/internal/config/commons"
+	"github.com/envsecrets/envsecrets/config"
+	"github.com/envsecrets/envsecrets/config/commons"
 	"gopkg.in/yaml.v3"
 )
 
@@ -14,7 +16,7 @@ const (
 )
 
 var (
-	PROJECT_DIR        = filepath.Dir(commons.EXECUTABLE)
+	PROJECT_DIR        = filepath.Dir(config.EXECUTABLE)
 	PROJECT_CONFIG_DIR = filepath.Join(PROJECT_DIR, ".envsecrets")
 	PROJECT_CONFIG_LOC = filepath.Join(PROJECT_CONFIG_DIR, CONFIG_FILENAME)
 )
@@ -38,7 +40,7 @@ func Save(config *commons.Project) error {
 }
 
 //	Load, parse and return the available project config.
-func Fetch() (*commons.Project, error) {
+func Load() (*commons.Project, error) {
 
 	//	Read the file
 	data, err := ioutil.ReadFile(PROJECT_CONFIG_LOC)
@@ -54,4 +56,10 @@ func Fetch() (*commons.Project, error) {
 	}
 
 	return &config, nil
+}
+
+//	Validate whether project config exists in file system or not
+func Exists() bool {
+	_, err := os.Stat(PROJECT_CONFIG_LOC)
+	return !errors.Is(err, os.ErrNotExist)
 }

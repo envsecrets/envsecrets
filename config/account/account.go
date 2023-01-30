@@ -1,11 +1,13 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/internal/config/commons"
+	"github.com/envsecrets/envsecrets/config"
+	"github.com/envsecrets/envsecrets/config/commons"
 	"gopkg.in/yaml.v3"
 )
 
@@ -14,8 +16,8 @@ const (
 )
 
 var (
-	ACCOUNT_DIR        = filepath.Dir(commons.EXECUTABLE)
-	ACCOUNT_CONFIG_DIR = filepath.Join(commons.HOME_DIR, ".envsecrets")
+	ACCOUNT_DIR        = filepath.Dir(config.EXECUTABLE)
+	ACCOUNT_CONFIG_DIR = filepath.Join(config.HOME_DIR, ".envsecrets")
 	ACCOUNT_CONFIG_LOC = filepath.Join(ACCOUNT_CONFIG_DIR, CONFIG_FILENAME)
 )
 
@@ -38,7 +40,7 @@ func Save(config *commons.Account) error {
 }
 
 //	Load, parse and return the available account config.
-func Fetch() (*commons.Account, error) {
+func Load() (*commons.Account, error) {
 
 	//	Read the file
 	data, err := ioutil.ReadFile(ACCOUNT_CONFIG_LOC)
@@ -54,4 +56,10 @@ func Fetch() (*commons.Account, error) {
 	}
 
 	return &config, nil
+}
+
+//	Validate whether account config exists in file system or not
+func Exists() bool {
+	_, err := os.Stat(ACCOUNT_CONFIG_LOC)
+	return !errors.Is(err, os.ErrNotExist)
 }

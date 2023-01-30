@@ -1,5 +1,7 @@
 package commons
 
+import "github.com/envsecrets/envsecrets/internal/users"
+
 type Project struct {
 	Version     int    `json:"version,omitempty" yaml:"version,omitempty"`
 	Workspace   string `json:"workspace,omitempty" yaml:"workspace,omitempty"`
@@ -9,12 +11,7 @@ type Project struct {
 }
 
 type Account struct {
-	AccessToken  int    `json:"access_token,omitempty" yaml:"accessToken,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty" yaml:"refreshToken,omitempty"`
-	User         User   `json:"user,omitempty" yaml:"user,omitempty"`
-}
-
-type User struct {
-	ID    string `json:"id,omitempty" yaml:"id,omitempty"`
-	Email string `json:"email,omitempty" yaml:"email,omitempty"`
+	AccessToken  string     `json:"access_token,omitempty" yaml:"accessToken,omitempty"`
+	RefreshToken string     `json:"refresh_token,omitempty" yaml:"refreshToken,omitempty"`
+	User         users.User `json:"user,omitempty" yaml:"user,omitempty"`
 }
