@@ -40,7 +40,7 @@ to quickly create a Cobra application.`,
 
 		//	List items
 		items, err := projects.List(context.DContext, client, &projects.ListOptions{
-			WorkspaceID: localConfig.Workspace,
+			OrgID: localConfig.Organisation,
 		})
 		if err != nil {
 			panic(err)

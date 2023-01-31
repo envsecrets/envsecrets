@@ -13,8 +13,8 @@ import (
 	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
-	"github.com/envsecrets/envsecrets/internal/workspaces"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -41,7 +41,7 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Fetch the current workspace
-		workspace, err := workspaces.Get(context.DContext, client, localConfig.Workspace)
+		workspace, err := organisations.Get(context.DContext, client, localConfig.Organisation)
 		if err != nil {
 			panic(err)
 		}
@@ -74,8 +74,8 @@ to quickly create a Cobra application.`,
 
 		//	Create new item
 		item, err := projects.Create(context.DContext, client, &projects.CreateOptions{
-			WorkspaceID: localConfig.Workspace,
-			Name:        name,
+			OrgID: localConfig.Organisation,
+			Name:  name,
 		})
 		if err != nil {
 			panic(err)

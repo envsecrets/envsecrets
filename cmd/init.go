@@ -12,8 +12,8 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
-	"github.com/envsecrets/envsecrets/internal/workspaces"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
@@ -22,10 +22,10 @@ import (
 )
 
 var (
-	workspaceName   string
-	projectName     string
-	environmentName string
-	branchName      string
+	organisationName string
+	projectName      string
+	environmentName  string
+	branchName       string
 )
 
 // initCmd represents the init command
@@ -43,15 +43,15 @@ var initCmd = &cobra.Command{
 		//
 		//	Call APIs to pull existing entities
 		//
-		var workspace workspaces.Workspace
+		var organisation organisations.Organisation
 		var project projects.Project
 		//	var environment environments.Environment
 
 		//	Initialize GQL Client
 		client := client.GRAPHQL_CLIENT
 
-		//	Setup workspace first
-		if len(workspaceName) == 0 {
+		//	Setup organisation first
+		if len(organisationName) == 0 {
 
 			//	Validate input
 			validate := func(input string) error {
@@ -59,7 +59,7 @@ var initCmd = &cobra.Command{
 			}
 
 			prompt := promptui.Prompt{
-				Label:     "Workspace",
+				Label:     "Organisation",
 				Default:   filepath.Base(filepath.Dir(filepath.Dir(config.EXECUTABLE))),
 				AllowEdit: true,
 				Validate:  validate,
@@ -72,15 +72,15 @@ var initCmd = &cobra.Command{
 			}
 
 			//	Create new item
-			item, err := workspaces.Create(context.DContext, client, &workspaces.CreateOptions{
+			item, err := organisations.Create(context.DContext, client, &organisations.CreateOptions{
 				Name: result,
 			})
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			workspace.ID = item.ID
-			workspace.Name = fmt.Sprint(item.Name)
+			organisation.ID = item.ID
+			organisation.Name = fmt.Sprint(item.Name)
 		}
 
 		//	Setup project
@@ -106,8 +106,8 @@ var initCmd = &cobra.Command{
 
 			//	Create new item
 			item, err := projects.Create(context.DContext, client, &projects.CreateOptions{
-				WorkspaceID: workspace.ID,
-				Name:        result,
+				OrgID: organisation.ID,
+				Name:  result,
 			})
 			if err != nil {
 				fmt.Println(err)
@@ -115,16 +115,16 @@ var initCmd = &cobra.Command{
 
 			project.ID = item.ID
 			project.Name = item.Name
-			project.WorkspaceID = item.WorkspaceID
+			project.OrgID = item.OrgID
 		}
 
 		//	Write selected entities to project config
 		if err := projectConfig.Save(&configCommons.Project{
-			Version:     1,
-			Workspace:   workspace.ID,
-			Project:     project.ID,
-			Environment: "dev",
-			Branch:      "main",
+			Version:      1,
+			Organisation: organisation.ID,
+			Project:      project.ID,
+			Environment:  "dev",
+			Branch:       "main",
 		}); err != nil {
 			panic(err)
 		}
@@ -142,7 +142,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	initCmd.Flags().StringVarP(&workspaceName, "workspace", "w", "", "Your existing envsecrets workspace")
+	initCmd.Flags().StringVarP(&organisationName, "organisation", "w", "", "Your existing envsecrets organisation")
 	initCmd.Flags().StringVarP(&projectName, "project", "p", "", "Your existing envsecrets project")
 	initCmd.Flags().StringVarP(&environmentName, "environment", "e", "dev", "Your existing envsecrets environment")
 	initCmd.Flags().StringVarP(&branchName, "branch", "b", "main", "Your existing envsecrets branch")

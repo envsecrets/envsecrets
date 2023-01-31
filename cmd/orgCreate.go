@@ -12,15 +12,15 @@ import (
 	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/workspaces"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
 var name string
 
-// workspacesCreateCmd represents the workspacesCreate command
-var workspacesCreateCmd = &cobra.Command{
+// organisationsCreateCmd represents the organisationsCreate command
+var organisationsCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 			}
 
 			prompt := promptui.Prompt{
-				Label:     "Workspace",
+				Label:     "Organisation",
 				Default:   filepath.Base(filepath.Dir(filepath.Dir(config.EXECUTABLE))),
 				AllowEdit: true,
 				Validate:  validate,
@@ -58,7 +58,7 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Create new item
-		item, err := workspaces.Create(context.DContext, client, &workspaces.CreateOptions{
+		item, err := organisations.Create(context.DContext, client, &organisations.CreateOptions{
 			Name: name,
 		})
 		if err != nil {
@@ -72,7 +72,7 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Update the new value
-		config.Workspace = item.ID
+		config.Organisation = item.ID
 
 		if err := projectConfig.Save(config); err != nil {
 			panic(err)
@@ -85,15 +85,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	workspacesCmd.AddCommand(workspacesCreateCmd)
+	organisationsCmd.AddCommand(organisationsCreateCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// workspacesCreateCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// organisationsCreateCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	workspacesCreateCmd.Flags().StringVarP(&name, "name", "n", "", "name of your new workspace")
+	organisationsCreateCmd.Flags().StringVarP(&name, "name", "n", "", "name of your new workspace")
 }

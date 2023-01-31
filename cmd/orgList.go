@@ -13,14 +13,14 @@ import (
 	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/workspaces"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/spf13/cobra"
 )
 
 var listJSON bool
 
-// workspacesListCmd represents the workspacesList command
-var workspacesListCmd = &cobra.Command{
+// organisationsListCmd represents the organisationsList command
+var organisationsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -41,7 +41,7 @@ to quickly create a Cobra application.`,
 		}
 
 		//	List items
-		items, err := workspaces.List(context.DContext, client)
+		items, err := organisations.List(context.DContext, client)
 		if err != nil {
 			panic(err)
 		}
@@ -60,7 +60,7 @@ to quickly create a Cobra application.`,
 			fmt.Fprintf(w, "\t%s\t%s\n", "Name", "ID")
 			fmt.Fprintf(w, "\t%s\t%s\n", "----", "----")
 			for _, item := range *items {
-				if item.ID == localConfig.Workspace {
+				if item.ID == localConfig.Organisation {
 					fmt.Fprintf(w, "\t%s\t%s\t(current)\n", item.Name, item.ID)
 				} else {
 					fmt.Fprintf(w, "\t%s\t%s\n", item.Name, item.ID)
@@ -72,15 +72,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	workspacesCmd.AddCommand(workspacesListCmd)
+	organisationsCmd.AddCommand(organisationsListCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// workspacesListCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// organisationsListCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	workspacesListCmd.Flags().BoolVar(&listJSON, "json", false, "Print list in JSON format")
+	organisationsListCmd.Flags().BoolVar(&listJSON, "json", false, "Print list in JSON format")
 }

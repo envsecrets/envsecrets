@@ -1,11 +1,11 @@
-package workspaces
+package organisations
 
 import (
 	"encoding/json"
 	"time"
 )
 
-type Workspace struct {
+type Organisation struct {
 	ID        string    `json:"id,omitempty" graphql:"id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty" graphql:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
@@ -14,11 +14,11 @@ type Workspace struct {
 	//	User      users.User `json:"user,omitempty" graphql:"user"`
 }
 
-func (w *Workspace) Marshal() ([]byte, error) {
+func (w *Organisation) Marshal() ([]byte, error) {
 	return json.Marshal(&w)
 }
 
-func (w *Workspace) Unmarshal(data []byte) error {
+func (w *Organisation) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, &w)
 }
 

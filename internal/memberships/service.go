@@ -11,14 +11,14 @@ import (
 func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($workspace_id: uuid!) {
-		insert_memberships_one(object: {workspace_id: $workspace_id}) {
+	mutation MyMutation($org_id: uuid!) {
+		insert_memberships_one(object: {org_id: $org_id}) {
 		  id
 		}
 	  }	  
 	`)
 
-	req.Var("workspace_id", options.WorkspaceID)
+	req.Var("org_id", options.OrgID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}

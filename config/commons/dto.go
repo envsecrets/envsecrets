@@ -3,11 +3,11 @@ package commons
 import "github.com/envsecrets/envsecrets/internal/users"
 
 type Project struct {
-	Version     int    `json:"version,omitempty" yaml:"version,omitempty"`
-	Workspace   string `json:"workspace,omitempty" yaml:"workspace,omitempty"`
-	Project     string `json:"project,omitempty" yaml:"project,omitempty"`
-	Environment string `json:"environment,omitempty" yaml:"environment,omitempty"`
-	Branch      string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Version      int    `json:"version,omitempty" yaml:"version,omitempty"`
+	Organisation string `json:"organisation,omitempty" yaml:"organisation,omitempty"`
+	Project      string `json:"project,omitempty" yaml:"project,omitempty"`
+	Environment  string `json:"environment,omitempty" yaml:"environment,omitempty"`
+	Branch       string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
 type Account struct {

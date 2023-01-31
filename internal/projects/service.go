@@ -11,8 +11,8 @@ import (
 func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($name: String!, $workspace_id: uuid!) {
-		insert_projects(objects: {name: $name, workspace_id: $workspace_id}) {
+	mutation MyMutation($name: String!, $org_id: uuid!) {
+		insert_projects(objects: {name: $name, org_id: $org_id}) {
 		  returning {
 			id
 			name
@@ -22,7 +22,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 	`)
 
 	req.Var("name", options.Name)
-	req.Var("workspace_id", options.WorkspaceID)
+	req.Var("org_id", options.OrgID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
@@ -52,7 +52,7 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Projec
 		projects_by_pk(id: $id) {
 			id
 			name
-			workspace_id
+			org_id
 		}
 	  }	  
 	`)
@@ -84,14 +84,14 @@ func List(ctx context.ServiceContext, client *graphql.Client, options *ListOptio
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
-		projects(where: {workspace_id: {_eq: $id}}) {
+		projects(where: {org_id: {_eq: $id}}) {
 		  id
 		  name
 		}
 	  }	  
 	`)
 
-	req.Var("id", options.WorkspaceID)
+	req.Var("id", options.OrgID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}

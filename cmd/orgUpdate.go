@@ -5,12 +5,14 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
-// workspacesCmd represents the workspaces command
-var workspacesCmd = &cobra.Command{
-	Use:   "workspaces",
+// organisationsUpdateCmd represents the organisationsUpdate command
+var organisationsUpdateCmd = &cobra.Command{
+	Use:   "organisationsUpdate",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -19,20 +21,20 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		workspacesListCmd.Run(cmd, args)
+		fmt.Println("organisationsUpdate called")
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(workspacesCmd)
+	organisationsCmd.AddCommand(organisationsUpdateCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// workspacesCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// organisationsUpdateCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// workspacesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// organisationsUpdateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

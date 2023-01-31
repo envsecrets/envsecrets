@@ -1,4 +1,4 @@
-package workspaces
+package organisations
 
 import (
 	"encoding/json"
@@ -8,12 +8,12 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new workspace
+//	Create a new organisation
 func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
-		insert_workspaces(objects: {name: $name}) {
+		insert_organisations(objects: {name: $name}) {
 		  returning {
 			id
 			name
@@ -30,7 +30,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["insert_workspaces"].(map[string]interface{})["returning"].([]interface{}))
+	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 
 	//	Add yourself as the first member of the organization
 	if _, err = memberships.Create(ctx, client, &memberships.CreateOptions{
-		WorkspaceID: result.ID,
+		OrgID: result.ID,
 	}); err != nil {
 		return nil, err
 	}
@@ -53,12 +53,12 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 	return &result, nil
 }
 
-//	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Workspace, error) {
+//	Get a organisation by ID
+func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
-		workspaces_by_pk(id: $id) {
+		organisations_by_pk(id: $id) {
 			id
 			name
 		}
@@ -73,13 +73,13 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Worksp
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["workspaces_by_pk"])
+	returning, err := json.Marshal(response["organisations_by_pk"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Workspace
+	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -87,12 +87,12 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Worksp
 	return &resp, nil
 }
 
-//	List workspaces
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, error) {
+//	List organisations
+func List(ctx context.ServiceContext, client *graphql.Client) (*[]Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
-		workspaces {
+		organisations {
 			id
 			name
 		}
@@ -106,13 +106,13 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, err
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["workspaces"])
+	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Workspace
+	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -120,12 +120,12 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, err
 	return &resp, nil
 }
 
-//	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Workspace, error) {
+//	Update a organisation by ID
+func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
-		update_workspaces_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
+		update_organisations_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
 			id
 		  name
 		}
@@ -141,13 +141,13 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["update_workspaces_by_pk"])
+	returning, err := json.Marshal(response["update_organisations_by_pk"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Workspace
+	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 	return &resp, nil
 }
 
-//	Delete a workspace by ID
+//	Delete a organisation by ID
 func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
 	return nil
 }
