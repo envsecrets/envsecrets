@@ -6,8 +6,10 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/envsecrets/envsecrets/cmd/internal/auth"
+	"github.com/envsecrets/envsecrets/config"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/projects"
@@ -20,10 +22,10 @@ import (
 )
 
 var (
-	workspace   string
-	project     string
-	environment string
-	branch      string
+	workspaceName   string
+	projectName     string
+	environmentName string
+	branchName      string
 )
 
 // initCmd represents the init command
@@ -41,83 +43,123 @@ var initCmd = &cobra.Command{
 		//
 		//	Call APIs to pull existing entities
 		//
+		var workspace workspaces.Workspace
+		var project projects.Project
+		//	var environment environments.Environment
 
 		//	Initialize GQL Client
 		client := client.GRAPHQL_CLIENT
 
 		//	Setup workspace first
-		if len(workspace) == 0 {
+		if len(workspaceName) == 0 {
 
-			//	Fetch users workspaces
-			workspaces, err := workspaces.List(context.DContext, client)
-			if err != nil {
-				panic(err)
+			//	Validate input
+			validate := func(input string) error {
+				return nil
 			}
 
-			//	[TODO] If the user doesn't have any workspace,
-			//	then initiate the flow to create one.
-
-			prompt := promptui.Select{
-				Label: "Workspace",
-				Items: *workspaces,
-				Templates: &promptui.SelectTemplates{
-					Active:   "\U0001F336 {{ .Name }}",
-					Selected: "\U0001F336 {{ .Name }}",
-				},
+			prompt := promptui.Prompt{
+				Label:     "Workspace",
+				Default:   filepath.Base(filepath.Dir(filepath.Dir(config.EXECUTABLE))),
+				AllowEdit: true,
+				Validate:  validate,
 			}
 
-			index, _, err := prompt.Run()
+			result, err := prompt.Run()
 			if err != nil {
 				fmt.Printf("Prompt failed %v\n", err)
 				return
 			}
 
-			for item, value := range *workspaces {
-				if item == index {
-					workspace = value.Name
-				}
+			//	Create new item
+			item, err := workspaces.Create(context.DContext, client, &workspaces.CreateOptions{
+				Name: result,
+			})
+			if err != nil {
+				fmt.Println(err)
 			}
+
+			workspace.ID = item.ID
+			workspace.Name = fmt.Sprint(item.Name)
 		}
 
 		//	Setup project
-		if len(project) == 0 {
+		if len(projectName) == 0 {
 
-			//	Fetch users projects
-			projects, err := projects.List(context.DContext, client)
-			if err != nil {
-				panic(err)
+			//	Validate input
+			validate := func(input string) error {
+				return nil
 			}
 
-			//	[TODO] If the user doesn't have any project,
-			//	then initiate the flow to create one.
-
-			prompt := promptui.Select{
-				Label: "Project",
-				Items: *projects,
-				Templates: &promptui.SelectTemplates{
-					Active:   "\U0001F336 {{ .Name }}",
-					Selected: "\U0001F336 {{ .Name }}",
-				},
+			prompt := promptui.Prompt{
+				Label:     "Project",
+				Default:   filepath.Base(filepath.Dir(config.EXECUTABLE)),
+				AllowEdit: true,
+				Validate:  validate,
 			}
 
-			index, _, err := prompt.Run()
+			result, err := prompt.Run()
 			if err != nil {
 				fmt.Printf("Prompt failed %v\n", err)
 				return
 			}
 
-			for item, value := range *projects {
-				if item == index {
-					project = value.Name
-				}
+			//	Create new item
+			item, err := projects.Create(context.DContext, client, &projects.CreateOptions{
+				WorkspaceID: workspace.ID,
+				Name:        result,
+			})
+			if err != nil {
+				fmt.Println(err)
 			}
+
+			project.ID = item.ID
+			project.Name = item.Name
+			project.WorkspaceID = item.WorkspaceID
 		}
 
+		/* 		//	Setup environment
+		   		if len(environmentName) == 0 {
+
+		   			//	Validate input
+		   			validate := func(input string) error {
+		   				return nil
+		   			}
+
+		   			prompt := promptui.Prompt{
+		   				Label:     "Environment",
+		   				Default:   "dev",
+		   				AllowEdit: true,
+		   				Validate:  validate,
+		   			}
+
+		   			result, err := prompt.Run()
+		   			if err != nil {
+		   				fmt.Printf("Prompt failed %v\n", err)
+		   				return
+		   			}
+
+		   			//	Create new item
+		   			item, err := environments.Create(context.DContext, client, &environments.CreateOptions{
+		   				ProjectID: project.ID,
+		   				Name:      result,
+		   			})
+		   			if err != nil {
+		   				fmt.Println(err)
+		   			}
+
+		   			environment.ID = item.ID
+		   			environment.Name = item.Name
+		   			environment.ProjectID = project.ID
+		   		}
+		*/
 		//	Write selected entities to project config
 		if err := projectConfig.Save(&configCommons.Project{
-			Version:   1,
-			Workspace: workspace,
-			Project:   project,
+			Version:     1,
+			Workspace:   workspace.ID,
+			Project:     project.ID,
+			Environment: "dev",
+			Branch:      "main",
 		}); err != nil {
 			panic(err)
 		}
@@ -135,8 +177,8 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	initCmd.Flags().StringVarP(&workspace, "workspace", "w", "", "Your existing envsecrets workspace")
-	initCmd.Flags().StringVarP(&project, "project", "p", "", "Your existing envsecrets project")
-	initCmd.Flags().StringVarP(&environment, "environment", "e", "dev", "Your existing envsecrets environment")
-	initCmd.Flags().StringVarP(&branch, "branch", "b", "main", "Your existing envsecrets branch")
+	initCmd.Flags().StringVarP(&workspaceName, "workspace", "w", "", "Your existing envsecrets workspace")
+	initCmd.Flags().StringVarP(&projectName, "project", "p", "", "Your existing envsecrets project")
+	initCmd.Flags().StringVarP(&environmentName, "environment", "e", "dev", "Your existing envsecrets environment")
+	initCmd.Flags().StringVarP(&branchName, "branch", "b", "main", "Your existing envsecrets branch")
 }

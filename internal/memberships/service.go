@@ -1,4 +1,4 @@
-package projects
+package memberships
 
 import (
 	"encoding/json"
@@ -7,21 +7,17 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new workspace
+//	Create a new membership
 func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($name: String!, $workspace_id: uuid!) {
-		insert_projects(objects: {name: $name, workspace_id: $workspace_id}) {
-		  returning {
-			id
-			name
-		  }
+	mutation MyMutation($workspace_id: uuid!) {
+		insert_memberships_one(object: {workspace_id: $workspace_id}) {
+		  id
 		}
 	  }	  
 	`)
 
-	req.Var("name", options.Name)
 	req.Var("workspace_id", options.WorkspaceID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
@@ -30,29 +26,28 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["insert_projects"].(map[string]interface{})["returning"].([]interface{}))
+	returning, err := json.Marshal(response["insert_memberships_one"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []CreateResponse
+	var resp CreateResponse
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
 
-	return &resp[0], nil
+	return &resp, nil
 }
 
-//	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Project, error) {
+//	Get a membership by ID
+func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Membership, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
-		projects_by_pk(id: $id) {
+		memberships_by_pk(id: $id) {
 			id
 			name
-			workspace_id
 		}
 	  }	  
 	`)
@@ -65,13 +60,13 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Projec
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["projects_by_pk"])
+	returning, err := json.Marshal(response["memberships_by_pk"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Project
+	var resp Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -79,12 +74,12 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Projec
 	return &resp, nil
 }
 
-//	List projects
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Project, error) {
+//	List memberships
+func List(ctx context.ServiceContext, client *graphql.Client) (*[]Membership, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
-		projects {
+		memberships {
 			id
 			name
 		}
@@ -98,13 +93,13 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Project, error
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["projects"])
+	returning, err := json.Marshal(response["memberships"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Project
+	var resp []Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -112,42 +107,12 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Project, error
 	return &resp, nil
 }
 
-//	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Project, error) {
-
-	req := graphql.NewRequest(`
-	mutation MyMutation($id: uuid!, $name: String!) {
-		update_projects_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
-			id
-		  name
-		}
-	  }	  
-	`)
-
-	req.Var("id", id)
-	req.Var("name", options.Name)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
-
-	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
-		return nil, err
-	}
-
-	returning, err := json.Marshal(response["update_projects_by_pk"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp Project
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+//	Update a membership by ID
+func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Membership, error) {
+	return nil, nil
 }
 
-//	Delete a workspace by ID
+//	Delete a membership by ID
 func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
 	return nil
 }

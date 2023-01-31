@@ -8,3 +8,45 @@ object_relationships:
   - name: workspace
     using:
       foreign_key_constraint_on: workspace_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        workspace:
+          user_id:
+            _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - workspace_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - created_at
+        - updated_at
+        - id
+        - user_id
+        - workspace_id
+      filter:
+        workspace:
+          memberships:
+            user_id:
+              _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns: []
+      filter:
+        workspace:
+          user_id:
+            _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        workspace:
+          user_id:
+            _eq: X-Hasura-User-Id

@@ -1,29 +1,29 @@
-package workspaces
+package environments
 
 import (
 	"encoding/json"
 	"time"
 )
 
-type Workspace struct {
+type Environment struct {
 	ID        string    `json:"id,omitempty" graphql:"id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty" graphql:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
 	Name      string    `json:"name,omitempty" graphql:"name,omitempty"`
-	UserID    string    `json:"user_id,omitempty" graphql:"user_id,omitempty"`
-	//	User      users.User `json:"user,omitempty" graphql:"user"`
+	ProjectID string    `json:"project_id,omitempty" graphql:"project_id"`
 }
 
-func (w *Workspace) Marshal() ([]byte, error) {
+func (w *Environment) Marshal() ([]byte, error) {
 	return json.Marshal(&w)
 }
 
-func (w *Workspace) Unmarshal(data []byte) error {
+func (w *Environment) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, &w)
 }
 
 type CreateOptions struct {
-	Name string `json:"name"`
+	Name      string `json:"name" graphql:"name"`
+	ProjectID string `json:"project_id" graphql:"project_id"`
 }
 
 type CreateResponse struct {

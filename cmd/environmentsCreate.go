@@ -7,12 +7,18 @@ package cmd
 import (
 	"fmt"
 
+	projectConfig "github.com/envsecrets/envsecrets/config/project"
+	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
 // environmentsCreateCmd represents the environmentsCreate command
 var environmentsCreateCmd = &cobra.Command{
-	Use:   "environmentsCreate",
+	Use:   "create",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -21,7 +27,67 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("environmentsCreate called")
+
+		//	Initialize GQL Client
+		client := client.GRAPHQL_CLIENT
+
+		//	Load the project config
+		localConfig, err := projectConfig.Load()
+		if err != nil {
+			panic(err)
+		}
+
+		//	Fetch the current workspace
+		project, err := projects.Get(context.DContext, client, localConfig.Project)
+		if err != nil {
+			panic(err)
+		}
+
+		//	Notify the user about their current workspace
+		fmt.Printf("You are about to create a new environment in the current '%s' project.\n", project.Name)
+
+		if name == "" {
+
+			//	Validate input
+			validate := func(input string) error {
+				return nil
+			}
+
+			prompt := promptui.Prompt{
+				Label:     "Environment",
+				Default:   "dev",
+				AllowEdit: true,
+				Validate:  validate,
+			}
+
+			result, err := prompt.Run()
+			if err != nil {
+				fmt.Printf("Prompt failed %v\n", err)
+				return
+			}
+
+			name = result
+		}
+
+		//	Create new item
+		item, err := environments.Create(context.DContext, client, &environments.CreateOptions{
+			ProjectID: localConfig.Project,
+			Name:      name,
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		//	Update the new value
+		localConfig.Environment = item.Name
+
+		if err := projectConfig.Save(localConfig); err != nil {
+			panic(err)
+		}
+
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		fmt.Println("New environment created and set in project configuration!")
 	},
 }
 

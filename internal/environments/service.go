@@ -1,19 +1,18 @@
-package workspaces
+package environments
 
 import (
 	"encoding/json"
 
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new workspace
+//	Create a new environment
 func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($name: String!) {
-		insert_workspaces(objects: {name: $name}) {
+	mutation MyMutation($name: String!, $project_id: uuid!) {
+		insert_environments(objects: {name: $name, project_id: $project_id}) {
 		  returning {
 			id
 			name
@@ -23,6 +22,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 	`)
 
 	req.Var("name", options.Name)
+	req.Var("project_id", options.ProjectID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
@@ -30,7 +30,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["insert_workspaces"].(map[string]interface{})["returning"].([]interface{}))
+	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
 		return nil, err
 	}
@@ -41,24 +41,15 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 		return nil, err
 	}
 
-	result := resp[0]
-
-	//	Add yourself as the first member of the organization
-	if _, err = memberships.Create(ctx, client, &memberships.CreateOptions{
-		WorkspaceID: result.ID,
-	}); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	return &resp[0], nil
 }
 
-//	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Workspace, error) {
+//	Get a environment by ID
+func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
-		workspaces_by_pk(id: $id) {
+		environments_by_pk(id: $id) {
 			id
 			name
 		}
@@ -73,13 +64,13 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Worksp
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["workspaces_by_pk"])
+	returning, err := json.Marshal(response["environments_by_pk"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Workspace
+	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -87,12 +78,12 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Worksp
 	return &resp, nil
 }
 
-//	List workspaces
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, error) {
+//	List environments
+func List(ctx context.ServiceContext, client *graphql.Client) (*[]Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
-		workspaces {
+		environments {
 			id
 			name
 		}
@@ -106,13 +97,13 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, err
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["workspaces"])
+	returning, err := json.Marshal(response["environments"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Workspace
+	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -120,12 +111,12 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Workspace, err
 	return &resp, nil
 }
 
-//	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Workspace, error) {
+//	Update a environment by ID
+func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
-		update_workspaces_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
+		update_environments_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
 			id
 		  name
 		}
@@ -141,13 +132,13 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["update_workspaces_by_pk"])
+	returning, err := json.Marshal(response["update_environments_by_pk"])
 	if err != nil {
 		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Workspace
+	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -155,7 +146,7 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 	return &resp, nil
 }
 
-//	Delete a workspace by ID
+//	Delete a environment by ID
 func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
 	return nil
 }
