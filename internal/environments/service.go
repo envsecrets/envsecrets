@@ -79,17 +79,18 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Enviro
 }
 
 //	List environments
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Environment, error) {
+func List(ctx context.ServiceContext, client *graphql.Client, options *ListOptions) (*[]Environment, error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery {
-		environments {
-			id
-			name
+	query MyQuery($id: uuid!) {
+		environments(where: {project_id: {_eq: $id}}) {
+		  id
+		  name
 		}
 	  }	  
 	`)
 
+	req.Var("id", options.ProjectID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}

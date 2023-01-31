@@ -113,6 +113,13 @@ array_relationships:
         table:
           name: memberships
           schema: public
+  - name: organisations
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: organisations
+          schema: public
   - name: refreshTokens
     using:
       foreign_key_constraint_on:
@@ -141,10 +148,3 @@ array_relationships:
         table:
           name: user_providers
           schema: auth
-  - name: workspaces
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: workspaces
-          schema: public

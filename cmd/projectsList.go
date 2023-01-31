@@ -10,6 +10,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/projects"
@@ -31,8 +32,16 @@ to quickly create a Cobra application.`,
 		//	Initialize GQL Client
 		client := client.GRAPHQL_CLIENT
 
+		//	Load the project config
+		localConfig, err := projectConfig.Load()
+		if err != nil {
+			panic(err)
+		}
+
 		//	List items
-		items, err := projects.List(context.DContext, client)
+		items, err := projects.List(context.DContext, client, &projects.ListOptions{
+			WorkspaceID: localConfig.Workspace,
+		})
 		if err != nil {
 			panic(err)
 		}
@@ -47,11 +56,15 @@ to quickly create a Cobra application.`,
 
 		} else {
 
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', tabwriter.TabIndent)
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
 			fmt.Fprintf(w, "\t%s\t%s\n", "Name", "ID")
 			fmt.Fprintf(w, "\t%s\t%s\n", "----", "----")
 			for _, item := range *items {
-				fmt.Fprintf(w, "\t%s\t%s\n", item.Name, item.ID)
+				if item.ID == localConfig.Project {
+					fmt.Fprintf(w, "\t%s\t%s\t(current)\n", item.Name, item.ID)
+				} else {
+					fmt.Fprintf(w, "\t%s\t%s\n", item.Name, item.ID)
+				}
 			}
 			w.Flush()
 		}

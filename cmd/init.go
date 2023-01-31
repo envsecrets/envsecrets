@@ -118,41 +118,6 @@ var initCmd = &cobra.Command{
 			project.WorkspaceID = item.WorkspaceID
 		}
 
-		/* 		//	Setup environment
-		   		if len(environmentName) == 0 {
-
-		   			//	Validate input
-		   			validate := func(input string) error {
-		   				return nil
-		   			}
-
-		   			prompt := promptui.Prompt{
-		   				Label:     "Environment",
-		   				Default:   "dev",
-		   				AllowEdit: true,
-		   				Validate:  validate,
-		   			}
-
-		   			result, err := prompt.Run()
-		   			if err != nil {
-		   				fmt.Printf("Prompt failed %v\n", err)
-		   				return
-		   			}
-
-		   			//	Create new item
-		   			item, err := environments.Create(context.DContext, client, &environments.CreateOptions{
-		   				ProjectID: project.ID,
-		   				Name:      result,
-		   			})
-		   			if err != nil {
-		   				fmt.Println(err)
-		   			}
-
-		   			environment.ID = item.ID
-		   			environment.Name = item.Name
-		   			environment.ProjectID = project.ID
-		   		}
-		*/
 		//	Write selected entities to project config
 		if err := projectConfig.Save(&configCommons.Project{
 			Version:     1,

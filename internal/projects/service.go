@@ -80,17 +80,18 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Projec
 }
 
 //	List projects
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Project, error) {
+func List(ctx context.ServiceContext, client *graphql.Client, options *ListOptions) (*[]Project, error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery {
-		projects {
-			id
-			name
+	query MyQuery($id: uuid!) {
+		projects(where: {workspace_id: {_eq: $id}}) {
+		  id
+		  name
 		}
 	  }	  
 	`)
 
+	req.Var("id", options.WorkspaceID)
 	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}

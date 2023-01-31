@@ -10,7 +10,7 @@
 - "!include public_environments.yaml"
 - "!include public_invites.yaml"
 - "!include public_memberships.yaml"
+- "!include public_organisations.yaml"
 - "!include public_projects.yaml"
-- "!include public_workspaces.yaml"
 - "!include storage_buckets.yaml"
 - "!include storage_files.yaml"

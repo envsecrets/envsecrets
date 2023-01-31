@@ -35,3 +35,7 @@ type CreateResponse struct {
 type UpdateOptions struct {
 	Name string `json:"name" graphql:"name"`
 }
+
+type ListOptions struct {
+	WorkspaceID string `graphql:"workspace_id" json:"workspace_id"`
+}

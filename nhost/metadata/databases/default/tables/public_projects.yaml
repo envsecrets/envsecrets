@@ -1,10 +1,17 @@
 table:
   name: projects
   schema: public
+configuration:
+  column_config:
+    org_id:
+      custom_name: org_id
+  custom_column_names:
+    org_id: org_id
+  custom_root_fields: {}
 object_relationships:
-  - name: workspace
+  - name: organisation
     using:
-      foreign_key_constraint_on: workspace_id
+      foreign_key_constraint_on: org_id
 array_relationships:
   - name: environments
     using:
@@ -17,13 +24,13 @@ insert_permissions:
   - role: user
     permission:
       check:
-        workspace:
+        organisation:
           memberships:
             user_id:
               _eq: X-Hasura-User-Id
       columns:
         - name
-        - workspace_id
+        - org_id
 select_permissions:
   - role: user
     permission:
@@ -32,9 +39,9 @@ select_permissions:
         - id
         - name
         - updated_at
-        - workspace_id
+        - org_id
       filter:
-        workspace:
+        organisation:
           memberships:
             user_id:
               _eq: X-Hasura-User-Id
@@ -45,7 +52,7 @@ update_permissions:
       columns:
         - name
       filter:
-        workspace:
+        organisation:
           memberships:
             user_id:
               _eq: X-Hasura-User-Id
@@ -54,6 +61,6 @@ delete_permissions:
   - role: user
     permission:
       filter:
-        workspace:
+        organisation:
           user_id:
             _eq: X-Hasura-User-Id

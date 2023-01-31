@@ -18,7 +18,7 @@ insert_permissions:
     permission:
       check:
         project:
-          workspace:
+          organisation:
             memberships:
               user_id:
                 _eq: X-Hasura-User-Id
@@ -36,7 +36,7 @@ select_permissions:
         - project_id
       filter:
         project:
-          workspace:
+          organisation:
             memberships:
               user_id:
                 _eq: X-Hasura-User-Id
@@ -48,7 +48,7 @@ update_permissions:
         - name
       filter:
         project:
-          workspace:
+          organisation:
             memberships:
               user_id:
                 _eq: X-Hasura-User-Id
@@ -58,6 +58,6 @@ delete_permissions:
     permission:
       filter:
         project:
-          workspace:
+          organisation:
             user_id:
               _eq: X-Hasura-User-Id
