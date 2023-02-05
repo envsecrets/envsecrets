@@ -22,28 +22,30 @@ insert_permissions:
   - role: user
     permission:
       check:
-        organisation:
-          memberships:
-            user_id:
-              _eq: X-Hasura-User-Id
+        sender_id:
+          _eq: X-Hasura-User-Id
       set:
         sender_id: x-hasura-User-Id
       columns:
-        - receiver_email
         - org_id
+        - receiver_email
+        - scope
 select_permissions:
   - role: user
     permission:
       columns:
+        - accepted
         - created_at
-        - updated_at
-        - receiver_email
         - id
-        - sender_id
         - org_id
+        - receiver_email
+        - scope
+        - sender_id
+        - updated_at
       filter:
-        receiver_email:
-          _eq: X-Hasura-User-Email
+        user:
+          id:
+            _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -51,8 +53,9 @@ update_permissions:
       columns:
         - accepted
       filter:
-        receiver_email:
-          _eq: X-Hasura-User-Email
+        user:
+          id:
+            _eq: X-Hasura-User-Id
       check: null
 delete_permissions:
   - role: user

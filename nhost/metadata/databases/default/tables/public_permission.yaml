@@ -1,0 +1,7 @@
+table:
+  name: permission
+  schema: public
+object_relationships:
+  - name: membership
+    using:
+      foreign_key_constraint_on: membership_id

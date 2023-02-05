@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -11,7 +11,7 @@ import (
 // environmentsCmd represents the environments command
 var environmentsCmd = &cobra.Command{
 	Use:     "environments",
-	Aliases: []string{"envs"},
+	Aliases: []string{"envs", "env"},
 	Short:   "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:

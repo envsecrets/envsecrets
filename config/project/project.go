@@ -1,4 +1,4 @@
-package config
+package project
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/config"
 	"github.com/envsecrets/envsecrets/config/commons"
 	"gopkg.in/yaml.v3"
 )
@@ -16,7 +15,7 @@ const (
 )
 
 var (
-	PROJECT_DIR        = filepath.Dir(config.EXECUTABLE)
+	PROJECT_DIR        = filepath.Dir(commons.EXECUTABLE)
 	PROJECT_CONFIG_DIR = filepath.Join(PROJECT_DIR, ".envsecrets")
 	PROJECT_CONFIG_LOC = filepath.Join(PROJECT_CONFIG_DIR, CONFIG_FILENAME)
 )
@@ -62,4 +61,8 @@ func Load() (*commons.Project, error) {
 func Exists() bool {
 	_, err := os.Stat(PROJECT_CONFIG_LOC)
 	return !errors.Is(err, os.ErrNotExist)
+}
+
+func Delete() error {
+	return os.Remove(PROJECT_CONFIG_LOC)
 }

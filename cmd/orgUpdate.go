@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd

@@ -34,9 +34,9 @@ import (
 	"fmt"
 	"net/mail"
 
-	"github.com/envsecrets/envsecrets/cmd/internal/auth"
-	accountConfig "github.com/envsecrets/envsecrets/config/account"
+	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -51,11 +51,6 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate your envsecrets account",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		if auth.IsLoggedIn() {
-			fmt.Println("You are already authenticated!\nLog out with `envsecrets logout`")
-			return
-		}
 
 		var err error
 
@@ -106,14 +101,13 @@ var loginCmd = &cobra.Command{
 		}
 
 		//	Save the account config
-		if err := accountConfig.Save(&configCommons.Account{
+		if err := config.GetService().Save(configCommons.Account{
 			AccessToken:  response.Session.AccessToken,
 			RefreshToken: response.Session.RefreshToken,
 			User:         response.Session.User,
-		}); err != nil {
+		}, configCommons.AccountConfig); err != nil {
 			panic(err)
 		}
-
 		fmt.Println("You are logged in!")
 	},
 }

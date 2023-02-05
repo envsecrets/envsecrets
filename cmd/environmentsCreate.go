@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -38,9 +38,9 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Fetch the current workspace
-		project, err := projects.Get(context.DContext, client, localConfig.Project)
-		if err != nil {
-			panic(err)
+		project, er := projects.Get(context.DContext, client, localConfig.Project)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		//	Notify the user about their current workspace
@@ -70,12 +70,12 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Create new item
-		item, err := environments.Create(context.DContext, client, &environments.CreateOptions{
+		item, er := environments.Create(context.DContext, client, &environments.CreateOptions{
 			ProjectID: localConfig.Project,
 			Name:      name,
 		})
-		if err != nil {
-			panic(err)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		//	Update the new value

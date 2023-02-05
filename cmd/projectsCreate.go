@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -8,8 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/config"
-
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -41,9 +40,9 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Fetch the current workspace
-		workspace, err := organisations.Get(context.DContext, client, localConfig.Organisation)
-		if err != nil {
-			panic(err)
+		workspace, er := organisations.Get(context.DContext, client, localConfig.Organisation)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		//	Notify the user about their current workspace
@@ -58,7 +57,7 @@ to quickly create a Cobra application.`,
 
 			prompt := promptui.Prompt{
 				Label:     "Project",
-				Default:   filepath.Base(filepath.Dir(config.EXECUTABLE)),
+				Default:   filepath.Base(filepath.Dir(configCommons.EXECUTABLE)),
 				AllowEdit: true,
 				Validate:  validate,
 			}
@@ -73,12 +72,12 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Create new item
-		item, err := projects.Create(context.DContext, client, &projects.CreateOptions{
+		item, er := projects.Create(context.DContext, client, &projects.CreateOptions{
 			OrgID: localConfig.Organisation,
 			Name:  name,
 		})
-		if err != nil {
-			panic(err)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		//	Update the new value

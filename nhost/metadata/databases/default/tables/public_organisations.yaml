@@ -47,9 +47,14 @@ select_permissions:
         - id
         - user_id
       filter:
-        memberships:
-          user_id:
-            _eq: X-Hasura-User-Id
+        _or:
+          - memberships:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user:
+                id:
+                  _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
   - role: user

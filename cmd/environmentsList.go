@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -39,11 +39,11 @@ to quickly create a Cobra application.`,
 		}
 
 		//	List items
-		items, err := environments.List(context.DContext, client, &environments.ListOptions{
+		items, er := environments.List(context.DContext, client, &environments.ListOptions{
 			ProjectID: localConfig.Project,
 		})
-		if err != nil {
-			panic(err)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		if listJSON {
@@ -60,7 +60,7 @@ to quickly create a Cobra application.`,
 			fmt.Fprintf(w, "\t%s\t%s\n", "Name", "ID")
 			fmt.Fprintf(w, "\t%s\t%s\n", "----", "----")
 			for _, item := range *items {
-				if item.Name == localConfig.Environment {
+				if item.ID == localConfig.Environment {
 					fmt.Fprintf(w, "\t%s\t%s\t(current)\n", item.Name, item.ID)
 				} else {
 					fmt.Fprintf(w, "\t%s\t%s\n", item.Name, item.ID)

@@ -33,7 +33,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/envsecrets/envsecrets/cmd/internal/auth"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 

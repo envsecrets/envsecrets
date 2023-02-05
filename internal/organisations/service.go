@@ -3,13 +3,16 @@ package organisations
 import (
 	"encoding/json"
 
+	"github.com/envsecrets/envsecrets/internal/errors"
+
+	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new organisation
-func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
+func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
@@ -23,28 +26,27 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 	`)
 
 	req.Var("name", options.Name)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []CreateResponse
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	result := resp[0]
 
 	//	Add yourself as the first member of the organization
-	if _, err = memberships.Create(ctx, client, &memberships.CreateOptions{
+	if _, err := memberships.Create(ctx, client, &memberships.CreateOptions{
 		OrgID: result.ID,
 	}); err != nil {
 		return nil, err
@@ -54,7 +56,7 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 }
 
 //	Get a organisation by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Organisation, error) {
+func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -66,29 +68,28 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Organi
 	`)
 
 	req.Var("id", id)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["organisations_by_pk"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	List organisations
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Organisation, error) {
+func List(ctx context.ServiceContext, client *client.GQLClient) (*[]Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
@@ -99,29 +100,27 @@ func List(ctx context.ServiceContext, client *graphql.Client) (*[]Organisation, 
 	  }	  
 	`)
 
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
-
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarhshal organisation into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	Update a organisation by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Organisation, error) {
+func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -134,28 +133,27 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 
 	req.Var("id", id)
 	req.Var("name", options.Name)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["update_organisations_by_pk"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	Delete a organisation by ID
-func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
+func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
 	return nil
 }

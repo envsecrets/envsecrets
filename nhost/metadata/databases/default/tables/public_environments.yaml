@@ -13,6 +13,13 @@ array_relationships:
         table:
           name: branches
           schema: public
+  - name: permissions
+    using:
+      foreign_key_constraint_on:
+        column: environment_id
+        table:
+          name: permissions
+          schema: public
 insert_permissions:
   - role: user
     permission:

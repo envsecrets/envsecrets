@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -7,21 +7,51 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/invites"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+)
+
+var (
+	accepted bool
 )
 
 // invitesCmd represents the invites command
 var invitesCmd = &cobra.Command{
 	Use:   "invites",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("invites called")
+
+		//	Initialize GQL Client
+		client := client.GRAPHQL_CLIENT
+
+		//	Fetch the existing invites
+		items, err := invites.List(context.DContext, client, &invites.ListOptions{
+			Accepted: false,
+		})
+		if err != nil {
+			panic(err.Error)
+		}
+
+		//	Offer acceptance selection
+		//	Take input for project
+		selection := promptui.Select{
+			Label: "Choose an invite to accept",
+			Items: *items,
+			Templates: &promptui.SelectTemplates{
+				Active: fmt.Sprintf("%s {{ .Organisation.Name | underline }}", promptui.IconSelect),
+			},
+		}
+
+		_, result, er := selection.Run()
+		if er != nil {
+			fmt.Printf("Prompt failed %v\n", er)
+			return
+		}
+
+		fmt.Println("Selected: ", result)
 	},
 }
 

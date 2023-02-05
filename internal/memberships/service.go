@@ -3,12 +3,14 @@ package memberships
 import (
 	"encoding/json"
 
+	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new membership
-func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
+func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!) {
@@ -19,29 +21,28 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 	`)
 
 	req.Var("org_id", options.OrgID)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["insert_memberships_one"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp CreateResponse
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	Get a membership by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Membership, error) {
+func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Membership, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -53,66 +54,69 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Member
 	`)
 
 	req.Var("id", id)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["memberships_by_pk"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	List memberships
-func List(ctx context.ServiceContext, client *graphql.Client) (*[]Membership, error) {
+func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Membership, *errors.Error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery {
-		memberships {
-			id
-			name
+	query MyQuery($org_id: uuid!) {
+		memberships(where: {org_id: {_eq: $org_id}}) {
+		  id
+		  created_at
+		  user {
+			email
+			displayName
+		  }
 		}
-	  }	  
+	  }		
 	`)
 
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
+	req.Var("org_id", options.OrgID)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["memberships"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	Update a membership by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Membership, error) {
+func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Membership, error) {
 	return nil, nil
 }
 
 //	Delete a membership by ID
-func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
+func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
 	return nil
 }

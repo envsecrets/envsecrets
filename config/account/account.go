@@ -1,4 +1,4 @@
-package config
+package account
 
 import (
 	"errors"
@@ -6,9 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/config"
 	"github.com/envsecrets/envsecrets/config/commons"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -16,8 +15,8 @@ const (
 )
 
 var (
-	ACCOUNT_DIR        = filepath.Dir(config.EXECUTABLE)
-	ACCOUNT_CONFIG_DIR = filepath.Join(config.HOME_DIR, ".envsecrets")
+	ACCOUNT_DIR        = filepath.Dir(commons.EXECUTABLE)
+	ACCOUNT_CONFIG_DIR = filepath.Join(commons.HOME_DIR, ".envsecrets")
 	ACCOUNT_CONFIG_LOC = filepath.Join(ACCOUNT_CONFIG_DIR, CONFIG_FILENAME)
 )
 
@@ -62,4 +61,8 @@ func Load() (*commons.Account, error) {
 func Exists() bool {
 	_, err := os.Stat(ACCOUNT_CONFIG_LOC)
 	return !errors.Is(err, os.ErrNotExist)
+}
+
+func Delete() error {
+	return os.Remove(ACCOUNT_CONFIG_LOC)
 }

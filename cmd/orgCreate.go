@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	projectConfig "github.com/envsecrets/envsecrets/config/project"
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -43,7 +43,7 @@ to quickly create a Cobra application.`,
 
 			prompt := promptui.Prompt{
 				Label:     "Organisation",
-				Default:   filepath.Base(filepath.Dir(filepath.Dir(config.EXECUTABLE))),
+				Default:   filepath.Base(filepath.Dir(filepath.Dir(configCommons.EXECUTABLE))),
 				AllowEdit: true,
 				Validate:  validate,
 			}
@@ -66,9 +66,9 @@ to quickly create a Cobra application.`,
 		}
 
 		// TODO:	Set the new workspace ID in project config
-		config, err := projectConfig.Load()
-		if err != nil {
-			panic(err)
+		config, er := projectConfig.Load()
+		if er != nil {
+			panic(er)
 		}
 
 		//	Update the new value

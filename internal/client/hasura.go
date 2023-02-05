@@ -1,13 +1,12 @@
 package client
 
-import (
-	"github.com/machinebox/graphql"
-)
+import "github.com/machinebox/graphql"
 
 var (
-	GRAPHQL_CLIENT *graphql.Client
+	GRAPHQL_CLIENT *GQLClient
 )
 
 func init() {
-	GRAPHQL_CLIENT = graphql.NewClient(NHOST_GRAPHQL_URL)
+	client := graphql.NewClient(NHOST_GRAPHQL_URL)
+	GRAPHQL_CLIENT = &GQLClient{client}
 }

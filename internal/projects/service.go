@@ -3,12 +3,14 @@ package projects
 import (
 	"encoding/json"
 
+	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new workspace
-func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateOptions) (*CreateResponse, error) {
+func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
@@ -23,29 +25,28 @@ func Create(ctx context.ServiceContext, client *graphql.Client, options *CreateO
 
 	req.Var("name", options.Name)
 	req.Var("org_id", options.OrgID)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["insert_projects"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []CreateResponse
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
 }
 
 //	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Project, error) {
+func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -58,29 +59,28 @@ func Get(ctx context.ServiceContext, client *graphql.Client, id string) (*Projec
 	`)
 
 	req.Var("id", id)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["projects_by_pk"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	List projects
-func List(ctx context.ServiceContext, client *graphql.Client, options *ListOptions) (*[]Project, error) {
+func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -92,29 +92,28 @@ func List(ctx context.ServiceContext, client *graphql.Client, options *ListOptio
 	`)
 
 	req.Var("id", options.OrgID)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["projects"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
 //	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *graphql.Client, id string, options *UpdateOptions) (*Project, error) {
+func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -127,28 +126,27 @@ func Update(ctx context.ServiceContext, client *graphql.Client, id string, optio
 
 	req.Var("id", id)
 	req.Var("name", options.Name)
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
 
 	var response map[string]interface{}
-	if err := client.Run(ctx, req, &response); err != nil {
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	returning, err := json.Marshal(response["update_projects_by_pk"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
 }
 
-//	Delete a workspace by ID
-func Delete(ctx context.ServiceContext, client *graphql.Client, id string) error {
+//	Delete a project by ID
+func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
 	return nil
 }

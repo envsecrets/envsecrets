@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -41,9 +41,9 @@ to quickly create a Cobra application.`,
 		}
 
 		//	List items
-		items, err := organisations.List(context.DContext, client)
+		items, er := organisations.List(context.DContext, client)
 		if err != nil {
-			panic(err)
+			panic(er.Error)
 		}
 
 		if listJSON {

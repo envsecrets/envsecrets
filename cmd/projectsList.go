@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -39,11 +39,11 @@ to quickly create a Cobra application.`,
 		}
 
 		//	List items
-		items, err := projects.List(context.DContext, client, &projects.ListOptions{
+		items, er := projects.List(context.DContext, client, &projects.ListOptions{
 			OrgID: localConfig.Organisation,
 		})
-		if err != nil {
-			panic(err)
+		if er != nil {
+			panic(er.Error.Error())
 		}
 
 		if listJSON {

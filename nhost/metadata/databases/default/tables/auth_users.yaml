@@ -148,3 +148,16 @@ array_relationships:
         table:
           name: user_providers
           schema: auth
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - display_name
+        - email
+      filter:
+        _or:
+          - id:
+              _eq: X-Hasura-User-Id
+          - memberships:
+              user_id:
+                _eq: X-Hasura-User-Id

@@ -3,7 +3,7 @@ package context
 import (
 	"context"
 
-	accountConfig "github.com/envsecrets/envsecrets/config/account"
+	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 )
 
@@ -17,7 +17,13 @@ var DContext ServiceContext
 func init() {
 
 	//	Load account config
-	config, _ := accountConfig.Load()
+	response, _ := config.GetService().Load(configCommons.AccountConfig)
+
+	config, ok := response.(*configCommons.Account)
+	if !ok {
+		panic("failed type conversion for account config")
+	}
+
 	DContext = ServiceContext{
 		Context: context.Background(),
 		Config:  config,

@@ -1,6 +1,26 @@
-actions: []
+actions:
+  - name: AcceptInvite
+    definition:
+      kind: synchronous
+      handler: http://host.docker.internal:3000/api/v1/invites/accept
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "invite": {
+                "id": {{$body.input.arg.invite_id}}
+              }
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: user
+    comment: accept invite
 custom_types:
   enums: []
-  input_objects: []
-  objects: []
+  input_objects:
+    - name: AcceptInviteInput
+  objects:
+    - name: AcceptInviteOutput
   scalars: []

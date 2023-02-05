@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
+Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 
 */
 package cmd
@@ -10,8 +10,9 @@ import (
 
 // organisationsCmd represents the organisations command
 var organisationsCmd = &cobra.Command{
-	Use:   "organisations",
-	Short: "A brief description of your command",
+	Use:     "organisations",
+	Aliases: []string{"org", "orgs"},
+	Short:   "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
