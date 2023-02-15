@@ -1,17 +1,13 @@
 table:
   name: projects
   schema: public
-configuration:
-  column_config:
-    org_id:
-      custom_name: org_id
-  custom_column_names:
-    org_id: org_id
-  custom_root_fields: {}
 object_relationships:
   - name: organisation
     using:
       foreign_key_constraint_on: org_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
 array_relationships:
   - name: environments
     using:
@@ -20,21 +16,30 @@ array_relationships:
         table:
           name: environments
           schema: public
-  - name: permissions
+  - name: project_level_permissions
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          name: permissions
+          name: project_level_permissions
           schema: public
 insert_permissions:
   - role: user
     permission:
       check:
         organisation:
-          memberships:
-            user_id:
-              _eq: X-Hasura-User-Id
+          _or:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        projects_manage: true
+      set:
+        user_id: x-hasura-User-Id
       columns:
         - name
         - org_id
@@ -42,15 +47,21 @@ select_permissions:
   - role: user
     permission:
       columns:
-        - created_at
-        - id
         - name
+        - created_at
         - updated_at
+        - id
         - org_id
+        - user_id
       filter:
-        organisation:
-          memberships:
-            user_id:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - project_level_permissions:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - user_id:
               _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
@@ -60,14 +71,29 @@ update_permissions:
         - name
       filter:
         organisation:
-          memberships:
-            user_id:
-              _eq: X-Hasura-User-Id
+          _or:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        projects_manage: true
       check: null
 delete_permissions:
   - role: user
     permission:
       filter:
         organisation:
-          user_id:
-            _eq: X-Hasura-User-Id
+          _or:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        projects_manage: true

@@ -109,10 +109,10 @@ to quickly create a Cobra application.`,
 		} else {
 
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
-			fmt.Fprintf(w, "\t%s\t%s\n", "Key", "Value")
-			fmt.Fprintf(w, "\t%s\t%s\n", "----", "----")
-			for _, item := range *items {
-				fmt.Fprintf(w, "\t%s\t%s\n", item.Key, item.Value)
+			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "#", "Key", "Value")
+			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "----", "----", "----")
+			for index, item := range *items {
+				fmt.Fprintf(w, "\t%d\t%s\t%s\n", index+1, item.Key, item.Value)
 			}
 			w.Flush()
 		}

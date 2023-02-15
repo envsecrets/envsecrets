@@ -1,0 +1,106 @@
+table:
+  name: org_level_permissions
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true
+      columns:
+        - org_id
+        - permissions
+        - user_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - permissions
+        - created_at
+        - updated_at
+        - id
+        - org_id
+        - user_id
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - user_id:
+              _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - permissions
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true
+event_triggers:
+  - name: org_permissions
+    definition:
+      delete:
+        columns: '*'
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - permissions
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/api/v1/events/permissions/organisation'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60

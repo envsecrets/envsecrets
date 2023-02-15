@@ -21,10 +21,9 @@ import (
 )
 
 var (
-	organisationName string
-	projectName      string
-	environmentName  string
-	branchName       string
+	organisationID string
+	projectID      string
+	environmentID  string
 )
 
 // initCmd represents the init command
@@ -67,7 +66,7 @@ var initCmd = &cobra.Command{
 		client := client.GRAPHQL_CLIENT
 
 		//	Setup organisation first
-		if len(organisationName) == 0 {
+		if len(organisationID) == 0 {
 
 			//	Check whether user has access to at least 1 organisation.
 			orgs, er := organisations.List(context.DContext, client)
@@ -117,7 +116,7 @@ var initCmd = &cobra.Command{
 		}
 
 		//	Setup project
-		if len(projectName) == 0 {
+		if len(projectID) == 0 {
 
 			projectsList, er := projects.List(context.DContext, client, &projects.ListOptions{
 				OrgID: organisation.ID,
@@ -169,7 +168,7 @@ var initCmd = &cobra.Command{
 		}
 
 		//	Setup project
-		if len(environmentName) == 0 {
+		if len(environmentID) == 0 {
 
 			environmentsList, er := environments.List(context.DContext, client, &environments.ListOptions{
 				ProjectID: project.ID,
@@ -243,7 +242,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	initCmd.Flags().StringVarP(&organisationName, "organisation", "w", "", "Your existing envsecrets organisation")
-	initCmd.Flags().StringVarP(&projectName, "project", "p", "", "Your existing envsecrets project")
-	initCmd.Flags().StringVarP(&environmentName, "environment", "e", "", "Your existing envsecrets environment")
+	initCmd.Flags().StringVarP(&organisationID, "organisation", "w", "", "Your existing envsecrets organisation")
+	initCmd.Flags().StringVarP(&projectID, "project", "p", "", "Your existing envsecrets project")
+	initCmd.Flags().StringVarP(&environmentID, "environment", "e", "", "Your existing envsecrets environment")
 }

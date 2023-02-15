@@ -6,19 +6,12 @@ object_relationships:
     using:
       foreign_key_constraint_on: user_id
 array_relationships:
-  - name: invites
+  - name: org_level_permissions
     using:
       foreign_key_constraint_on:
         column: org_id
         table:
-          name: invites
-          schema: public
-  - name: memberships
-    using:
-      foreign_key_constraint_on:
-        column: org_id
-        table:
-          name: memberships
+          name: org_level_permissions
           schema: public
   - name: projects
     using:
@@ -48,13 +41,11 @@ select_permissions:
         - user_id
       filter:
         _or:
-          - memberships:
+          - user_id:
+              _eq: X-Hasura-User-Id
+          - org_level_permissions:
               user_id:
                 _eq: X-Hasura-User-Id
-          - invites:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -65,3 +56,9 @@ update_permissions:
         user_id:
           _eq: X-Hasura-User-Id
       check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
