@@ -8,5 +8,5 @@ var (
 
 func init() {
 	client := graphql.NewClient(NHOST_GRAPHQL_URL)
-	GRAPHQL_CLIENT = &GQLClient{client}
+	GRAPHQL_CLIENT = &GQLClient{client, false}
 }

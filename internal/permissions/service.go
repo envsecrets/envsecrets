@@ -1,39 +1,52 @@
 package permissions
 
 import (
+	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/permissions/commons"
+	"github.com/envsecrets/envsecrets/internal/permissions/environment"
+	"github.com/envsecrets/envsecrets/internal/permissions/organisation"
+	"github.com/envsecrets/envsecrets/internal/permissions/project"
 )
 
 type Service interface {
-	Add(interface{}, commons.PermissionLevel) error
-	Update(commons.Permissions, commons.PermissionLevel) error
-	Exists(commons.PermissionLevel) bool
-	Delete(commons.PermissionLevel) error
+	Insert(commons.PermissionLevel, context.ServiceContext, *client.GQLClient, interface{}) *errors.Error
+	/*
+		Update(commons.Permissions, commons.PermissionLevel) error
+		Exists(commons.PermissionLevel) bool
+		Count(commons.PermissionLevel) (int, error)
+		Delete(commons.PermissionLevel) error
+	*/
 }
 
 type DefaultPermissionService struct{}
 
-/* func (*DefaultPermissionService) Save(payload interface{}, permissionsType commons.PermissionLevel) error {
+func (*DefaultPermissionService) Insert(permissionsType commons.PermissionLevel, ctx context.ServiceContext, client *client.GQLClient, options interface{}) *errors.Error {
 	switch permissionsType {
-	case commons.ProjectPermission:
-
-		permissions, ok := payload.(commons.Project)
+	case commons.OrgnisationLevelPermission:
+		payload, ok := options.(commons.OrganisationPermissionsInsertOptions)
 		if !ok {
-			return errors.New("failed type assertion to project permissions")
+			return errors.New(nil, "failed type assertion to organisation level permissions", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 		}
-		return project.Save(&permissions)
-
-	case commons.AccountPermission:
-
-		permissions, ok := payload.(commons.Account)
+		return organisation.Insert(ctx, client, &payload)
+	case commons.ProjectLevelPermission:
+		payload, ok := options.(commons.ProjectPermissionsInsertOptions)
 		if !ok {
-			return errors.New("failed type assertion to account permissions")
+			return errors.New(nil, "failed type assertion to project level permissions", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 		}
-		return account.Save(&permissions)
+		return project.Insert(ctx, client, &payload)
+	case commons.EnvironmentLevelPermission:
+		payload, ok := options.(commons.EnvironmentPermissionsInsertOptions)
+		if !ok {
+			return errors.New(nil, "failed type assertion to environment level permissions", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+		return environment.Insert(ctx, client, &payload)
 	}
 	return nil
 }
 
+/*
 func (*DefaultPermissionService) Load(permissionsType commons.PermissionLevel) (interface{}, error) {
 	switch permissionsType {
 	case commons.ProjectPermission:

@@ -7,7 +7,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/machinebox/graphql"
 )
 
@@ -22,7 +21,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 			name
 		  }
 		}
-	  }	  
+	  }
 	`)
 
 	req.Var("name", options.Name)
@@ -43,16 +42,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
-	result := resp[0]
-
-	//	Add yourself as the first member of the organization
-	if _, err := memberships.Create(ctx, client, &memberships.CreateOptions{
-		OrgID: result.ID,
-	}); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	return &resp[0], nil
 }
 
 //	Get a organisation by ID

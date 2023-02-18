@@ -42,6 +42,12 @@ select_permissions:
                 _eq: X-Hasura-User-Id
           - user_id:
               _eq: X-Hasura-User-Id
+          - _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - permissions:
+                  _contains:
+                    permissions_manage: true
       allow_aggregations: true
 update_permissions:
   - role: user

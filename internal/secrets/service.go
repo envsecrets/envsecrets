@@ -2,21 +2,46 @@ package secrets
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 
-	"github.com/envsecrets/envsecrets/config"
-	"github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
-func Set(ctx context.ServiceContext, data *Secret) error {
+func GenerateKey(ctx context.ServiceContext, path string, options commons.GenerateKeyOptions) *errors.Error {
 
-	//	Load the current project congi
+	postBody, _ := options.Marshal()
+	req, err := http.NewRequest(http.MethodPost, os.Getenv("VAULT_ADDRESS")+"transit/keys/"+path, bytes.NewBuffer(postBody))
+	if err != nil {
+		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	}
+
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+	}
+
+	fmt.Println(string(body))
+
+	return nil
+}
+
+/* func Set(ctx context.ServiceContext, data *Secret) error {
+
+	//	Load the current project config
 	projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
 	if er != nil {
 		panic(er.Error())
@@ -287,3 +312,4 @@ func List(ctx context.ServiceContext, version *int) (*[]Secret, error) {
 
 	return &secrets, nil
 }
+*/

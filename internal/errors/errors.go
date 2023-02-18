@@ -11,12 +11,17 @@ const (
 	ErrorTypeJSONUnmarshal ErrorType = "JSONUnmarshal"
 	ErrorTypeJWTExpired    ErrorType = "JWTExpired"
 	ErrorTypeTokenRefresh  ErrorType = "TokenRefresh"
+
+	ErrorTypeInvalidResponse ErrorType = "InvalidResponse"
+	ErrorTypeBadResponse     ErrorType = "BadResponse"
+	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 )
 
 type ErrorSource string
 
 const (
 	ErrorSourceGraphQL ErrorSource = "graphql"
+	ErrorSourceVault   ErrorSource = "vault"
 	ErrorSourceNhost   ErrorSource = "nhost"
 	ErrorSourceGo      ErrorSource = "go"
 )

@@ -1,6 +1,8 @@
 package client
 
 import (
+	"os"
+
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
@@ -12,12 +14,33 @@ import (
 
 type GQLClient struct {
 	*graphql.Client
+	AdminAccess bool
+}
+
+type Config struct {
+	AdminAccess bool
+}
+
+func NewClient(config *Config) *GQLClient {
+	client := graphql.NewClient(NHOST_GRAPHQL_URL)
+	return &GQLClient{client, config.AdminAccess}
 }
 
 func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) *errors.Error {
 
-	//	Add Authorization token to the request
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
+	//	If the context is being used by root,
+	//	add the admin-secret header to request.
+	//	Otherwise fetch the authorization header from saved account config.
+	if c.AdminAccess {
+		req.Header.Set(X_HASURA_ADMIN_SECRET, os.Getenv(NHOST_ADMIN_SECRET))
+	} else {
+		req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
+	}
+
+	return c.send(ctx, req, resp)
+}
+
+func (c *GQLClient) send(ctx context.ServiceContext, req *graphql.Request, resp interface{}) *errors.Error {
 
 	//	Parse the error
 	if err := c.Run(ctx, req, &resp); err != nil {

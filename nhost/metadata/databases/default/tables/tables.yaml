@@ -12,5 +12,6 @@
 - "!include public_organisations.yaml"
 - "!include public_project_level_permissions.yaml"
 - "!include public_projects.yaml"
+- "!include public_secrets.yaml"
 - "!include storage_buckets.yaml"
 - "!include storage_files.yaml"
