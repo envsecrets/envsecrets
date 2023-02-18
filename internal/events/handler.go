@@ -10,6 +10,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/permissions"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/envsecrets/envsecrets/internal/secrets"
+	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
 
@@ -35,32 +37,57 @@ func OrganisationInserted(c echo.Context) error {
 		})
 	}
 
-	//	Insert all root permissions for the owner of the new organisation.
-	service := permissions.GetService()
-
-	if err := service.Insert(
-		permissionCommons.OrgnisationLevelPermission,
-		context.DContext,
-		client.GRAPHQL_CLIENT,
-		permissionCommons.OrganisationPermissionsInsertOptions{
-			OrgID:  organisation.ID,
-			UserID: payload.Event.SessionVariables.UserID,
-			Permissions: permissionCommons.Permissions{
-				PermissionsManage:  true,
-				ProjectsManage:     true,
-				EnvironmentsManage: true,
-				SecretsWrite:       true,
-			}}); err != nil {
-		return c.JSON(http.StatusBadGateway, &APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to insert root permissions for owner of this org",
-			Error:   err.Error.Error(),
+	//	Generate new transit for this organisation in vault.
+	if err := secrets.GenerateKey(context.DContext, organisation.ID, commons.GenerateKeyOptions{
+		Exportable: true,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, &APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to generate transit key",
+			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
-		Message: "inserted root permissions for owner of this org",
+		Message: "successfully generated the transit key",
+	})
+}
+
+//	Called when a row is deleted from the `organisations` table.
+func OrganisationDeleted(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusOK, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var organisation organisations.Organisation
+	if err := MapToStruct(payload.Event.Data.New, &organisation); err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Generate new transit for this organisation in vault.
+	if err := secrets.DeleteKey(context.DContext, organisation.ID); err != nil {
+		return c.JSON(http.StatusInternalServerError, &APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to delete the transit key",
+			Error:   err.Message,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully deleted the transit key",
 	})
 }
 

@@ -7,3 +7,5 @@ export NHOST_STORAGE_URL=http://localhost:1337/v1/storage
 export NHOST_FUNCTIONS_URL=http://localhost:1337/v1/functions
 
 export API=http://localhost:9005
+export VAULT_ADDRESS=http://localhost:8200
+export VAULT_ROOT_TOKEN=root

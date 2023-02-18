@@ -2,8 +2,6 @@ package secrets
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -14,27 +12,40 @@ import (
 
 func GenerateKey(ctx context.ServiceContext, path string, options commons.GenerateKeyOptions) *errors.Error {
 
+	//	Set the default key.
+	if options.Type == "" {
+		options.Type = string(commons.ECDSA_P256)
+	}
+
 	postBody, _ := options.Marshal()
-	req, err := http.NewRequest(http.MethodPost, os.Getenv("VAULT_ADDRESS")+"transit/keys/"+path, bytes.NewBuffer(postBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, bytes.NewBuffer(postBody))
 	if err != nil {
 		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
-	req.Header.Set("content-type", "application/json")
 	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
 
-	resp, err := http.DefaultClient.Do(req)
+	_, err = http.DefaultClient.Do(req)
 	if err != nil {
 		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
 	}
-	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	return nil
+}
+
+func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, nil)
 	if err != nil {
-		return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
-	fmt.Println(string(body))
+	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+
+	_, err = http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	}
 
 	return nil
 }

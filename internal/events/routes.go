@@ -11,6 +11,7 @@ func AddRoutes(sg *echo.Group) {
 
 	permissions.POST("/organisation", OrganisationLevelPermissions)
 	permissions.POST("/organisation/new", OrganisationInserted)
+	permissions.POST("/organisation/delete", OrganisationDeleted)
 	permissions.POST("/project", ProjectLevelPermissions)
 	permissions.POST("/environment", EnvironmentLevelPermissions)
 }
