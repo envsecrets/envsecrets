@@ -88,6 +88,10 @@ type SetRequest struct {
 	Secret Secret `json:"secret"`
 }
 
+func (r *SetRequest) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
 type SetRequestOptions struct {
 	EnvID  string `json:"env_id"`
 	Secret Secret `json:"secret"`

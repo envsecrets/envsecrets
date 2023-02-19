@@ -14,6 +14,7 @@ const (
 
 	ErrorTypeInvalidResponse ErrorType = "InvalidResponse"
 	ErrorTypeBadResponse     ErrorType = "BadResponse"
+	ErrorTypeBadRequest      ErrorType = "BadRequest"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 )
 
@@ -24,6 +25,9 @@ const (
 	ErrorSourceVault   ErrorSource = "vault"
 	ErrorSourceNhost   ErrorSource = "nhost"
 	ErrorSourceGo      ErrorSource = "go"
+
+	ErrorSourceGithub ErrorSource = "github"
+	ErrorSourceVercel ErrorSource = "vercel"
 )
 
 type Error struct {

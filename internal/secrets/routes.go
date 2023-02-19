@@ -6,6 +6,6 @@ func AddRoutes(sg *echo.Group) {
 
 	group := sg.Group("/secrets")
 
-	group.POST("/", SetHandler)
-	group.GET("/", GetHandler)
+	group.POST("", SetHandler)
+	group.GET("", GetHandler)
 }
