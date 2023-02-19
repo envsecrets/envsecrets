@@ -31,17 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"text/tabwriter"
-
-	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 var version int
@@ -57,67 +47,67 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		var secretVersion *int
+	   		var secretVersion *int
 
-		if version > -1 {
-			secretVersion = &version
-		}
+	   		if version > -1 {
+	   			secretVersion = &version
+	   		}
 
-		//	Fetch the secrets
-		items, err := secrets.List(context.DContext, secretVersion)
-		if err != nil {
-			panic(err)
-		}
+	   		//	Fetch the secrets
+	   		items, err := secrets.List(context.DContext, secretVersion)
+	   		if err != nil {
+	   			panic(err)
+	   		}
 
-		if exportfile != "" {
+	   		if exportfile != "" {
 
-			//	Initialize payload to write to file
-			var payload []byte
+	   			//	Initialize payload to write to file
+	   			var payload []byte
 
-			//	Extract file extenstion
-			extension := filepath.Ext(exportfile)
+	   			//	Extract file extenstion
+	   			extension := filepath.Ext(exportfile)
 
-			switch extension {
-			case ".json":
-				payload, err = json.MarshalIndent(items, "", "  ")
-				if err != nil {
-					panic(err)
-				}
-			case ".yaml":
-				payload, err = yaml.Marshal(items)
-				if err != nil {
-					panic(err)
-				}
-			default:
-				data := ""
-				for _, item := range *items {
-					data += item.String()
-					data += "\n"
-				}
-				payload = []byte(data)
-			}
+	   			switch extension {
+	   			case ".json":
+	   				payload, err = json.MarshalIndent(items, "", "  ")
+	   				if err != nil {
+	   					panic(err)
+	   				}
+	   			case ".yaml":
+	   				payload, err = yaml.Marshal(items)
+	   				if err != nil {
+	   					panic(err)
+	   				}
+	   			default:
+	   				data := ""
+	   				for _, item := range *items {
+	   					data += item.String()
+	   					data += "\n"
+	   				}
+	   				payload = []byte(data)
+	   			}
 
-			//	Write to file
-			if err := ioutil.WriteFile(exportfile, payload, 0644); err != nil {
-				panic(err)
-			}
+	   			//	Write to file
+	   			if err := ioutil.WriteFile(exportfile, payload, 0644); err != nil {
+	   				panic(err)
+	   			}
 
-			fmt.Println("List exported to:", exportfile)
+	   			fmt.Println("List exported to:", exportfile)
 
-		} else {
+	   		} else {
 
-			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
-			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "#", "Key", "Value")
-			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "----", "----", "----")
-			for index, item := range *items {
-				fmt.Fprintf(w, "\t%d\t%s\t%s\n", index+1, item.Key, item.Value)
-			}
-			w.Flush()
-		}
-	},
-}
+	   			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
+	   			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "#", "Key", "Value")
+	   			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "----", "----", "----")
+	   			for index, item := range *items {
+	   				fmt.Fprintf(w, "\t%d\t%s\t%s\n", index+1, item.Key, item.Value)
+	   			}
+	   			w.Flush()
+	   		}
+	   	},
+	*/}
 
 func init() {
 	rootCmd.AddCommand(exportCmd)

@@ -31,10 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -48,24 +44,24 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Run sanity checks
-		if len(args) != 1 {
-			panic("invalid key-value pair")
-		}
+	   		//	Run sanity checks
+	   		if len(args) != 1 {
+	   			panic("invalid key-value pair")
+	   		}
 
-		key := args[0]
+	   		key := args[0]
 
-		//	Fetch the secret
-		secret, err := secrets.Get(context.DContext, key, nil)
-		if err != nil {
-			panic(err)
-		}
+	   		//	Fetch the secret
+	   		secret, err := secrets.Get(context.DContext, key, nil)
+	   		if err != nil {
+	   			panic(err)
+	   		}
 
-		fmt.Println(secret.Value)
-	},
-}
+	   		fmt.Println(secret.Value)
+	   	},
+	*/}
 
 func init() {
 	rootCmd.AddCommand(getCmd)

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/internal/events"
+	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -41,7 +42,7 @@ func main() {
 	events.AddRoutes(v1Group)
 
 	//	Secrets group
-	//secrets := v1Group.Group("/secrets")
+	secrets.AddRoutes(v1Group)
 
 	/* 	// Routes
 	   	secrets.POST("/set", api.SetSecret)

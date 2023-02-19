@@ -31,13 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-
-	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -51,48 +44,48 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Run sanity checks
-		if len(args) < 1 || len(args) > 1 {
-			panic("invalid key-value pair")
-		}
+	   		//	Run sanity checks
+	   		if len(args) < 1 || len(args) > 1 {
+	   			panic("invalid key-value pair")
+	   		}
 
-		if !strings.Contains(args[0], "=") {
-			panic("invalid key-value pair")
-		}
+	   		if !strings.Contains(args[0], "=") {
+	   			panic("invalid key-value pair")
+	   		}
 
-		pair := strings.Split(args[0], "=")
+	   		pair := strings.Split(args[0], "=")
 
-		if len(pair) != 2 {
-			panic("invalid key-value pair")
-		}
+	   		if len(pair) != 2 {
+	   			panic("invalid key-value pair")
+	   		}
 
-		key := pair[0]
-		value := pair[1]
+	   		key := pair[0]
+	   		value := pair[1]
 
-		data := &secrets.Secret{
-			Key:   key,
-			Value: value,
-		}
+	   		data := &secrets.Secret{
+	   			Key:   key,
+	   			Value: value,
+	   		}
 
-		//	Send the secrets to vault
-		if err := secrets.Set(context.DContext, data); err != nil {
-			fmt.Println("failed to send key-value pair to vault")
-			panic(err)
-		}
+	   		//	Send the secrets to vault
+	   		if err := secrets.Set(context.DContext, data); err != nil {
+	   			fmt.Println("failed to send key-value pair to vault")
+	   			panic(err)
+	   		}
 
-		//	Set the values in current application
-		if err := os.Setenv(key, value); err != nil {
-			panic(err)
-		}
+	   		//	Set the values in current application
+	   		if err := os.Setenv(key, value); err != nil {
+	   			panic(err)
+	   		}
 
-		//	Export the values in current shell
-		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
-			panic(err)
-		}
-	},
-}
+	   		//	Export the values in current shell
+	   		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
+	   			panic(err)
+	   		}
+	   	},
+	*/}
 
 func init() {
 	rootCmd.AddCommand(setCmd)

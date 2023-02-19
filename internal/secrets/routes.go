@@ -6,7 +6,6 @@ func AddRoutes(sg *echo.Group) {
 
 	group := sg.Group("/secrets")
 
-	group.POST("/keys/generate", nil)
-	group.POST("/set", nil)
-	group.GET("/get", nil)
+	group.POST("/", SetHandler)
+	group.GET("/", GetHandler)
 }

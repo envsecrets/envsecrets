@@ -13,5 +13,7 @@ node_modules
 functions/node_modules
 .env.development
 cli/cli
+./cli/cli
 cli/.envsecrets
 variables.sh
+cli/cli

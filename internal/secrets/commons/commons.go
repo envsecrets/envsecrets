@@ -12,4 +12,7 @@ const (
 
 type Key string
 
-const ECDSA_P256 Key = "ecdsa-p256"
+const (
+	ECDSA_P256   Key = "ecdsa-p256"
+	AES256_GCM96 Key = "aes256-gcm96"
+)
