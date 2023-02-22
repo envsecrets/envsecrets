@@ -3,13 +3,13 @@ package users
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*commons.User, error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -42,7 +42,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*comm
 	return &resp, nil
 }
 
-func GetByEmail(ctx context.ServiceContext, client *client.GQLClient, email string) (*commons.User, error) {
+func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($email: String!) {

@@ -31,16 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
-	"net/mail"
-	"strings"
-
-	"github.com/envsecrets/envsecrets/config"
-	"github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/client"
-	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/invites"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -48,83 +38,80 @@ import (
 var inviteCmd = &cobra.Command{
 	Use:   "invite [email]",
 	Short: "A brief description of your command",
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	If email hasn't been passed,
-		//	break the flow.
-		email, err := mail.ParseAddress(args[0])
-		if err != nil {
-			panic(err)
-		}
+	   		//	If email hasn't been passed,
+	   		//	break the flow.
+	   		email, err := mail.ParseAddress(args[0])
+	   		if err != nil {
+	   			panic(err)
+	   		}
 
-		//	Initialize GQL Client
-		client := client.GRAPHQL_CLIENT
+	   		var project, environment string
 
-		var project, environment string
+	   		//	Load the current organisation
+	   		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
+	   		if er != nil {
+	   			panic(er.Error())
+	   		}
 
-		//	Load the current organisation
-		projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
-		if er != nil {
-			panic(er.Error())
-		}
+	   		projectConfig := projectConfigData.(*configCommons.Project)
 
-		projectConfig := projectConfigData.(*commons.Project)
+	   		//	Take input for project
+	   		selection := promptui.Select{
+	   			Label: "Choose Project To Invite " + email.String() + " For",
+	   			Items: []string{"All projects in this organisation", "Current Project Only"},
+	   		}
 
-		//	Take input for project
-		selection := promptui.Select{
-			Label: "Choose Project To Invite " + email.String() + " For",
-			Items: []string{"All projects in this organisation", "Current Project Only"},
-		}
+	   		index, _, err := selection.Run()
+	   		if err != nil {
+	   			fmt.Printf("Prompt failed %v\n", err)
+	   			return
+	   		}
 
-		index, _, err := selection.Run()
-		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
-			return
-		}
+	   		if index == 0 {
+	   			project = "*"
+	   		} else {
+	   			project = projectConfig.Project
+	   		}
 
-		if index == 0 {
-			project = "*"
-		} else {
-			project = projectConfig.Project
-		}
+	   		//	Take input for project
+	   		selection = promptui.Select{
+	   			Label: "Choose Environment To Invite " + email.String() + " For",
+	   			Items: []string{"All environments in choosen projects", "Current Environment Only"},
+	   		}
 
-		//	Take input for project
-		selection = promptui.Select{
-			Label: "Choose Environment To Invite " + email.String() + " For",
-			Items: []string{"All environments in choosen projects", "Current Environment Only"},
-		}
+	   		index, _, err = selection.Run()
+	   		if err != nil {
+	   			fmt.Printf("Prompt failed %v\n", err)
+	   			return
+	   		}
 
-		index, _, err = selection.Run()
-		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
-			return
-		}
+	   		if index == 0 {
+	   			environment = "*"
+	   		} else {
+	   			environment = projectConfig.Environment
+	   		}
 
-		if index == 0 {
-			environment = "*"
-		} else {
-			environment = projectConfig.Environment
-		}
+	   		//	Initialize the invitation scope
+	   		scope := strings.Join([]string{project, environment}, "/")
 
-		//	Initialize the invitation scope
-		scope := strings.Join([]string{project, environment}, "/")
+	   		//	Send the invite
+	   		invite, invitesErr := invites.Create(commons.DefaultContext, commons.GQLClient, &invites.CreateOptions{
+	   			OrgID:         projectConfig.Organisation,
+	   			Scope:         scope,
+	   			ReceiverEmail: email.Address,
+	   		})
+	   		if invitesErr != nil {
+	   			fmt.Printf("%s either doesn't have an envsecrets account or is already a member of this organisation.\n Ask %s to signup for envsecrets and send this invite again.", email.Address, email.String())
+	   			panic(invitesErr.Error.Error())
+	   		}
 
-		//	Send the invite
-		invite, invitesErr := invites.Create(context.DContext, client, &invites.CreateOptions{
-			OrgID:         projectConfig.Organisation,
-			Scope:         scope,
-			ReceiverEmail: email.Address,
-		})
-		if invitesErr != nil {
-			fmt.Printf("%s either doesn't have an envsecrets account or is already a member of this organisation.\n Ask %s to signup for envsecrets and send this invite again.", email.Address, email.String())
-			panic(invitesErr.Error.Error())
-		}
-
-		if len(invite.ID) > 0 {
-			fmt.Printf("Invitation sent to %s!", email.Address)
-		}
-	},
-}
+	   		if len(invite.ID) > 0 {
+	   			fmt.Printf("Invitation sent to %s!", email.Address)
+	   		}
+	   	},
+	*/}
 
 func init() {
 	membersCmd.AddCommand(inviteCmd)

@@ -7,9 +7,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/client"
-	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
@@ -62,14 +61,11 @@ var initCmd = &cobra.Command{
 		var project projects.Project
 		var environment environments.Environment
 
-		//	Initialize GQL Client
-		client := client.GRAPHQL_CLIENT
-
 		//	Setup organisation first
 		if len(organisationID) == 0 {
 
 			//	Check whether user has access to at least 1 organisation.
-			orgs, er := organisations.List(context.DContext, client)
+			orgs, er := organisations.List(commons.DefaultContext, commons.GQLClient)
 			if er != nil {
 				panic(er.Error)
 			}
@@ -103,7 +99,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := organisations.Create(context.DContext, client, &organisations.CreateOptions{
+				item, er := organisations.Create(commons.DefaultContext, commons.GQLClient, &organisations.CreateOptions{
 					Name: result,
 				})
 				if er != nil {
@@ -118,7 +114,7 @@ var initCmd = &cobra.Command{
 		//	Setup project
 		if len(projectID) == 0 {
 
-			projectsList, er := projects.List(context.DContext, client, &projects.ListOptions{
+			projectsList, er := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
 				OrgID: organisation.ID,
 			})
 			if er != nil {
@@ -154,7 +150,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := projects.Create(context.DContext, client, &projects.CreateOptions{
+				item, er := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
 					OrgID: organisation.ID,
 					Name:  result,
 				})
@@ -164,13 +160,26 @@ var initCmd = &cobra.Command{
 
 				project.ID = item.ID
 				project.Name = fmt.Sprint(item.Name)
+
+				//	Create a default `dev` environment for this project
+				//	Create new item
+				envItem, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
+					ProjectID: project.ID,
+					Name:      result,
+				})
+				if er != nil {
+					panic(er.Error.Error())
+				}
+
+				environment.ID = envItem.ID
+				environment.Name = fmt.Sprint(envItem.Name)
 			}
 		}
 
 		//	Setup project
 		if len(environmentID) == 0 {
 
-			environmentsList, er := environments.List(context.DContext, client, &environments.ListOptions{
+			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
 				ProjectID: project.ID,
 			})
 			if er != nil {
@@ -206,7 +215,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := environments.Create(context.DContext, client, &environments.CreateOptions{
+				item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
 					ProjectID: project.ID,
 					Name:      result,
 				})

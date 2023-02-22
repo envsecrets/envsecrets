@@ -3,15 +3,15 @@ package organisations
 import (
 	"encoding/json"
 
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/errors"
 
-	"github.com/envsecrets/envsecrets/internal/client"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new organisation
-func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
@@ -46,7 +46,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 }
 
 //	Get a organisation by ID
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Organisation, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -79,7 +79,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Orga
 }
 
 //	List organisations
-func List(ctx context.ServiceContext, client *client.GQLClient) (*[]Organisation, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
@@ -110,7 +110,7 @@ func List(ctx context.ServiceContext, client *client.GQLClient) (*[]Organisation
 }
 
 //	Update a organisation by ID
-func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Organisation, *errors.Error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -144,6 +144,6 @@ func Update(ctx context.ServiceContext, client *client.GQLClient, id string, opt
 }
 
 //	Delete a organisation by ID
-func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

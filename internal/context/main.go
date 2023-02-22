@@ -2,19 +2,31 @@ package context
 
 import (
 	"context"
-
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
 )
 
 type ServiceContext struct {
 	context.Context
-	Config *configCommons.Account
+	Type ContextType
 }
 
-var DContext ServiceContext
+type Config struct {
+	Type    ContextType
+	Context context.Context
+}
 
-func init() {
+func NewContext(config *Config) ServiceContext {
+	var response ServiceContext
+	response.Context = config.Context
+	if response.Context == nil {
+		response.Context = context.Background()
+	}
+	response.Type = config.Type
+	return response
+}
+
+//	var DContext ServiceContext
+
+/* func init() {
 
 	//	Load account config
 	response, _ := config.GetService().Load(configCommons.AccountConfig)
@@ -29,3 +41,4 @@ func init() {
 		Config:  config,
 	}
 }
+*/

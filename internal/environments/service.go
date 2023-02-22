@@ -3,14 +3,14 @@ package environments
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new environment
-func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!) {
@@ -46,7 +46,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 }
 
 //	Get a environment by ID
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Environment, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -79,7 +79,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Envi
 }
 
 //	List environments
-func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Environment, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -112,7 +112,7 @@ func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOpt
 }
 
 //	Update a environment by ID
-func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Environment, *errors.Error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -146,6 +146,6 @@ func Update(ctx context.ServiceContext, client *client.GQLClient, id string, opt
 }
 
 //	Delete a environment by ID
-func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

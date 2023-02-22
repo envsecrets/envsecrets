@@ -6,6 +6,13 @@ object_relationships:
     using:
       foreign_key_constraint_on: user_id
 array_relationships:
+  - name: integrations
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: integrations
+          schema: public
   - name: org_level_permissions
     using:
       foreign_key_constraint_on:
@@ -92,7 +99,7 @@ event_triggers:
       interval_sec: 10
       num_retries: 0
       timeout_sec: 60
-    webhook: '{{API}}/api/v1/events/permissions/organisation/new'
+    webhook: '{{API}}/v1/events/permissions/organisation/new'
     headers:
       - name: x-hasura-webhook-secret
         value_from_env: NHOST_WEBHOOK_SECRET

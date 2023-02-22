@@ -3,14 +3,14 @@ package invites
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new invite
-func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!, $scope: String!, $email: citext!) {
@@ -44,7 +44,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 }
 
 //	Get a invite by ID
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Invite, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Invite, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -76,7 +76,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Invi
 }
 
 //	List invites
-func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Invite, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Invite, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($accepted: Boolean) {
@@ -113,11 +113,11 @@ func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOpt
 }
 
 //	Update a invite by ID
-func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Invite, error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Invite, error) {
 	return nil, nil
 }
 
 //	Delete a invite by ID
-func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

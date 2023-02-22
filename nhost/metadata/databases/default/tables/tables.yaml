@@ -8,6 +8,7 @@
 - "!include auth_users.yaml"
 - "!include public_env_level_permissions.yaml"
 - "!include public_environments.yaml"
+- "!include public_integrations.yaml"
 - "!include public_org_level_permissions.yaml"
 - "!include public_organisations.yaml"
 - "!include public_project_level_permissions.yaml"

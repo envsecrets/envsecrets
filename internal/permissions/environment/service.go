@@ -1,7 +1,7 @@
 package environment
 
 import (
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/permissions/commons"
@@ -9,7 +9,7 @@ import (
 )
 
 //	Insert new permissions.
-func Insert(ctx context.ServiceContext, client *client.GQLClient, options *commons.EnvironmentPermissionsInsertOptions) *errors.Error {
+func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.EnvironmentPermissionsInsertOptions) *errors.Error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($env_id: uuid!, $user_id: uuid!, $permissions: jsonb!) {

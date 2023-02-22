@@ -3,14 +3,14 @@ package memberships
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new membership
-func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!) {
@@ -42,7 +42,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 }
 
 //	Get a membership by ID
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Membership, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Membership, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -75,7 +75,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Memb
 }
 
 //	List memberships
-func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Membership, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Membership, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!) {
@@ -112,11 +112,11 @@ func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOpt
 }
 
 //	Update a membership by ID
-func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Membership, error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Membership, error) {
 	return nil, nil
 }
 
 //	Delete a membership by ID
-func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

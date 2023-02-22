@@ -16,15 +16,21 @@ const (
 	ErrorTypeBadResponse     ErrorType = "BadResponse"
 	ErrorTypeBadRequest      ErrorType = "BadRequest"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
+
+	ErrorTypeDoesNotExist                ErrorType = "DoesNotExist"
+	ErrorTypeInvalidKey                  ErrorType = "InvalidKey"
+	ErrorTypeInvalidAccountConfiguration ErrorType = "InvalidAccountConfiguration"
 )
 
 type ErrorSource string
 
 const (
+	ErrorSourceHTTP    ErrorSource = "http"
 	ErrorSourceGraphQL ErrorSource = "graphql"
-	ErrorSourceVault   ErrorSource = "vault"
-	ErrorSourceNhost   ErrorSource = "nhost"
-	ErrorSourceGo      ErrorSource = "go"
+
+	ErrorSourceVault ErrorSource = "vault"
+	ErrorSourceNhost ErrorSource = "nhost"
+	ErrorSourceGo    ErrorSource = "go"
 
 	ErrorSourceGithub ErrorSource = "github"
 	ErrorSourceVercel ErrorSource = "vercel"

@@ -36,10 +36,9 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
-	"github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/client"
-	"github.com/envsecrets/envsecrets/internal/context"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/spf13/cobra"
 )
@@ -59,7 +58,7 @@ to quickly create a Cobra application.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Ensure organisation is saved in project config.
-		if !config.GetService().Exists(commons.ProjectConfig) {
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
 
 			// TODO: Run the init flow
 			fmt.Println("Organisation doesn't exist in local project config")
@@ -68,21 +67,18 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Load the project config
-		localConfigData, er := config.GetService().Load(commons.ProjectConfig)
+		localConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			panic("project config not found: " + er.Error())
 		}
 
-		localConfig, ok := localConfigData.(*commons.Project)
+		localConfig, ok := localConfigData.(*configCommons.Project)
 		if !ok {
 			panic("failed type assertion for project config")
 		}
 
-		//	Initialize GQL Client
-		client := client.GRAPHQL_CLIENT
-
 		//	Pull members of the current organisation
-		items, err := memberships.List(context.DContext, client, &memberships.ListOptions{
+		items, err := memberships.List(commons.DefaultContext, commons.GQLClient, &memberships.ListOptions{
 			OrgID: localConfig.Organisation,
 		})
 		if err != nil {

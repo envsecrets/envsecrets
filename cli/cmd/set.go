@@ -39,10 +39,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/secrets/commons"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +76,7 @@ to quickly create a Cobra application.`,
 		key := pair[0]
 		value := pair[1]
 
-		data := commons.Secret{
+		data := secretsCommons.Secret{
 			Key:   key,
 			Value: value,
 		}
@@ -90,12 +90,12 @@ to quickly create a Cobra application.`,
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := commons.SetRequest{
-			Secret: commons.Secret{
+		payload := secretsCommons.SetRequest{
+			Secret: secretsCommons.Secret{
 				Key:   key,
 				Value: value,
 			},
-			Path: commons.Path{
+			Path: secretsCommons.Path{
 				Organisation: projectConfig.Organisation,
 				Project:      projectConfig.Project,
 				Environment:  projectConfig.Environment,
@@ -103,23 +103,12 @@ to quickly create a Cobra application.`,
 		}
 
 		reqBody, _ := payload.Marshal()
-		req, err := http.NewRequestWithContext(context.DContext, http.MethodPost, os.Getenv("API")+"/api/v1/secrets", bytes.NewBuffer(reqBody))
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, os.Getenv("API")+"/api/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			panic(err)
 		}
 
-		//	Load the account configuration
-		accountConfigData, er := config.GetService().Load(configCommons.AccountConfig)
-		if er != nil {
-			panic(er.Error())
-		}
-
-		accountConfig := accountConfigData.(*configCommons.Account)
-
-		//	Set Authorization Header
-		req.Header.Set("Authorization", "Bearer "+accountConfig.AccessToken)
-
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := commons.HTTPClient.Do(req)
 		if err != nil {
 			panic(err)
 		}

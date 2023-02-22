@@ -3,7 +3,7 @@ package events
 import (
 	"net/http"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/organisations"
@@ -37,8 +37,11 @@ func OrganisationInserted(c echo.Context) error {
 		})
 	}
 
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.GenerateKey(context.DContext, organisation.ID, commons.GenerateKeyOptions{
+	if err := secrets.GenerateKey(ctx, organisation.ID, commons.GenerateKeyOptions{
 		Exportable: true,
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, &APIResponse{
@@ -76,8 +79,11 @@ func OrganisationDeleted(c echo.Context) error {
 		})
 	}
 
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.DeleteKey(context.DContext, organisation.ID); err != nil {
+	if err := secrets.DeleteKey(ctx, organisation.ID); err != nil {
 		return c.JSON(http.StatusInternalServerError, &APIResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "failed to delete the transit key",
@@ -125,9 +131,16 @@ func OrganisationLevelPermissions(c echo.Context) error {
 	//	Fetch the permissions service
 	service := permissions.GetService()
 
-	//	Initialize context with admin privileges
-	ctx := context.DContext
-	client := client.NewClient(&client.Config{AdminAccess: true})
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
 
 	switch payload.Event.Op {
 	case string(Insert):
@@ -223,9 +236,16 @@ func ProjectLevelPermissions(c echo.Context) error {
 	//	Fetch the permissions service
 	service := permissions.GetService()
 
-	//	Initialize context with admin privileges
-	ctx := context.DContext
-	client := client.NewClient(&client.Config{AdminAccess: true})
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
 
 	switch payload.Event.Op {
 	case string(Insert):

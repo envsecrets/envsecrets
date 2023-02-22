@@ -1,14 +1,14 @@
 package graphql
 
 import (
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/machinebox/graphql"
 )
 
-func GetAll(ctx context.ServiceContext, client *client.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
+func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
@@ -47,7 +47,7 @@ func GetAll(ctx context.ServiceContext, client *client.GQLClient, options *commo
 	}, nil
 }
 
-func GetAllByVersion(ctx context.ServiceContext, client *client.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
+func GetAllByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $version: Int!) {
@@ -81,7 +81,7 @@ func GetAllByVersion(ctx context.ServiceContext, client *client.GQLClient, optio
 	}, nil
 }
 
-func GetByKey(ctx context.ServiceContext, client *client.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
+func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
@@ -114,7 +114,7 @@ func GetByKey(ctx context.ServiceContext, client *client.GQLClient, options *com
 	return &secret, nil
 }
 
-func GetByKeyByVersion(ctx context.ServiceContext, client *client.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
+func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!, $version: Int!) {
@@ -142,7 +142,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *client.GQLClient, opt
 	return &secret, nil
 }
 
-func Set(ctx context.ServiceContext, client *client.GQLClient, options *commons.SetRequestOptions) *errors.Error {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetRequestOptions) *errors.Error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {

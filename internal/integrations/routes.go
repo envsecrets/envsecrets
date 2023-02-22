@@ -7,7 +7,10 @@ import (
 
 func AddRoutes(sg *echo.Group) {
 
-	group := sg.Group("/integrations/:" + commons.INTEGRATION_TYPE)
+	commonGroup := sg.Group("/integrations/:" + commons.INTEGRATION_TYPE)
+	commonGroup.GET("/setup", SetupHandler)
 
-	group.POST("/callback", nil)
+	integrationsGroup := commonGroup.Group("/:" + commons.INTEGRATION_ID)
+	integrationsGroup.GET("/entities", ListEntitiesHandler)
+	integrationsGroup.POST("/trigger", nil)
 }

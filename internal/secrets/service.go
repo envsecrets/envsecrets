@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
@@ -49,7 +49,7 @@ func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
 	return nil
 }
 
-func Set(ctx context.ServiceContext, options *commons.SetOptions) *errors.Error {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetOptions) *errors.Error {
 
 	postBody, _ := json.Marshal(options.VaultOptions())
 
@@ -80,7 +80,7 @@ func Set(ctx context.ServiceContext, options *commons.SetOptions) *errors.Error 
 	options.Secret.Value = response.Data.Ciphertext
 
 	//	Insert the encrypted secret in Hasura.
-	if err := graphql.Set(ctx, client.GRAPHQL_CLIENT, &commons.SetRequestOptions{
+	if err := graphql.Set(ctx, client, &commons.SetRequestOptions{
 		EnvID:  options.Path.Environment,
 		Secret: options.Secret,
 	}); err != nil {
@@ -90,7 +90,7 @@ func Set(ctx context.ServiceContext, options *commons.SetOptions) *errors.Error 
 	return nil
 }
 
-func Get(ctx context.ServiceContext, options *commons.GetRequestOptions) (*commons.Secret, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetRequestOptions) (*commons.Secret, *errors.Error) {
 
 	//	Initialize new get request options.
 	getOptions := commons.GetOptions{
@@ -99,7 +99,7 @@ func Get(ctx context.ServiceContext, options *commons.GetRequestOptions) (*commo
 	}
 
 	//	Get the encrypted secret from Hasura.
-	encryptedValue, err := graphql.GetByKey(ctx, client.GRAPHQL_CLIENT, &getOptions)
+	encryptedValue, err := graphql.GetByKey(ctx, client, &getOptions)
 	if err != nil {
 		return nil, err
 	}

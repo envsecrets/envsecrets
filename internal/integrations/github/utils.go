@@ -1,0 +1,63 @@
+package github
+
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"io/ioutil"
+	"os"
+	"time"
+
+	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/nacl/box"
+)
+
+func generateGithuAppJWT(keyLocation string) (string, *errors.Error) {
+	file, err := ioutil.ReadFile(keyLocation)
+	if err != nil {
+		return "", errors.New(err, "failed to read key file", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
+	}
+
+	// expires in 60 minutes
+	expiration := time.Now().Add(time.Second * 600)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.RegisteredClaims{
+		Issuer:    os.Getenv("GITHUB_APP_ID"),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(expiration),
+		Subject:   "envsecrets temporary github auth jwt",
+	})
+
+	pkey, err := jwt.ParseRSAPrivateKeyFromPEM(file)
+	if err != nil {
+		return "", errors.New(err, "failed to read private key from PEM file data", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
+	}
+
+	response, err := token.SignedString(pkey)
+	if err != nil {
+		return "", errors.New(err, "failed to get signed JWT", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
+	}
+
+	return response, nil
+}
+
+//	Encrypt a secret value using libsodium equivalent NACL secret box method.
+func encryptSecret(pk, secret string) (string, error) {
+	var pkBytes [32]byte
+	copy(pkBytes[:], pk)
+	secretBytes := []byte(secret)
+
+	out := make([]byte, 0,
+		len(secretBytes)+
+			box.Overhead+
+			len(pkBytes))
+
+	enc, err := box.SealAnonymous(
+		out, secretBytes, &pkBytes, rand.Reader,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	encEnc := base64.StdEncoding.EncodeToString(enc)
+	return encEnc, nil
+}

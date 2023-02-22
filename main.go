@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/internal/events"
+	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -36,13 +37,16 @@ func main() {
 	//	TODO: Add webhook validation middleware
 
 	//	API	Version 1 Group
-	v1Group := e.Group("/api/v1")
+	v1Group := e.Group("/v1")
 
 	//	Hasura events group
 	events.AddRoutes(v1Group)
 
 	//	Secrets group
 	secrets.AddRoutes(v1Group)
+
+	//	Integrations group
+	integrations.AddRoutes(v1Group)
 
 	/* 	// Routes
 	   	secrets.POST("/set", api.SetSecret)

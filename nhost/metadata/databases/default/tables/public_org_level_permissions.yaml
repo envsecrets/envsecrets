@@ -84,29 +84,3 @@ delete_permissions:
                   - permissions:
                       _contains:
                         permissions_manage: true
-event_triggers:
-  - name: org_permissions
-    definition:
-      delete:
-        columns: '*'
-      enable_manual: false
-      insert:
-        columns: '*'
-      update:
-        columns:
-          - permissions
-    retry_conf:
-      interval_sec: 10
-      num_retries: 0
-      timeout_sec: 60
-    webhook: '{{API}}/api/v1/events/permissions/organisation'
-    headers:
-      - name: x-hasura-webhook-secret
-        value_from_env: NHOST_WEBHOOK_SECRET
-    cleanup_config:
-      batch_size: 10000
-      clean_invocation_logs: false
-      clear_older_than: 168
-      paused: true
-      schedule: 0 0 * * *
-      timeout: 60

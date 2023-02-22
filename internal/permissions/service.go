@@ -1,7 +1,7 @@
 package permissions
 
 import (
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/permissions/commons"
@@ -11,7 +11,7 @@ import (
 )
 
 type Service interface {
-	Insert(commons.PermissionLevel, context.ServiceContext, *client.GQLClient, interface{}) *errors.Error
+	Insert(commons.PermissionLevel, context.ServiceContext, *clients.GQLClient, interface{}) *errors.Error
 	/*
 		Update(commons.Permissions, commons.PermissionLevel) error
 		Exists(commons.PermissionLevel) bool
@@ -22,7 +22,7 @@ type Service interface {
 
 type DefaultPermissionService struct{}
 
-func (*DefaultPermissionService) Insert(permissionsType commons.PermissionLevel, ctx context.ServiceContext, client *client.GQLClient, options interface{}) *errors.Error {
+func (*DefaultPermissionService) Insert(permissionsType commons.PermissionLevel, ctx context.ServiceContext, client *clients.GQLClient, options interface{}) *errors.Error {
 	switch permissionsType {
 	case commons.OrgnisationLevelPermission:
 		payload, ok := options.(commons.OrganisationPermissionsInsertOptions)

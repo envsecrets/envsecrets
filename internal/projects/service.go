@@ -3,14 +3,14 @@ package projects
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/client"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
 //	Create a new workspace
-func Create(ctx context.ServiceContext, client *client.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
@@ -46,7 +46,7 @@ func Create(ctx context.ServiceContext, client *client.GQLClient, options *Creat
 }
 
 //	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Project, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -80,7 +80,7 @@ func Get(ctx context.ServiceContext, client *client.GQLClient, id string) (*Proj
 }
 
 //	List projects
-func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOptions) (*[]Project, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -113,7 +113,7 @@ func List(ctx context.ServiceContext, client *client.GQLClient, options *ListOpt
 }
 
 //	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *client.GQLClient, id string, options *UpdateOptions) (*Project, *errors.Error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -147,6 +147,6 @@ func Update(ctx context.ServiceContext, client *client.GQLClient, id string, opt
 }
 
 //	Delete a project by ID
-func Delete(ctx context.ServiceContext, client *client.GQLClient, id string) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

@@ -3,8 +3,12 @@ package commons
 type IntegrationType string
 
 func (t *IntegrationType) IsValid() bool {
-	return *t == Github ||
-		*t == Vercel
+	for _, item := range AllowedIntegrations {
+		if *t == item {
+			return true
+		}
+	}
+	return false
 }
 
 const (
@@ -14,4 +18,9 @@ const (
 
 const (
 	INTEGRATION_TYPE = "integration_type"
+	INTEGRATION_ID   = "integration_id"
+)
+
+var (
+	AllowedIntegrations = []IntegrationType{Github, Vercel}
 )
