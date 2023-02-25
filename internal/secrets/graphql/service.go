@@ -1,6 +1,8 @@
 package graphql
 
 import (
+	"encoding/json"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
@@ -8,13 +10,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
-
-	//	If the request has a specific version specified,
-	//	make the call for only that version
-	if options.Version != nil {
-		return GetAllByVersion(ctx, client, options)
-	}
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetAllResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -32,22 +28,28 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		return nil, err
 	}
 
-	returnedInterface := response["secrets"]
-	returned := returnedInterface.([]interface{})
-
-	//	If there are no secrets, return an empty response
-	if returnedInterface == nil || len(returned) == 0 {
-		return &commons.GetAllResponse{}, nil
+	returning, err := json.Marshal(response["secrets"])
+	if err != nil {
+		return nil, errors.New(err, "failed to marhshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
-	payload := returned[0].(map[string]interface{})
-	return &commons.GetAllResponse{
-		Data:    payload["data"].(map[string]interface{}),
-		Version: int(payload["version"].(float64)),
-	}, nil
+	//	Unmarshal the response from "returning"
+	var resp []commons.Secret
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	var payload commons.GetAllResponse
+
+	if len(resp) > 0 {
+		payload.Data = resp[0].Data
+		payload.Version = resp[0].Version
+	}
+
+	return &payload, nil
 }
 
-func GetAllByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.GetAllResponse, *errors.Error) {
+func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetAllResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $version: Int!) {
@@ -66,28 +68,28 @@ func GetAllByVersion(ctx context.ServiceContext, client *clients.GQLClient, opti
 		return nil, err
 	}
 
-	returnedInterface := response["secrets"]
-	returned := returnedInterface.([]interface{})
-
-	//	If there are no secrets, return an empty response
-	if returnedInterface == nil || len(returned) == 0 || returned[0] == nil {
-		return &commons.GetAllResponse{}, nil
+	returning, err := json.Marshal(response["secrets"])
+	if err != nil {
+		return nil, errors.New(err, "failed to marhshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
-	payload := returned[0].(map[string]interface{})
-	return &commons.GetAllResponse{
-		Data:    payload["data"].(map[string]interface{}),
-		Version: int(payload["version"].(float64)),
-	}, nil
+	//	Unmarshal the response from "returning"
+	var resp []commons.Secret
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	var payload commons.GetAllResponse
+
+	if len(resp) > 0 {
+		payload.Data = resp[0].Data
+		payload.Version = resp[0].Version
+	}
+
+	return &payload, nil
 }
 
-func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
-
-	//	If the request has a specific version specified,
-	//	make the call for only that version
-	if options.Version != nil {
-		return GetByKeyByVersion(ctx, client, options)
-	}
+func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!) {
@@ -99,22 +101,40 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 	`)
 
 	req.Var("env_id", options.EnvID)
-	req.Var("key", options.Secret.Key)
+	req.Var("key", options.Data.Key)
 
-	var response struct {
-		Secrets []map[string]interface{} `json:"secrets"`
-	}
+	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	var secret commons.Secret
-	secret.Value = response.Secrets[0]["data"]
+	returning, err := json.Marshal(response["secrets"])
+	if err != nil {
+		return nil, errors.New(err, "failed to marshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
 
-	return &secret, nil
+	//	Unmarshal the response from "returning"
+	var resp []struct {
+		Version int             `json:"version,omitempty" graphql:"version,omitempty"`
+		Data    commons.Payload `json:"data,omitempty" graphql:"data,omitempty"`
+	}
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	if len(resp) == 0 {
+		return nil, nil
+	}
+
+	return &commons.Secret{
+		Version: resp[0].Version,
+		Data: map[string]commons.Payload{
+			options.Data.Key: resp[0].Data,
+		},
+	}, nil
 }
 
-func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.Secret, *errors.Error) {
+func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!, $version: Int!) {
@@ -126,34 +146,44 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	`)
 
 	req.Var("env_id", options.EnvID)
-	req.Var("key", options.Secret.Key)
+	req.Var("key", options.Data.Key)
 	req.Var("version", options.Version)
 
-	var response struct {
-		Secrets []map[string]interface{} `json:"secrets"`
-	}
+	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	var secret commons.Secret
-	secret.Value = response.Secrets[0]["data"]
+	returning, err := json.Marshal(response["secrets"])
+	if err != nil {
+		return nil, errors.New(err, "failed to marshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
 
-	return &secret, nil
+	//	Unmarshal the response from "returning"
+	var resp []struct {
+		Version int             `json:"version,omitempty" graphql:"version,omitempty"`
+		Data    commons.Payload `json:"data,omitempty" graphql:"data,omitempty"`
+	}
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	if len(resp) == 0 {
+		return nil, nil
+	}
+
+	return &commons.Secret{
+		Version: resp[0].Version,
+		Data: map[string]commons.Payload{
+			options.Data.Key: resp[0].Data,
+		},
+	}, nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetRequestOptions) *errors.Error {
-
-	req := graphql.NewRequest(`
-	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {
-		insert_secrets(objects: {env_id: $env_id, data: $data, version: $version}) {
-		  affected_rows
-		}
-	  }					
-	`)
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) *errors.Error {
 
 	//	Fetch the secret of latest version.
-	latestEntry, err := GetAll(ctx, client, &commons.GetOptions{
+	latestEntry, err := Get(ctx, client, &commons.GetSecretOptions{
 		EnvID: options.EnvID,
 	})
 	if err != nil {
@@ -164,13 +194,21 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	incrementBy := 1
 	version := latestEntry.Version + incrementBy
 
-	payload := make(map[string]interface{})
-	if latestEntry.Data != nil {
-		payload = latestEntry.Data
+	payload := map[string]commons.Payload{}
+	for key, secret := range latestEntry.Data {
+		payload[key] = secret
 	}
 
 	//	Update our key in the data
-	payload[options.Secret.Key] = options.Secret.Value
+	payload[options.Data.Key] = options.Data.Payload
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {
+		insert_secrets(objects: {env_id: $env_id, data: $data, version: $version}) {
+		  affected_rows
+		}
+	  }					
+	`)
 
 	//	Set the variables for our GQL query.
 	req.Var("env_id", options.EnvID)

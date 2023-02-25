@@ -15,6 +15,7 @@ import (
 type GQLClient struct {
 	*graphql.Client
 	BaseURL       string
+	Authorization string
 	Headers       []Header
 	CustomHeaders []CustomHeader
 }
@@ -22,6 +23,7 @@ type GQLClient struct {
 type GQLConfig struct {
 	Type          ClientType
 	BaseURL       string
+	Authorization string
 	Headers       []Header
 	CustomHeaders []CustomHeader
 }
@@ -37,6 +39,7 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 	response.Headers = config.Headers
 	response.CustomHeaders = config.CustomHeaders
 	response.BaseURL = config.BaseURL
+	response.Authorization = config.Authorization
 
 	switch config.Type {
 	case HasuraClientType:
@@ -49,6 +52,11 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 }
 
 func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) *errors.Error {
+
+	//	Set Authorization Header
+	if c.Authorization != "" {
+		req.Header.Add(string(AuthorizationHeader), c.Authorization)
+	}
 
 	//	Set headers
 	for _, item := range c.Headers {

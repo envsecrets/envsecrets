@@ -1,6 +1,9 @@
 package events
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/envsecrets/envsecrets/internal/middlewares"
+	"github.com/labstack/echo/v4"
+)
 
 func AddRoutes(sg *echo.Group) {
 
@@ -8,6 +11,9 @@ func AddRoutes(sg *echo.Group) {
 
 	//	envsecrets permissions group
 	permissions := events.Group("/permissions")
+
+	//	Prepend the webhook middleware to this group.
+	permissions.Use(middlewares.HasWebhookHeader)
 
 	permissions.POST("/organisation", OrganisationLevelPermissions)
 	permissions.POST("/organisation/new", OrganisationInserted)

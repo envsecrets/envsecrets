@@ -2,15 +2,17 @@ package integrations
 
 import (
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/middlewares"
 	"github.com/labstack/echo/v4"
 )
 
 func AddRoutes(sg *echo.Group) {
 
 	commonGroup := sg.Group("/integrations/:" + commons.INTEGRATION_TYPE)
-	commonGroup.GET("/setup", SetupHandler)
+
+	commonGroup.GET("/setup", SetupHandler, middlewares.HasWebhookHeader)
 
 	integrationsGroup := commonGroup.Group("/:" + commons.INTEGRATION_ID)
 	integrationsGroup.GET("/entities", ListEntitiesHandler)
-	integrationsGroup.POST("/trigger", nil)
+	integrationsGroup.POST("/trigger", nil, middlewares.HasWebhookHeader)
 }

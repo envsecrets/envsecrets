@@ -28,12 +28,7 @@ func init() {
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
-		BaseURL: os.Getenv(string(clients.API)) + "/v1",
-		CustomHeaders: []clients.CustomHeader{
-			{
-				Key:   string(clients.AuthorizationHeader),
-				Value: "Bearer " + config.AccessToken,
-			},
-		},
+		BaseURL:       os.Getenv(string(clients.API)) + "/v1",
+		Authorization: "Bearer " + config.AccessToken,
 	})
 }

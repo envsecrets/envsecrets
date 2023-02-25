@@ -9,6 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/joho/godotenv"
+	echojwt "github.com/labstack/echo-jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -27,12 +28,29 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	/* 	JWT_SIGNING_KEY := getJWTSecret("NHOST_JWT_SECRET")
-	   	e.Use(echojwt.WithConfig(echojwt.Config{
-	   		SigningKey:    JWT_SIGNING_KEY.Key,
-	   		SigningMethod: JWT_SIGNING_KEY.Type,
-	   	}))
-	*/
+	//	Load the JWT signing from env vars
+	JWT_SIGNING_KEY := getJWTSecret("NHOST_JWT_SECRET")
+
+	//	Initialize the routes to skip JWT auth
+	skipRoutes := []string{
+		"/events",
+		"integrations",
+	}
+
+	e.Use(echojwt.WithConfig(echojwt.Config{
+		SigningKey:    []byte(JWT_SIGNING_KEY.Key),
+		SigningMethod: JWT_SIGNING_KEY.Type,
+
+		//	Define function to skip certain routes from JWT auth
+		Skipper: func(c echo.Context) bool {
+			for _, item := range skipRoutes {
+				if item == c.Request().URL.Path {
+					return true
+				}
+			}
+			return false
+		},
+	}))
 
 	//	TODO: Add webhook validation middleware
 

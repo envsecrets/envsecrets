@@ -31,6 +31,19 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+
+	"github.com/envsecrets/envsecrets/cli/commons"
+
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -44,24 +57,81 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	/* 	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 
-	   		//	Run sanity checks
-	   		if len(args) != 1 {
-	   			panic("invalid key-value pair")
-	   		}
+		//	Run sanity checks
+		if len(args) != 1 {
+			panic("invalid key-value pair")
+		}
+		key := args[0]
 
-	   		key := args[0]
+		var secretVersion *int
 
-	   		//	Fetch the secret
-	   		secret, err := secrets.Get(context.DContext, key, nil)
-	   		if err != nil {
-	   			panic(err)
-	   		}
+		if version > -1 {
+			secretVersion = &version
+		}
 
-	   		fmt.Println(secret.Value)
-	   	},
-	*/}
+		//	Load the project config
+		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+		if err != nil {
+			panic(err)
+		}
+
+		projectConfig := projectConfigPayload.(*configCommons.Project)
+
+		//	Get the secret service
+		payload := &secretsCommons.GetRequestOptions{
+			Path: secretsCommons.Path{
+				Organisation: projectConfig.Organisation,
+				Environment:  projectConfig.Environment,
+				Project:      projectConfig.Project,
+			},
+			Key:     key,
+			Version: secretVersion,
+		}
+
+		reqBody, _ := payload.Marshal()
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, os.Getenv("API")+"/v1/secrets", bytes.NewBuffer(reqBody))
+		if err != nil {
+			panic(err)
+		}
+
+		//	Set content-type header
+		req.Header.Set("content-type", "application/json")
+
+		resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
+		if er != nil {
+			panic(er)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			panic("failed to set secret")
+		}
+
+		defer resp.Body.Close()
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		var response secretsCommons.APIResponse
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			panic(err)
+		}
+
+		secret := response.Data.(map[string]interface{})
+
+		//	Base64 decode the secret value
+		data, err := base64.StdEncoding.DecodeString(secret["value"].(string))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(data))
+
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(getCmd)
@@ -74,5 +144,5 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	//	getCmd.Flags().IntVarP(version, "version", "v", 0, "Version of your secret")
+	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 }

@@ -112,7 +112,7 @@ func RefreshToken(payload map[string]interface{}) (*LoginResponse, error) {
 	}
 
 	var response LoginResponse
-	if err := json.Unmarshal(data, &response); err != nil {
+	if err := json.Unmarshal(data, &response.Session); err != nil {
 		return nil, err
 	}
 

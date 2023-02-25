@@ -3,35 +3,64 @@ package commons
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
+
+type Type string
 
 type Secrets []Secret
 
-func (s *Secrets) Map() map[string]interface{} {
-
-	response := make(map[string]interface{})
-
-	for _, item := range *s {
-		response[item.Key] = item.Value
-	}
-
-	return response
+type Secret struct {
+	ID        string             `json:"id,omitempty" graphql:"id,omitempty"`
+	CreatedAt time.Time          `json:"created_at,omitempty" graphql:"created_at,omitempty"`
+	UpdatedAt time.Time          `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
+	Name      string             `json:"name,omitempty" graphql:"name,omitempty"`
+	UserID    string             `json:"user_id,omitempty" graphql:"user_id,omitempty"`
+	EnvID     string             `json:"env_id,omitempty" graphql:"env_id,omitempty"`
+	Version   int                `json:"version,omitempty" graphql:"version,omitempty"`
+	Data      map[string]Payload `json:"data,omitempty" graphql:"data,omitempty"`
 }
 
-type Secret struct {
-	Key string `json:"key"`
+type Data struct {
+	Key     string  `json:"key"`
+	Payload Payload `json:"payload"`
+}
+
+type Payload struct {
 
 	//	Base 64 encoded value.
-	Value interface{} `json:"value"`
+	Value interface{} `json:"value,omitempty"`
+
+	//	Plaintext or Ciphertext
+	Type Type `json:"type,omitempty"`
 }
 
-func (s *Secret) String() string {
-	return fmt.Sprintf("%s=%v", s.Key, s.Value)
-}
-
-func (s *Secret) Map() map[string]interface{} {
+func (p *Payload) Map() map[string]interface{} {
 	return map[string]interface{}{
-		s.Key: s.Value,
+		"value": p.Value,
+		"type":  p.Type,
+	}
+}
+
+func (d *Data) String() string {
+	return fmt.Sprintf("%s=%v", d.Key, d.Payload.Value)
+}
+
+func (d *Data) GetPayload() *Payload {
+	return &d.Payload
+}
+
+//	Returns KEY=VALUE mapping of the secret.
+func (d *Data) KVMap() map[string]interface{} {
+	return map[string]interface{}{
+		d.Key: d.Payload.Value,
+	}
+}
+
+//	Returns KEY=Payload{ Type, Value } mapping of the secret.
+func (d *Data) Map() map[string]interface{} {
+	return map[string]interface{}{
+		d.Key: d.Payload,
 	}
 }
 
@@ -58,19 +87,6 @@ func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
 	return json.Marshal(o)
 }
 
-type SetOptions struct {
-	Path       Path   `json:"path"`
-	Secret     Secret `json:"secret"`
-	KeyVersion int    `json:"key_version"`
-}
-
-func (s *SetOptions) VaultOptions() map[string]interface{} {
-	return map[string]interface{}{
-		"plaintext":   s.Secret.Value,
-		"key_version": s.KeyVersion,
-	}
-}
-
 type VaultResponse struct {
 	RequestID     string `json:"request_id"`
 	LeaseID       string `json:"lease_id"`
@@ -83,29 +99,43 @@ type VaultResponse struct {
 	} `json:"data"`
 }
 
-type SetRequest struct {
-	Path   Path   `json:"path"`
-	Secret Secret `json:"secret"`
+type SetRequestOptions struct {
+	Path       Path `json:"path"`
+	Data       Data `json:"data"`
+	KeyVersion int  `json:"key_version,omitempty"`
 }
 
-func (r *SetRequest) Marshal() ([]byte, error) {
+func (r *SetRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-type SetRequestOptions struct {
-	EnvID  string `json:"env_id"`
-	Secret Secret `json:"secret"`
+type SetSecretOptions struct {
+	KeyPath    string `json:"key_path"`
+	EnvID      string `json:"env_id"`
+	Data       Data   `json:"data"`
+	KeyVersion int    `json:"key_version,omitempty"`
 }
 
-type GetOptions struct {
-	Secret  Secret `json:"secret"`
+func (r *SetSecretOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+func (s *SetSecretOptions) GetVaultOptions() map[string]interface{} {
+	return map[string]interface{}{
+		"plaintext":   s.Data.Payload.Value,
+		"key_version": s.KeyVersion,
+	}
+}
+
+type GetSecretOptions struct {
+	Data    Data   `json:"data"`
 	EnvID   string `json:"env_id"`
 	Version *int   `json:"version,omitempty"`
 }
 
-func (g *GetOptions) VaultOptions() map[string]interface{} {
+func (g *GetSecretOptions) GetVaultOptions() map[string]interface{} {
 	return map[string]interface{}{
-		"ciphertext": g.Secret.Value,
+		"ciphertext": g.Data.Payload.Value,
 	}
 }
 
@@ -115,17 +145,21 @@ type GetRequestOptions struct {
 	Version *int   `json:"version,omitempty"`
 }
 
-type GetAllResponse struct {
-	Data    map[string]interface{} `json:"data"`
-	Version int                    `json:"version,omitempty"`
+func (r *GetRequestOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
 }
 
-type ListRequest struct {
+type GetAllResponse struct {
+	Data    map[string]Payload `json:"data"`
+	Version int                `json:"version,omitempty"`
+}
+
+type ListRequestOptions struct {
 	Path    Path `json:"path"`
 	Version *int `json:"version,omitempty"`
 }
 
-func (r *ListRequest) Marshal() ([]byte, error) {
+func (r *ListRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 

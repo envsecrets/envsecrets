@@ -13,6 +13,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+require github.com/labstack/echo-jwt v0.0.0-20221127215225-c84d41a71003 // indirect
+
 require (
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect

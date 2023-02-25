@@ -49,41 +49,43 @@ func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
 	return nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetOptions) *errors.Error {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) *errors.Error {
 
-	postBody, _ := json.Marshal(options.VaultOptions())
+	//	If the secret type `ciphertext`,
+	//	encrypt it from vault before saving the value.
+	if options.Data.Payload.Type == commons.Ciphertext {
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/encrypt/"+options.Path.Organisation, bytes.NewBuffer(postBody))
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+		postBody, _ := json.Marshal(options.GetVaultOptions())
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/encrypt/"+options.KeyPath, bytes.NewBuffer(postBody))
+		if err != nil {
+			return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+		}
+
+		req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+		}
+		defer resp.Body.Close()
+
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		var response commons.VaultResponse
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			return errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+
+		//	Replace the secret value with ciphered version.
+		options.Data.Payload.Value = response.Data.Ciphertext
 	}
-
-	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-	}
-
-	var response commons.VaultResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-	}
-
-	//	Replace the secret value with ciphered version.
-	options.Secret.Value = response.Data.Ciphertext
 
 	//	Insert the encrypted secret in Hasura.
-	if err := graphql.Set(ctx, client, &commons.SetRequestOptions{
-		EnvID:  options.Path.Environment,
-		Secret: options.Secret,
-	}); err != nil {
+	if err := graphql.Set(ctx, client, options); err != nil {
 		return err
 	}
 
@@ -92,263 +94,80 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetRequestOptions) (*commons.Secret, *errors.Error) {
 
-	//	Initialize new get request options.
-	getOptions := commons.GetOptions{
-		EnvID:  options.Path.Environment,
-		Secret: commons.Secret{Key: options.Key},
+	//	Inittialize our secret data
+	data := commons.Data{
+		Key: options.Key,
 	}
 
-	//	Get the encrypted secret from Hasura.
-	encryptedValue, err := graphql.GetByKey(ctx, client, &getOptions)
-	if err != nil {
-		return nil, err
+	//	Initialize request options
+	var getOptions = &commons.GetSecretOptions{
+		EnvID: options.Path.Environment,
+		Data:  data,
+	}
+
+	//	If the request has a specific version specified,
+	//	make the call for only that version
+	if options.Version != nil {
+
+		getOptions.Version = options.Version
+
+		resp, err := graphql.GetByKeyByVersion(ctx, client, getOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		data.Payload = resp.Data[data.Key]
+
+	} else {
+
+		resp, err := graphql.GetByKey(ctx, client, getOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		data.Payload = resp.Data[data.Key]
 	}
 
 	//	Save the returned encrypted value in our `get options`.
-	getOptions.Secret.Value = encryptedValue.Value
+	getOptions.Data.Payload.Value = data.Payload.Value
 
-	//	Decrypt the value from Vault.
-	postBody, _ := json.Marshal(getOptions.VaultOptions())
-	req, er := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/decrypt/"+options.Path.Organisation, bytes.NewBuffer(postBody))
-	if er != nil {
-		return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	//	Only if the saved value was of type `ciphertext`,
+	//	we have to descrypt the value.
+	if data.Payload.Type == commons.Ciphertext {
+
+		//	Decrypt the value from Vault.
+		postBody, _ := json.Marshal(getOptions.GetVaultOptions())
+		req, er := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/decrypt/"+options.Path.Organisation, bytes.NewBuffer(postBody))
+		if er != nil {
+			return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+		}
+
+		req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+
+		resp, er := http.DefaultClient.Do(req)
+		if er != nil {
+			return nil, errors.New(er, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+		}
+
+		defer resp.Body.Close()
+
+		respBody, er := ioutil.ReadAll(resp.Body)
+		if er != nil {
+			return nil, errors.New(er, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		var response commons.VaultResponse
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+
+		data.Payload.Value = response.Data.Plaintext
+		data.Payload.Type = commons.Plaintext
 	}
 
-	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
-
-	resp, er := http.DefaultClient.Do(req)
-	if er != nil {
-		return nil, errors.New(er, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
-	}
-
-	defer resp.Body.Close()
-
-	respBody, er := ioutil.ReadAll(resp.Body)
-	if er != nil {
-		return nil, errors.New(er, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-	}
-
-	var response commons.VaultResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-	}
-
-	//	Replace the secret value with plaintext version.
-	var secret commons.Secret
-	secret.Key = options.Key
-	secret.Value = response.Data.Plaintext
-
-	return &secret, nil
-}
-
-/*
-func Get(ctx context.ServiceContext, key string, version *int) (*Secret, error) {
-
-	//	Load the current project congi
-	projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
-	if er != nil {
-		panic(er.Error())
-	}
-
-	projectConfig := projectConfigData.(*commons.Project)
-
-	//	Prepare body
-	reqPayload := GetRequest{
-		Key:     key,
-		Version: version,
-		Path: Path{
-			Organisation: projectConfig.Organisation,
-			Project:      projectConfig.Project,
-			Environment:  projectConfig.Environment,
+	return &commons.Secret{
+		Data: map[string]commons.Payload{
+			options.Key: data.Payload,
 		},
-	}
-
-	body, err := reqPayload.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	client := http.Client{}
-
-	addressPrefix := "/api/v1"
-	req, err := http.NewRequest(
-		http.MethodGet,
-		os.Getenv("API")+addressPrefix+"/secrets/get",
-		bytes.NewBuffer(body),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Set authorization header
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var response APIResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, err
-	}
-
-	if response.Code != http.StatusOK {
-		return nil, errors.New("failed to set the secret")
-	}
-
-	return &Secret{
-		Key:   key,
-		Value: response.Data,
 	}, nil
 }
-
-func GetVersions(ctx context.ServiceContext, key string) (*Secret, error) {
-
-	//	Load the current project congi
-	projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
-	if er != nil {
-		panic(er.Error())
-	}
-
-	projectConfig := projectConfigData.(*commons.Project)
-
-	//	Prepare body
-	reqPayload := GetRequest{
-		Key: key,
-		Path: Path{
-			Organisation: projectConfig.Organisation,
-			Project:      projectConfig.Project,
-			Environment:  projectConfig.Environment,
-		},
-	}
-
-	body, err := reqPayload.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	client := http.Client{}
-
-	addressPrefix := "/api/v1"
-	req, err := http.NewRequest(
-		http.MethodGet,
-		os.Getenv("API")+addressPrefix+"/secrets/get/versions",
-		bytes.NewBuffer(body),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Set authorization header
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var response APIResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, err
-	}
-
-	if response.Code != http.StatusOK {
-		return nil, errors.New("failed to set the secret")
-	}
-
-	fmt.Println(response.Data)
-
-	return nil, nil
-}
-func List(ctx context.ServiceContext, version *int) (*[]Secret, error) {
-
-	//	Load the current project congi
-	projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
-	if er != nil {
-		return nil, er
-	}
-
-	projectConfig := projectConfigData.(*commons.Project)
-
-	//	Prepare body
-	reqPayload := ListRequest{
-		Version: version,
-		Path: Path{
-			Organisation: projectConfig.Organisation,
-			Project:      projectConfig.Project,
-			Environment:  projectConfig.Environment,
-		},
-	}
-
-	body, err := reqPayload.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	client := http.Client{}
-
-	addressPrefix := "/api/v1"
-	req, err := http.NewRequest(
-		http.MethodGet,
-		os.Getenv("API")+addressPrefix+"/secrets/list",
-		bytes.NewBuffer(body),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Set authorization header
-	req.Header.Set("Authorization", "Bearer "+ctx.Config.AccessToken)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var response APIResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, err
-	}
-
-	if response.Code != http.StatusOK {
-		return nil, errors.New("failed to set the secret")
-	}
-
-	result, ok := response.Data.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("failed type conversion for response data")
-	}
-
-	var secrets []Secret
-	for key, value := range result {
-		secrets = append(secrets, Secret{
-			Key:   key,
-			Value: value,
-		})
-	}
-
-	return &secrets, nil
-}
-*/

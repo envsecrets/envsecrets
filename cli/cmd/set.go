@@ -32,6 +32,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -45,6 +46,8 @@ import (
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
+
+var encrypt bool
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
@@ -76,9 +79,20 @@ to quickly create a Cobra application.`,
 		key := pair[0]
 		value := pair[1]
 
-		data := secretsCommons.Secret{
-			Key:   key,
-			Value: value,
+		//	Whether to encrypt the secret value or not.
+		typ := secretsCommons.Ciphertext
+		if !encrypt {
+			typ = secretsCommons.Plaintext
+		}
+
+		//	Base64 encode the secret value
+		base64Value := base64.StdEncoding.EncodeToString([]byte(value))
+		data := secretsCommons.Data{
+			Key: key,
+			Payload: secretsCommons.Payload{
+				Value: base64Value,
+				Type:  typ,
+			},
 		}
 
 		//	Load the project configuration
@@ -90,11 +104,8 @@ to quickly create a Cobra application.`,
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := secretsCommons.SetRequest{
-			Secret: secretsCommons.Secret{
-				Key:   key,
-				Value: value,
-			},
+		payload := secretsCommons.SetRequestOptions{
+			Data: data,
 			Path: secretsCommons.Path{
 				Organisation: projectConfig.Organisation,
 				Project:      projectConfig.Project,
@@ -102,15 +113,23 @@ to quickly create a Cobra application.`,
 			},
 		}
 
-		reqBody, _ := payload.Marshal()
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, os.Getenv("API")+"/api/v1/secrets", bytes.NewBuffer(reqBody))
+		reqBody, err := payload.Marshal()
 		if err != nil {
 			panic(err)
 		}
 
-		resp, err := commons.HTTPClient.Do(req)
+		fmt.Println(string(reqBody))
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, os.Getenv("API")+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			panic(err)
+		}
+
+		//	Set content-type header
+		req.Header.Set("content-type", "application/json")
+
+		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
+		if httpErr != nil {
+			panic(httpErr)
 		}
 
 		defer resp.Body.Close()
@@ -149,5 +168,5 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	//	setCmd.Flags().StringVarP("toggle", "t", false, "Help message for toggle")
+	setCmd.Flags().BoolVarP(&encrypt, "encrypt", "e", true, "Encrypt the value")
 }

@@ -16,3 +16,8 @@ const (
 	ECDSA_P256   Key = "ecdsa-p256"
 	AES256_GCM96 Key = "aes256-gcm96"
 )
+
+const (
+	Plaintext  Type = "plaintext"
+	Ciphertext Type = "ciphertext"
+)

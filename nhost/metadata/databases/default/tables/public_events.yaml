@@ -1,0 +1,57 @@
+table:
+  name: events
+  schema: public
+object_relationships:
+  - name: environment
+    using:
+      foreign_key_constraint_on: env_id
+  - name: integration
+    using:
+      foreign_key_constraint_on: integration_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        integration:
+          organisation:
+            user_id:
+              _eq: X-Hasura-User-Id
+      columns:
+        - entity_slug
+        - env_id
+        - integration_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - entity_slug
+        - created_at
+        - updated_at
+        - env_id
+        - id
+        - integration_id
+      filter:
+        integration:
+          organisation:
+            user_id:
+              _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - entity_slug
+      filter:
+        integration:
+          organisation:
+            user_id:
+              _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        integration:
+          organisation:
+            user_id:
+              _eq: X-Hasura-User-Id
