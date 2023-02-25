@@ -1,7 +1,6 @@
 package secrets
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -75,7 +74,6 @@ func GetHandler(c echo.Context) error {
 	//	Call the service function.
 	secret, err := Get(ctx, client, &payload)
 	if err != nil {
-		fmt.Println(err.Error)
 		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
 			Code:    http.StatusBadRequest,
 			Message: "failed to get the secret",

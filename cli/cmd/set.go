@@ -33,7 +33,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -62,7 +61,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
-		if len(args) < 1 || len(args) > 1 {
+		if len(args) < 1 {
 			panic("invalid key-value pair")
 		}
 
@@ -118,7 +117,6 @@ to quickly create a Cobra application.`,
 			panic(err)
 		}
 
-		fmt.Println(string(reqBody))
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, os.Getenv("API")+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			panic(err)
@@ -134,15 +132,13 @@ to quickly create a Cobra application.`,
 
 		defer resp.Body.Close()
 
-		respBody, err := ioutil.ReadAll(resp.Body)
+		_, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println(string(respBody))
-
 		if resp.StatusCode != http.StatusOK {
-			panic("failed to set secret")
+			panic("failed to get secret")
 		}
 
 		//	Set the values in current application
