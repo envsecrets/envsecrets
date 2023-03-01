@@ -55,3 +55,24 @@ delete_permissions:
           organisation:
             user_id:
               _eq: X-Hasura-User-Id
+event_triggers:
+  - name: event_created
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/v1/triggers/events/new'
+    headers:
+      - name: x-hasura-webhook-secret
+        value: "\tNHOST_WEBHOOK_SECRET"
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60

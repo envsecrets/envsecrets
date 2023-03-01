@@ -27,6 +27,11 @@ type InstallationAccessTokenResponse struct {
 	} `json:"permissions"`
 }
 
+type RepositoryActionsSecretsPublicKeyResponse struct {
+	Key   string `json:"key"`
+	KeyID string `json:"key_id"`
+}
+
 type ListRepositoriesResponse struct {
 	TotalCount           int          `json:"total_count"`
 	RespositorySelection string       `json:"repository_selection"`

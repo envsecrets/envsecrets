@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets"
+	"github.com/envsecrets/envsecrets/internal/triggers"
 	"github.com/joho/godotenv"
 	echojwt "github.com/labstack/echo-jwt"
 	"github.com/labstack/echo/v4"
@@ -33,7 +34,7 @@ func main() {
 
 	//	Initialize the routes to skip JWT auth
 	skipRoutes := []string{
-		"/events",
+		"/triggers",
 		"integrations",
 	}
 
@@ -44,7 +45,7 @@ func main() {
 		//	Define function to skip certain routes from JWT auth
 		Skipper: func(c echo.Context) bool {
 			for _, item := range skipRoutes {
-				if item == c.Request().URL.Path {
+				if strings.Contains(c.Request().URL.Path, item) {
 					return true
 				}
 			}
@@ -52,13 +53,11 @@ func main() {
 		},
 	}))
 
-	//	TODO: Add webhook validation middleware
-
 	//	API	Version 1 Group
 	v1Group := e.Group("/v1")
 
-	//	Hasura events group
-	events.AddRoutes(v1Group)
+	//	Hasura triggers group
+	triggers.AddRoutes(v1Group)
 
 	//	Secrets group
 	secrets.AddRoutes(v1Group)

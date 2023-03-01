@@ -1,10 +1,13 @@
 package github
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	internalErrors "errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -31,7 +34,7 @@ func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *Setup
 func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (*commons.Entities, *errors.Error) {
 
 	//	Get installation's access token
-	auth, err := getInstallationAccessToken(ctx, integration.InstallationID)
+	auth, err := GetInstallationAccessToken(ctx, integration.InstallationID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +90,73 @@ func ListRepositories(ctx context.ServiceContext, client *clients.HTTPClient) (*
 	return &repositoriesResponse, nil
 }
 
-func getInstallationAccessToken(ctx context.ServiceContext, installationID string) (*InstallationAccessTokenResponse, *errors.Error) {
+//	-- Flow --
+//	1. Get repository's action secrets public key.
+//	2. Encrypt the secret data.
+//	3. Post the secrets to Github actions endpoint.
+func PushSecrets(ctx context.ServiceContext, client *clients.HTTPClient, options *commons.PushSecretOptions) *errors.Error {
+
+	//	Get the public key.
+	publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, options.EntitySlug)
+	if err != nil {
+		return err
+	}
+
+	for key, value := range options.Data {
+
+		//	Encrypt the secret value.
+		encryptedValue, err := encryptSecret(publicKey.Key, value.(string))
+		if err != nil {
+			return errors.New(err, "failed to encrypt secret", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		//	Initialize a new HTTP client for Github.
+		client := clients.NewHTTPClient(&clients.HTTPConfig{
+			Type:          clients.GithubClientType,
+			Authorization: client.Authorization,
+		})
+
+		//	Post the secret to Github actions.
+		if err := pushRepositorySecret(ctx, client, options.EntitySlug, key, publicKey.KeyID, encryptedValue); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func pushRepositorySecret(ctx context.ServiceContext, client *clients.HTTPClient, slug, secretName, keyID, value string) *errors.Error {
+
+	body, err := json.Marshal(map[string]interface{}{
+		"encrypted_value": value,
+		"key_id":          keyID,
+	})
+
+	if err != nil {
+		return errors.New(err, "failed prepare json body to push secrets to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fmt.Sprintf("https://api.github.com/repos/%s/actions/secrets/%s", slug, secretName), bytes.NewBuffer(body))
+	if err != nil {
+		return errors.New(err, "failed prepare http request to push secrets to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	response, er := client.Run(ctx, req)
+	if er != nil {
+		return er
+	}
+
+	//	Github Responses:
+	//	201 -> New secret created
+	//	204 -> Existing secret updated
+	if response.StatusCode != 201 && response.StatusCode != 204 {
+		return errors.New(internalErrors.New(response.Status), "failed to push secret to github repo", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
+	}
+
+	return nil
+}
+
+func GetInstallationAccessToken(ctx context.ServiceContext, installationID string) (*InstallationAccessTokenResponse, *errors.Error) {
 
 	//	Authenticate as a github app
 	jwt, err := generateGithuAppJWT("keys/github-private-key.pem")
@@ -120,6 +189,35 @@ func getInstallationAccessToken(ctx context.ServiceContext, installationID strin
 	}
 
 	var authResponse InstallationAccessTokenResponse
+	if err := json.Unmarshal(authResponseBody, &authResponse); err != nil {
+		return nil, errors.New(err, "failed to unmarshal github access token response body", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &authResponse, nil
+}
+
+//	Fetches the public key for action secrets for supplied repository slug.
+func getRepositoryActionsSecretsPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, slug string) (*RepositoryActionsSecretsPublicKeyResponse, *errors.Error) {
+
+	//	Get user's access token from Github API.
+	req, er := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://api.github.com/repos/%s/actions/secrets/public-key", slug), nil)
+	if er != nil {
+		return nil, errors.New(er, "failed prepare repository actions secret public key request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	authResponsePayload, err := client.Run(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer authResponsePayload.Body.Close()
+
+	authResponseBody, er := ioutil.ReadAll(authResponsePayload.Body)
+	if er != nil {
+		return nil, errors.New(er, "failed to read repository actions secret public key response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
+	}
+
+	var authResponse RepositoryActionsSecretsPublicKeyResponse
 	if err := json.Unmarshal(authResponseBody, &authResponse); err != nil {
 		return nil, errors.New(err, "failed to unmarshal github access token response body", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}

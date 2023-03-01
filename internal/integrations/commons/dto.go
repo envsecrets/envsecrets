@@ -1,6 +1,8 @@
 package commons
 
-import "time"
+import (
+	"time"
+)
 
 type OauthAuthResponse struct {
 	AccessToken  string `json:"access_token"`
@@ -60,4 +62,10 @@ type ListEntitiesRequestOptions struct {
 	OrgID          string          `json:"org_id"`
 	Type           IntegrationType `json:"type"`
 	InstallationID string          `json:"installation_id"`
+}
+
+type PushSecretOptions struct {
+	InstallationID string                 `json:"installation_id"`
+	EntitySlug     string                 `json:"entity_slug"`
+	Data           map[string]interface{} `json:"data"`
 }

@@ -78,6 +78,39 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Org
 	return &resp, nil
 }
 
+//	Get a organisation by ID
+func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, *errors.Error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($env_id: uuid!) {
+		organisations(where: {projects: {environments: {id: {_eq: $env_id}}}}, limit: 1) {
+		  id
+		  name
+		}
+	  }	   
+	`)
+
+	req.Var("env_id", env_id)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["organisations"])
+	if err != nil {
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []Organisation
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &resp[0], nil
+}
+
 //	List organisations
 func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, *errors.Error) {
 

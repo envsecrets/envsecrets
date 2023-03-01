@@ -136,29 +136,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	if data.Payload.Type == commons.Ciphertext {
 
 		//	Decrypt the value from Vault.
-		postBody, _ := json.Marshal(getOptions.GetVaultOptions())
-		req, er := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/decrypt/"+options.Path.Organisation, bytes.NewBuffer(postBody))
-		if er != nil {
-			return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-		}
-
-		req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
-
-		resp, er := http.DefaultClient.Do(req)
-		if er != nil {
-			return nil, errors.New(er, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
-		}
-
-		defer resp.Body.Close()
-
-		respBody, er := ioutil.ReadAll(resp.Body)
-		if er != nil {
-			return nil, errors.New(er, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-		}
-
-		var response commons.VaultResponse
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
+			Data:        data,
+			KeyLocation: options.Path.Organisation,
+			EnvID:       options.Path.Environment,
+		})
+		if err != nil {
+			return nil, err
 		}
 
 		data.Payload.Value = response.Data.Plaintext
@@ -170,4 +154,34 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 			options.Key: data.Payload,
 		},
 	}, nil
+}
+
+func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) (*commons.VaultResponse, *errors.Error) {
+
+	postBody, _ := json.Marshal(options.GetVaultOptions())
+	req, er := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/decrypt/"+options.KeyLocation, bytes.NewBuffer(postBody))
+	if er != nil {
+		return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	}
+
+	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+
+	resp, er := http.DefaultClient.Do(req)
+	if er != nil {
+		return nil, errors.New(er, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	}
+
+	defer resp.Body.Close()
+
+	respBody, er := ioutil.ReadAll(resp.Body)
+	if er != nil {
+		return nil, errors.New(er, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+	}
+
+	var response commons.VaultResponse
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &response, nil
 }

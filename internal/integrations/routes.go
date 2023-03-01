@@ -10,9 +10,9 @@ func AddRoutes(sg *echo.Group) {
 
 	commonGroup := sg.Group("/integrations/:" + commons.INTEGRATION_TYPE)
 
-	commonGroup.GET("/setup", SetupHandler, middlewares.HasWebhookHeader)
+	commonGroup.GET("/setup", SetupHandler, middlewares.WebhookHeader())
 
 	integrationsGroup := commonGroup.Group("/:" + commons.INTEGRATION_ID)
 	integrationsGroup.GET("/entities", ListEntitiesHandler)
-	integrationsGroup.POST("/trigger", nil, middlewares.HasWebhookHeader)
+	integrationsGroup.POST("/trigger", nil, middlewares.WebhookHeader())
 }

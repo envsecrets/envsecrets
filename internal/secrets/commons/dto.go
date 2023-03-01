@@ -133,7 +133,13 @@ type GetSecretOptions struct {
 	Version *int   `json:"version,omitempty"`
 }
 
-func (g *GetSecretOptions) GetVaultOptions() map[string]interface{} {
+type DecryptSecretOptions struct {
+	Data        Data   `json:"data"`
+	KeyLocation string `json:"key_location"`
+	EnvID       string `json:"env_id"`
+}
+
+func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
 	return map[string]interface{}{
 		"ciphertext": g.Data.Payload.Value,
 	}
