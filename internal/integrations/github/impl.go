@@ -14,6 +14,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
+	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *SetupOptions) *errors.Error {
@@ -94,31 +95,50 @@ func ListRepositories(ctx context.ServiceContext, client *clients.HTTPClient) (*
 //	1. Get repository's action secrets public key.
 //	2. Encrypt the secret data.
 //	3. Post the secrets to Github actions endpoint.
-func PushSecrets(ctx context.ServiceContext, client *clients.HTTPClient, options *commons.PushSecretOptions) *errors.Error {
+func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Error {
 
-	//	Get the public key.
-	publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, options.EntitySlug)
+	//	Get installation's access token
+	auth, err := GetInstallationAccessToken(ctx, options.InstallationID)
 	if err != nil {
 		return err
 	}
 
-	for key, value := range options.Data {
+	//	Initialize a new HTTP client for Github.
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type:          clients.GithubClientType,
+		Authorization: "Bearer " + auth.Token,
+	})
 
-		//	Encrypt the secret value.
-		encryptedValue, err := encryptSecret(publicKey.Key, value.(string))
-		if err != nil {
-			return errors.New(err, "failed to encrypt secret", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-		}
+	for key, payload := range options.Data {
 
-		//	Initialize a new HTTP client for Github.
-		client := clients.NewHTTPClient(&clients.HTTPConfig{
-			Type:          clients.GithubClientType,
-			Authorization: client.Authorization,
-		})
+		//	If the payload is of type `ciphertext`,
+		//	we have to encrypt its value and push it to Github action's secrets.
+		if payload.Type == secretCommons.Ciphertext {
 
-		//	Post the secret to Github actions.
-		if err := pushRepositorySecret(ctx, client, options.EntitySlug, key, publicKey.KeyID, encryptedValue); err != nil {
-			return err
+			//	Get the public key.
+			publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, options.EntitySlug)
+			if err != nil {
+				return err
+			}
+
+			//	Encrypt the secret value.
+			encryptedValue, er := encryptSecret(publicKey.Key, payload.Value.(string))
+			if er != nil {
+				return errors.New(er, "failed to encrypt secret", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+			}
+
+			//	Post the secret to Github actions.
+			if err := pushRepositorySecret(ctx, client, options.EntitySlug, key, publicKey.KeyID, encryptedValue); err != nil {
+				return err
+			}
+
+		} else if payload.Type == secretCommons.Plaintext {
+
+			//	If the payload type is `plaintext`,
+			//	save it as a normal variable in Github actions.
+			if err := pushRepositoryVariable(ctx, client, options.EntitySlug, key, payload.Value.(string)); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -151,6 +171,58 @@ func pushRepositorySecret(ctx context.ServiceContext, client *clients.HTTPClient
 	//	204 -> Existing secret updated
 	if response.StatusCode != 201 && response.StatusCode != 204 {
 		return errors.New(internalErrors.New(response.Status), "failed to push secret to github repo", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
+	}
+
+	return nil
+}
+
+func pushRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPClient, slug, name, value string) *errors.Error {
+
+	body, err := json.Marshal(map[string]interface{}{
+		"name":  name,
+		"value": value,
+	})
+
+	if err != nil {
+		return errors.New(err, "failed prepare json body to push variables to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://api.github.com/repos/%s/actions/variables", slug), bytes.NewBuffer(body))
+	if err != nil {
+		return errors.New(err, "failed prepare http request to push variables to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	response, er := client.Run(ctx, req)
+	if er != nil {
+		return er
+	}
+
+	//	Github Responses:
+	//	201 (Created) -> New variable created
+	//	409 (Conflict) -> Variable exists
+	if response.StatusCode == 409 {
+
+		//	Delete the variable and recreate it.
+		if err := deleteRepositoryVariable(ctx, client, slug, name); err != nil {
+			return err
+		}
+
+		return pushRepositoryVariable(ctx, client, slug, name, value)
+	}
+
+	return nil
+}
+
+func deleteRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPClient, slug, name string) *errors.Error {
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("https://api.github.com/repos/%s/actions/variables/%s", slug, name), nil)
+	if err != nil {
+		return errors.New(err, "failed prepare http request to push variables to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	_, er := client.Run(ctx, req)
+	if er != nil {
+		return er
 	}
 
 	return nil

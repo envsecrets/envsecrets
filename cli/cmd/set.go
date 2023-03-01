@@ -78,6 +78,9 @@ to quickly create a Cobra application.`,
 		key := pair[0]
 		value := pair[1]
 
+		//	Auto-capitalize the key
+		key = strings.ToUpper(key)
+
 		//	Whether to encrypt the secret value or not.
 		typ := secretsCommons.Ciphertext
 		if !encrypt {

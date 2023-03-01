@@ -69,7 +69,7 @@ func SecretInserted(c echo.Context) error {
 		})
 	}
 
-	data := make(map[string]interface{})
+	data := make(map[string]secretCommons.Payload)
 
 	if len(*events) > 0 {
 
@@ -105,23 +105,34 @@ func SecretInserted(c echo.Context) error {
 					})
 				}
 
-				//	Base64 decode the decrypted value
+				//	Base64 decode the secret value
 				b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
 				if er != nil {
 					return c.JSON(http.StatusBadGateway, &APIResponse{
 						Code:    http.StatusBadRequest,
 						Message: "failed to base 64 decode the decrypted value of secret: " + key,
-						Error:   err.Error.Error(),
+						Error:   er.Error(),
 					})
 				}
 
-				data[key] = string(b64Decoded)
+				payload.Value = string(b64Decoded)
 
 			} else if payload.Type == secretCommons.Plaintext {
 
-				data[key] = payload.Value
+				//	Base64 decode the secret value
+				b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
+				if er != nil {
+					return c.JSON(http.StatusBadGateway, &APIResponse{
+						Code:    http.StatusBadRequest,
+						Message: "failed to base 64 decode the decrypted value of secret: " + key,
+						Error:   er.Error(),
+					})
+				}
+
+				payload.Value = string(b64Decoded)
 			}
 
+			data[key] = payload
 		}
 	}
 
@@ -132,7 +143,7 @@ func SecretInserted(c echo.Context) error {
 	for _, event := range *events {
 		wg.Add(1)
 		go func(event *eventCommons.Event) {
-			if err := integrationService.PushSecrets(ctx, event.Integration.Type, &integrationCommons.PushSecretOptions{
+			if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
 				InstallationID: event.Integration.InstallationID,
 				EntitySlug:     event.EntitySlug,
 				Data:           data,

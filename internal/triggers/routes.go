@@ -17,11 +17,15 @@ func AddRoutes(sg *echo.Group) {
 
 	secrets.POST("/new", SecretInserted)
 
+	//	envsecrets organisations group
+	organisations := triggers.Group("/organisations")
+
+	organisations.POST("/new", OrganisationInserted)
+
 	//	envsecrets permissions group
 	permissions := triggers.Group("/permissions")
 
 	permissions.POST("/organisation", OrganisationLevelPermissions)
-	permissions.POST("/organisation/new", OrganisationInserted)
 	permissions.POST("/organisation/delete", OrganisationDeleted)
 	permissions.POST("/project", ProjectLevelPermissions)
 	permissions.POST("/environment", EnvironmentLevelPermissions)

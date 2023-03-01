@@ -15,7 +15,7 @@ import (
 type Service interface {
 	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (*commons.Entities, *errors.Error)
 	Setup(context.ServiceContext, commons.IntegrationType, url.Values) *errors.Error
-	PushSecrets(context.ServiceContext, commons.IntegrationType, *commons.PushSecretOptions) *errors.Error
+	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
 }
 
 type DefaultIntegrationService struct{}
@@ -76,23 +76,11 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationT
 	return nil
 }
 
-func (*DefaultIntegrationService) PushSecrets(ctx context.ServiceContext, integrationType commons.IntegrationType, options *commons.PushSecretOptions) *errors.Error {
-
-	//	Get installation's access token
-	auth, err := github.GetInstallationAccessToken(ctx, options.InstallationID)
-	if err != nil {
-		return err
-	}
-
-	//	Initialize a new HTTP client for Github.
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type:          clients.GithubClientType,
-		Authorization: "Bearer " + auth.Token,
-	})
+func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationType commons.IntegrationType, options *commons.SyncOptions) *errors.Error {
 
 	switch integrationType {
 	case commons.Github:
-		return github.PushSecrets(ctx, client, options)
+		return github.Sync(ctx, options)
 	default:
 		return nil
 	}

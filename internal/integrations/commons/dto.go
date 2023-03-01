@@ -2,6 +2,8 @@ package commons
 
 import (
 	"time"
+
+	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 type OauthAuthResponse struct {
@@ -64,8 +66,8 @@ type ListEntitiesRequestOptions struct {
 	InstallationID string          `json:"installation_id"`
 }
 
-type PushSecretOptions struct {
-	InstallationID string                 `json:"installation_id"`
-	EntitySlug     string                 `json:"entity_slug"`
-	Data           map[string]interface{} `json:"data"`
+type SyncOptions struct {
+	InstallationID string                           `json:"installation_id"`
+	EntitySlug     string                           `json:"entity_slug"`
+	Data           map[string]secretCommons.Payload `json:"data"`
 }
