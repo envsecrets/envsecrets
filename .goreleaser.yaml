@@ -1,8 +1,10 @@
 builds:
   - binary: envsecrets
+    main: ./cli
     goos:
       - darwin
       - linux
+      - windows
     goarch:
       - amd64
       - arm64
