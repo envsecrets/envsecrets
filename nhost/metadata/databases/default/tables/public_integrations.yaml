@@ -1,0 +1,54 @@
+table:
+  name: integrations
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+array_relationships:
+  - name: events
+    using:
+      foreign_key_constraint_on:
+        column: integration_id
+        table:
+          name: events
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - installation_id
+        - org_id
+        - type
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - installation_id
+        - type
+        - created_at
+        - updated_at
+        - id
+        - org_id
+        - user_id
+      filter:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id
+      allow_aggregations: true
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id

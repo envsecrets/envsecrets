@@ -1,0 +1,112 @@
+table:
+  name: organisations
+  schema: public
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+array_relationships:
+  - name: integrations
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: integrations
+          schema: public
+  - name: org_level_permissions
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: org_level_permissions
+          schema: public
+  - name: projects
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: projects
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - name
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+        - created_at
+        - updated_at
+        - id
+        - user_id
+      filter:
+        _or:
+          - user_id:
+              _eq: X-Hasura-User-Id
+          - org_level_permissions:
+              user_id:
+                _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+event_triggers:
+  - name: org_delete
+    definition:
+      delete:
+        columns: '*'
+      enable_manual: false
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/api/v1/events/permissions/organisation/delete'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60
+  - name: org_new
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/v1/triggers/organisations/new'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60

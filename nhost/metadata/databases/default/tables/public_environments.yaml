@@ -5,23 +5,62 @@ object_relationships:
   - name: project
     using:
       foreign_key_constraint_on: project_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
 array_relationships:
-  - name: branches
+  - name: env_level_permissions
     using:
       foreign_key_constraint_on:
-        column: environment_id
+        column: env_id
         table:
-          name: branches
+          name: env_level_permissions
+          schema: public
+  - name: events
+    using:
+      foreign_key_constraint_on:
+        column: env_id
+        table:
+          name: events
+          schema: public
+  - name: secrets
+    using:
+      foreign_key_constraint_on:
+        column: env_id
+        table:
+          name: secrets
           schema: public
 insert_permissions:
   - role: user
     permission:
       check:
-        project:
-          workspace:
-            memberships:
+        _or:
+          - project:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - project:
               user_id:
                 _eq: X-Hasura-User-Id
+          - project:
+              project_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        environments_manage: true
+          - project:
+              organisation:
+                org_level_permissions:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - permissions:
+                        _contains:
+                          projects_manage: true
+      set:
+        user_id: x-hasura-User-Id
       columns:
         - name
         - project_id
@@ -34,12 +73,38 @@ select_permissions:
         - updated_at
         - id
         - project_id
+        - user_id
       filter:
-        project:
-          workspace:
-            memberships:
+        _or:
+          - user_id:
+              _eq: X-Hasura-User-Id
+          - project:
               user_id:
                 _eq: X-Hasura-User-Id
+          - project:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - env_level_permissions:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - project:
+              project_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        environments_manage: true
+          - project:
+              organisation:
+                org_level_permissions:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - permissions:
+                        _contains:
+                          projects_manage: true
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -47,17 +112,58 @@ update_permissions:
       columns:
         - name
       filter:
-        project:
-          workspace:
-            memberships:
+        _or:
+          - project:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - project:
               user_id:
                 _eq: X-Hasura-User-Id
+          - project:
+              project_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        environments_manage: true
+          - project:
+              organisation:
+                org_level_permissions:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - permissions:
+                        _contains:
+                          projects_manage: true
       check: null
 delete_permissions:
   - role: user
     permission:
       filter:
-        project:
-          workspace:
-            user_id:
-              _eq: X-Hasura-User-Id
+        _or:
+          - project:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - project:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - project:
+              project_level_permissions:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        environments_manage: true
+          - project:
+              organisation:
+                org_level_permissions:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - permissions:
+                        _contains:
+                          projects_manage: true

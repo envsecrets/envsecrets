@@ -70,9 +70,9 @@ auth:
       enabled: false
       scope: read_user
     google:
-      client_id: ""
-      client_secret: ""
-      enabled: false
+      client_id: "488731347840-3517mnl705bph4crhuestjsfd3ks42kg.apps.googleusercontent.com"
+      client_secret: "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"
+      enabled: true
       scope: email,profile
     linkedin:
       client_id: ""
@@ -113,16 +113,16 @@ auth:
         from: ""
         messaging_service_id: ""
   smtp:
-    host: nhost_mailhog
+    host: mailhog
     method: ""
     pass: password
-    port: 1889
+    port: 1025
     secure: false
     sender: hasura-auth@example.com
     user: user
   token:
     access:
-      expires_in: 900
+      expires_in: 14400
     refresh:
       expires_in: 43200
   user:

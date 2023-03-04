@@ -1,0 +1,34 @@
+builds:
+  - binary: envsecrets
+    main: ./cli
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
+
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+brews:
+  -
+    name: envsecrets
+    homepage: "https://github.com/envsecrets/envsecrets"
+    tap:
+      owner: mrinalwahal
+      name: homebrew-tap
+    commit_author:
+      name: mrinalwahal
+      email: mrinalwahal@gmail.com
+
+checksum:
+  name_template: 'checksums.txt'

@@ -92,27 +92,6 @@ object_relationships:
     using:
       foreign_key_constraint_on: default_role
 array_relationships:
-  - name: invites
-    using:
-      foreign_key_constraint_on:
-        column: receiver_email
-        table:
-          name: invites
-          schema: public
-  - name: invitesBySenderId
-    using:
-      foreign_key_constraint_on:
-        column: sender_id
-        table:
-          name: invites
-          schema: public
-  - name: memberships
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: memberships
-          schema: public
   - name: refreshTokens
     using:
       foreign_key_constraint_on:
@@ -141,10 +120,3 @@ array_relationships:
         table:
           name: user_providers
           schema: auth
-  - name: workspaces
-    using:
-      foreign_key_constraint_on:
-        column: user_id
-        table:
-          name: workspaces
-          schema: public

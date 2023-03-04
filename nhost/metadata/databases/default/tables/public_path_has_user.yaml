@@ -1,0 +1,3 @@
+table:
+  name: path_has_user
+  schema: public

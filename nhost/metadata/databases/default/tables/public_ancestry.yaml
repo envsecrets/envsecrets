@@ -1,0 +1,7 @@
+table:
+  name: ancestry
+  schema: public
+object_relationships:
+  - name: pathByPathId
+    using:
+      foreign_key_constraint_on: path_id
