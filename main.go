@@ -17,9 +17,9 @@ import (
 
 func main() {
 
-	err := godotenv.Load()
+	err := godotenv.Load(".env.development")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env.development file")
 	}
 
 	// Echo instance
@@ -65,15 +65,10 @@ func main() {
 	//	Integrations group
 	integrations.AddRoutes(v1Group)
 
-	/* 	// Routes
-	   	secrets.POST("/set", api.SetSecret)
-	   	secrets.GET("/get", api.GetSecret)
-	   	secrets.GET("/get/versions", api.GetSecretVersions)
-	   	secrets.GET("/list", api.ListSecrets)
-
-	   	//	Invites group
-	   	invites := v1Group.Group("/invites")
-	   	invites.POST("/:id/accept", api.AcceptInvite)
+	/*
+		//	Invites group
+		invites := v1Group.Group("/invites")
+		invites.POST("/:id/accept", api.AcceptInvite)
 	*/
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
