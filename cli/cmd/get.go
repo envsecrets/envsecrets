@@ -37,7 +37,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 
@@ -81,17 +80,14 @@ to quickly create a Cobra application.`,
 
 		//	Get the secret service
 		payload := &secretsCommons.GetRequestOptions{
-			Path: secretsCommons.Path{
-				Organisation: projectConfig.Organisation,
-				Environment:  projectConfig.Environment,
-				Project:      projectConfig.Project,
-			},
+			OrgID:   projectConfig.Organisation,
+			EnvID:   projectConfig.Environment,
 			Key:     key,
 			Version: secretVersion,
 		}
 
 		reqBody, _ := payload.Marshal()
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, os.Getenv("API")+"/v1/secrets", bytes.NewBuffer(reqBody))
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			panic(err)
 		}

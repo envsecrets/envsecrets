@@ -101,7 +101,7 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 	`)
 
 	req.Var("env_id", options.EnvID)
-	req.Var("key", options.Data.Key)
+	req.Var("key", options.Key)
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
@@ -129,7 +129,7 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 	return &commons.Secret{
 		Version: resp[0].Version,
 		Data: map[string]commons.Payload{
-			options.Data.Key: resp[0].Data,
+			options.Key: resp[0].Data,
 		},
 	}, nil
 }
@@ -146,7 +146,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	`)
 
 	req.Var("env_id", options.EnvID)
-	req.Var("key", options.Data.Key)
+	req.Var("key", options.Key)
 	req.Var("version", options.Version)
 
 	var response map[string]interface{}
@@ -175,7 +175,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	return &commons.Secret{
 		Version: resp[0].Version,
 		Data: map[string]commons.Payload{
-			options.Data.Key: resp[0].Data,
+			options.Key: resp[0].Data,
 		},
 	}, nil
 }

@@ -9,7 +9,7 @@ var (
 	HOME_DIR, _   = os.UserHomeDir()
 
 	//	Nhost Variables
-	NHOST_AUTH_URL = os.Getenv("NHOST_AUTH_URL")
+	NHOST_AUTH_URL string
 )
 
 type ConfigType string

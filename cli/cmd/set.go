@@ -107,12 +107,9 @@ to quickly create a Cobra application.`,
 
 		//	Send the secrets to vault
 		payload := secretsCommons.SetRequestOptions{
-			Data: data,
-			Path: secretsCommons.Path{
-				Organisation: projectConfig.Organisation,
-				Project:      projectConfig.Project,
-				Environment:  projectConfig.Environment,
-			},
+			Data:  data,
+			OrgID: projectConfig.Organisation,
+			EnvID: projectConfig.Environment,
 		}
 
 		reqBody, err := payload.Marshal()
@@ -120,7 +117,7 @@ to quickly create a Cobra application.`,
 			panic(err)
 		}
 
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, os.Getenv("API")+"/v1/secrets", bytes.NewBuffer(reqBody))
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			panic(err)
 		}

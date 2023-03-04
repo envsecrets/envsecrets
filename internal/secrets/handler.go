@@ -32,8 +32,8 @@ func SetHandler(c echo.Context) error {
 
 	//	Call the service function.
 	if err := Set(ctx, client, &commons.SetSecretOptions{
-		KeyPath:    payload.Path.Organisation,
-		EnvID:      payload.Path.Environment,
+		KeyPath:    payload.OrgID,
+		EnvID:      payload.EnvID,
 		Data:       payload.Data,
 		KeyVersion: payload.KeyVersion,
 	}); err != nil {
@@ -72,7 +72,12 @@ func GetHandler(c echo.Context) error {
 	})
 
 	//	Call the service function.
-	secret, err := Get(ctx, client, &payload)
+	secret, err := Get(ctx, client, &commons.GetSecretOptions{
+		Key:     payload.Key,
+		KeyPath: payload.OrgID,
+		EnvID:   payload.EnvID,
+		Version: payload.Version,
+	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
 			Code:    http.StatusBadRequest,

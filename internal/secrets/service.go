@@ -22,11 +22,13 @@ func GenerateKey(ctx context.ServiceContext, path string, options commons.Genera
 		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
-	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.VaultClientType,
+	})
 
-	_, err = http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	_, er := client.Run(ctx, req)
+	if er != nil {
+		return er
 	}
 
 	return nil
@@ -39,11 +41,13 @@ func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
 		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
-	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.VaultClientType,
+	})
 
-	_, err = http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	_, er := client.Run(ctx, req)
+	if er != nil {
+		return er
 	}
 
 	return nil
@@ -62,12 +66,15 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 			return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 		}
 
-		req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+		client := clients.NewHTTPClient(&clients.HTTPConfig{
+			Type: clients.VaultClientType,
+		})
 
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return errors.New(err, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+		resp, er := client.Run(ctx, req)
+		if er != nil {
+			return er
 		}
+
 		defer resp.Body.Close()
 
 		respBody, err := ioutil.ReadAll(resp.Body)
@@ -92,26 +99,18 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	return nil
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetRequestOptions) (*commons.Secret, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, *errors.Error) {
 
 	//	Inittialize our secret data
 	data := commons.Data{
 		Key: options.Key,
 	}
 
-	//	Initialize request options
-	var getOptions = &commons.GetSecretOptions{
-		EnvID: options.Path.Environment,
-		Data:  data,
-	}
-
 	//	If the request has a specific version specified,
 	//	make the call for only that version
 	if options.Version != nil {
 
-		getOptions.Version = options.Version
-
-		resp, err := graphql.GetByKeyByVersion(ctx, client, getOptions)
+		resp, err := graphql.GetByKeyByVersion(ctx, client, options)
 		if err != nil {
 			return nil, err
 		}
@@ -120,16 +119,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	} else {
 
-		resp, err := graphql.GetByKey(ctx, client, getOptions)
+		resp, err := graphql.GetByKey(ctx, client, options)
 		if err != nil {
 			return nil, err
 		}
 
 		data.Payload = resp.Data[data.Key]
 	}
-
-	//	Save the returned encrypted value in our `get options`.
-	getOptions.Data.Payload.Value = data.Payload.Value
 
 	//	Only if the saved value was of type `ciphertext`,
 	//	we have to descrypt the value.
@@ -138,8 +134,8 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		//	Decrypt the value from Vault.
 		response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
 			Data:        data,
-			KeyLocation: options.Path.Organisation,
-			EnvID:       options.Path.Environment,
+			KeyLocation: options.KeyPath,
+			EnvID:       options.EnvID,
 		})
 		if err != nil {
 			return nil, err
@@ -164,11 +160,13 @@ func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) 
 		return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
-	req.Header.Set(string(commons.VAULT_TOKEN), os.Getenv(commons.VAULT_ROOT_TOKEN))
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.VaultClientType,
+	})
 
-	resp, er := http.DefaultClient.Do(req)
-	if er != nil {
-		return nil, errors.New(er, "HTTP request failed to vault", errors.ErrorTypeRequestFailed, errors.ErrorSourceVault)
+	resp, err := client.Run(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	defer resp.Body.Close()
