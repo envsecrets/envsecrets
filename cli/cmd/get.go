@@ -80,11 +80,8 @@ to quickly create a Cobra application.`,
 
 		//	Get the secret service
 		payload := &secretsCommons.GetRequestOptions{
-			Path: secretsCommons.Path{
-				Organisation: projectConfig.Organisation,
-				Environment:  projectConfig.Environment,
-				Project:      projectConfig.Project,
-			},
+			OrgID:   projectConfig.Organisation,
+			EnvID:   projectConfig.Environment,
 			Key:     key,
 			Version: secretVersion,
 		}

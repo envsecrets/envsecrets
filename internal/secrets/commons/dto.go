@@ -128,12 +128,6 @@ func (s *SetSecretOptions) GetVaultOptions() map[string]interface{} {
 	}
 }
 
-type GetSecretOptions struct {
-	Data    Data   `json:"data"`
-	EnvID   string `json:"env_id"`
-	Version *int   `json:"version,omitempty"`
-}
-
 type DecryptSecretOptions struct {
 	Data        Data   `json:"data"`
 	KeyLocation string `json:"key_location"`
@@ -147,8 +141,16 @@ func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
 }
 
 type GetRequestOptions struct {
-	Path    Path   `json:"path"`
+	OrgID   string `json:"org_id"`
+	EnvID   string `json:"env_id"`
 	Key     string `json:"key"`
+	Version *int   `json:"version,omitempty"`
+}
+
+type GetSecretOptions struct {
+	Key     string `json:"key"`
+	KeyPath string `json:"key_path"`
+	EnvID   string `json:"env_id"`
 	Version *int   `json:"version,omitempty"`
 }
 

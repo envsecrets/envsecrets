@@ -67,7 +67,8 @@ type ListEntitiesRequestOptions struct {
 }
 
 type SyncOptions struct {
-	InstallationID string                           `json:"installation_id"`
-	EntitySlug     string                           `json:"entity_slug"`
-	Data           map[string]secretCommons.Payload `json:"data"`
+	InstallationID string `json:"installation_id"`
+	EntitySlug     string `json:"entity_slug"`
+	//EntityDetails  string                           `json:"entity_details"`
+	Data map[string]secretCommons.Payload `json:"data"`
 }

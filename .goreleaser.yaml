@@ -15,9 +15,9 @@ builds:
     # Custom ldflags templates.
     # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
     ldflags:
-      - -X ./cli/commons.VERSION={{.Version}}
-      - -X ./cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
-      - -X ./config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
+      - -X cli/commons.VERSION={{.Version}}
+      - -X cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
+      - -X config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
 
 release:
   prerelease: auto

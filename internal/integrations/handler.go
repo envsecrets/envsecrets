@@ -65,13 +65,8 @@ func ListEntitiesHandler(c echo.Context) error {
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		CustomHeaders: []clients.CustomHeader{
-			{
-				Key:   echo.HeaderAuthorization,
-				Value: c.Request().Header.Get(echo.HeaderAuthorization),
-			},
-		},
+		Type:          clients.HasuraClientType,
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
 	//	Run the service handler.

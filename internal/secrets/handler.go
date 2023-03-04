@@ -72,7 +72,12 @@ func GetHandler(c echo.Context) error {
 	})
 
 	//	Call the service function.
-	secret, err := Get(ctx, client, &payload)
+	secret, err := Get(ctx, client, &commons.GetSecretOptions{
+		Key:     payload.Key,
+		KeyPath: payload.OrgID,
+		EnvID:   payload.EnvID,
+		Version: payload.Version,
+	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
 			Code:    http.StatusBadRequest,
