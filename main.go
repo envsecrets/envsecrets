@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -29,6 +30,9 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	//	Add healthcheck endpoint
+	e.GET("/healthz", healthz)
+
 	//	Load the JWT signing from env vars
 	JWT_SIGNING_KEY := getJWTSecret("NHOST_JWT_SECRET")
 
@@ -36,6 +40,7 @@ func main() {
 	skipRoutes := []string{
 		"/triggers",
 		"integrations",
+		"/healthz",
 	}
 
 	e.Use(echojwt.WithConfig(echojwt.Config{
@@ -85,4 +90,9 @@ func getJWTSecret(variable string) *JWTSecret {
 	payload := os.Getenv(variable)
 	json.Unmarshal([]byte(payload), &response)
 	return &response
+}
+
+//	Healthcheck endpoint
+func healthz(c echo.Context) error {
+	return c.String(http.StatusOK, "API is healthy")
 }
