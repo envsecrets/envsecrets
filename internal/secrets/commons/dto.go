@@ -100,9 +100,10 @@ type VaultResponse struct {
 }
 
 type SetRequestOptions struct {
-	Path       Path `json:"path"`
-	Data       Data `json:"data"`
-	KeyVersion int  `json:"key_version,omitempty"`
+	OrgID      string `json:"org_id"`
+	EnvID      string `json:"env_id"`
+	Data       Data   `json:"data"`
+	KeyVersion int    `json:"key_version,omitempty"`
 }
 
 func (r *SetRequestOptions) Marshal() ([]byte, error) {

@@ -1,8 +1,6 @@
 package commons
 
 import (
-	"os"
-
 	"github.com/envsecrets/envsecrets/config"
 	"github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -28,7 +26,10 @@ func init() {
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
-		BaseURL:       os.Getenv(string(clients.API)) + "/v1",
-		Authorization: "Bearer " + config.AccessToken,
+		BaseURL: API + "/v1",
 	})
+
+	if config != nil {
+		HTTPClient.Authorization = "Bearer " + config.AccessToken
+	}
 }

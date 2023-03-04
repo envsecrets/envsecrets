@@ -2,6 +2,7 @@ package clients
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
@@ -11,7 +12,6 @@ type HTTPClient struct {
 	*http.Client
 	BaseURL       string
 	Authorization string
-	Headers       []Header
 	CustomHeaders []CustomHeader
 }
 
@@ -32,7 +32,6 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 		return &response
 	}
 
-	response.Headers = config.Headers
 	response.CustomHeaders = config.CustomHeaders
 	response.BaseURL = config.BaseURL
 	response.Authorization = config.Authorization
@@ -42,6 +41,11 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 		response.CustomHeaders = append(response.CustomHeaders, CustomHeader{
 			Key:   string(AcceptHeader),
 			Value: "application/vnd.github+json",
+		})
+	case VaultClientType:
+		response.CustomHeaders = append(response.CustomHeaders, CustomHeader{
+			Key:   string(VaultTokenHeader),
+			Value: os.Getenv("VAULT_ACCESS_TOKEN"),
 		})
 	}
 

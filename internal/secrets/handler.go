@@ -32,8 +32,8 @@ func SetHandler(c echo.Context) error {
 
 	//	Call the service function.
 	if err := Set(ctx, client, &commons.SetSecretOptions{
-		KeyPath:    payload.Path.Organisation,
-		EnvID:      payload.Path.Environment,
+		KeyPath:    payload.OrgID,
+		EnvID:      payload.EnvID,
 		Data:       payload.Data,
 		KeyVersion: payload.KeyVersion,
 	}); err != nil {

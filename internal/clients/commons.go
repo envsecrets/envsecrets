@@ -22,6 +22,7 @@ type ClientType string
 const (
 	HTTPClientType    ClientType = "HTTPClient"
 	GithubClientType  ClientType = "GithubClient"
+	VaultClientType   ClientType = "VaultClient"
 	HasuraClientType  ClientType = "HasuraClient"
 	GraphQLClientType ClientType = "GraphQLClient"
 )
@@ -44,6 +45,8 @@ const (
 
 	//	Github headers
 	AcceptHeader Header = "Accept"
+
+	VaultTokenHeader Header = "X-Vault-Token"
 )
 
 type CallType string
