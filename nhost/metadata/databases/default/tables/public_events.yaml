@@ -17,19 +17,19 @@ insert_permissions:
             user_id:
               _eq: X-Hasura-User-Id
       columns:
-        - entity_slug
+        - entity_details
         - env_id
         - integration_id
 select_permissions:
   - role: user
     permission:
       columns:
-        - entity_slug
         - created_at
-        - updated_at
+        - entity_details
         - env_id
         - id
         - integration_id
+        - updated_at
       filter:
         integration:
           organisation:
@@ -40,7 +40,7 @@ update_permissions:
   - role: user
     permission:
       columns:
-        - entity_slug
+        - entity_details
       filter:
         integration:
           organisation:

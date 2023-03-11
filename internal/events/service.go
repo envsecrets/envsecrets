@@ -16,7 +16,7 @@ func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_i
 	query MyQuery($secret_id: uuid!) {
 		events(where: {environment: {secrets: {id: {_eq: $secret_id}}}}) {
 		  env_id
-		  entity_slug
+		  entity_details
 		  integration {
 			id
 			installation_id

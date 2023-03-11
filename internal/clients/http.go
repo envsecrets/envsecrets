@@ -55,15 +55,6 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 
 func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.Response, *errors.Error) {
 
-	/* 	//	Set headers
-	   	for _, item := range c.Headers {
-	   		switch item {
-	   		case XHasuraAdminSecretHeader:
-	   			req.Header.Add(string(item), os.Getenv(string(NHOST_ADMIN_SECRET)))
-	   		}
-	   	}
-	*/
-
 	//	Set content-type header
 	req.Header.Set("content-type", "application/json")
 
@@ -83,7 +74,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 		return nil, errors.New(err, "failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
 	}
 
-	//	If the request is due to expired JWT,
+	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
 	if response.StatusCode == 401 {
 

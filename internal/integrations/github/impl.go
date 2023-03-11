@@ -32,7 +32,7 @@ func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *Setup
 	return nil
 }
 
-func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (*commons.Entities, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (interface{}, *errors.Error) {
 
 	//	Get installation's access token
 	auth, err := GetInstallationAccessToken(ctx, integration.InstallationID)
@@ -52,15 +52,7 @@ func ListEntities(ctx context.ServiceContext, integration *commons.Integration) 
 		return nil, err
 	}
 
-	//	Convert to entities_response and return
-	var entities commons.Entities
-	for _, item := range respositoryResponse.Repositories {
-		entity := *item.ToEntity()
-		entity.InstallationID = integration.InstallationID
-		entities = append(entities, entity)
-	}
-
-	return &entities, nil
+	return &respositoryResponse.Repositories, nil
 }
 
 func ListRepositories(ctx context.ServiceContext, client *clients.HTTPClient) (*ListRepositoriesResponse, *errors.Error) {
@@ -109,6 +101,9 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 		Authorization: "Bearer " + auth.Token,
 	})
 
+	//	Extract the slug from entity details
+	slug := options.EntityDetails["full_name"].(string)
+
 	for key, payload := range options.Data {
 
 		//	If the payload is of type `ciphertext`,
@@ -116,7 +111,7 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 		if payload.Type == secretCommons.Ciphertext {
 
 			//	Get the public key.
-			publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, options.EntitySlug)
+			publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, slug)
 			if err != nil {
 				return err
 			}
@@ -128,7 +123,7 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 			}
 
 			//	Post the secret to Github actions.
-			if err := pushRepositorySecret(ctx, client, options.EntitySlug, key, publicKey.KeyID, encryptedValue); err != nil {
+			if err := pushRepositorySecret(ctx, client, slug, key, publicKey.KeyID, encryptedValue); err != nil {
 				return err
 			}
 
@@ -136,7 +131,7 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 
 			//	If the payload type is `plaintext`,
 			//	save it as a normal variable in Github actions.
-			if err := pushRepositoryVariable(ctx, client, options.EntitySlug, key, payload.Value.(string)); err != nil {
+			if err := pushRepositoryVariable(ctx, client, slug, key, payload.Value.(string)); err != nil {
 				return err
 			}
 		}

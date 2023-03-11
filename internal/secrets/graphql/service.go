@@ -192,7 +192,10 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	//	We need to create an incremented version.
 	incrementBy := 1
-	version := *latestEntry.Version + incrementBy
+	version := incrementBy
+	if latestEntry.Version != nil {
+		version += *latestEntry.Version
+	}
 
 	payload := map[string]commons.Payload{}
 	for key, secret := range latestEntry.Data {

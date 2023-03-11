@@ -13,14 +13,14 @@ import (
 )
 
 type Service interface {
-	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (*commons.Entities, *errors.Error)
+	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (interface{}, *errors.Error)
 	Setup(context.ServiceContext, commons.IntegrationType, url.Values) *errors.Error
 	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
 }
 
 type DefaultIntegrationService struct{}
 
-func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string) (*commons.Entities, *errors.Error) {
+func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string) (interface{}, *errors.Error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)

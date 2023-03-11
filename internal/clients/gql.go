@@ -89,6 +89,7 @@ func (c *GQLClient) send(ctx context.ServiceContext, req *graphql.Request, resp 
 
 			//	Re-run the request
 			c.Do(ctx, req, resp)
+
 		} else {
 			return apiError
 		}
