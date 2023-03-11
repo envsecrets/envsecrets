@@ -10,7 +10,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetAllResponse, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -39,17 +39,17 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
-	var payload commons.GetAllResponse
+	var payload commons.GetResponse
 
 	if len(resp) > 0 {
 		payload.Data = resp[0].Data
-		payload.Version = resp[0].Version
+		payload.Version = &resp[0].Version
 	}
 
 	return &payload, nil
 }
 
-func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetAllResponse, *errors.Error) {
+func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $version: Int!) {
@@ -79,11 +79,11 @@ func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options
 		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
-	var payload commons.GetAllResponse
+	var payload commons.GetResponse
 
 	if len(resp) > 0 {
 		payload.Data = resp[0].Data
-		payload.Version = resp[0].Version
+		payload.Version = &resp[0].Version
 	}
 
 	return &payload, nil
@@ -192,7 +192,7 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	//	We need to create an incremented version.
 	incrementBy := 1
-	version := latestEntry.Version + incrementBy
+	version := *latestEntry.Version + incrementBy
 
 	payload := map[string]commons.Payload{}
 	for key, secret := range latestEntry.Data {

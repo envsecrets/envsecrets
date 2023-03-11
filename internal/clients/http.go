@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 )
@@ -63,6 +64,9 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 	   	}
 	*/
 
+	//	Set content-type header
+	req.Header.Set("content-type", "application/json")
+
 	//	Set Authorization Header
 	if c.Authorization != "" {
 		req.Header.Add(string(AuthorizationHeader), c.Authorization)
@@ -77,6 +81,17 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 	response, err := c.Do(req)
 	if err != nil {
 		return nil, errors.New(err, "failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
+	}
+
+	//	If the request is due to expired JWT,
+	//	refresh the token and re-do the request.
+	if response.StatusCode == 401 {
+
+		if err := auth.RefreshAndSave(); err != nil {
+			return nil, errors.New(err, "failed to refresh and save auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		c.Run(ctx, req)
 	}
 
 	return response, nil

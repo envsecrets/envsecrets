@@ -31,6 +31,17 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -47,67 +58,73 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	/* 	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 
-	   		var secretVersion *int
+		var secretVersion *int
 
-	   		if version > -1 {
-	   			secretVersion = &version
-	   		}
+		if version > -1 {
+			secretVersion = &version
+		}
 
-	   		//	Fetch the secrets
-	   		items, err := secrets.List(context.DContext, secretVersion)
-	   		if err != nil {
-	   			panic(err)
-	   		}
+		//	Load the project config
+		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+		if err != nil {
+			panic(err)
+		}
 
-	   		if exportfile != "" {
+		projectConfig := projectConfigPayload.(*configCommons.Project)
 
-	   			//	Initialize payload to write to file
-	   			var payload []byte
+		//	Get the secret service
+		payload := &secretsCommons.GetRequestOptions{
+			OrgID:   projectConfig.Organisation,
+			EnvID:   projectConfig.Environment,
+			Version: secretVersion,
+		}
 
-	   			//	Extract file extenstion
-	   			extension := filepath.Ext(exportfile)
+		reqBody, _ := payload.Marshal()
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
+		if err != nil {
+			panic(err)
+		}
 
-	   			switch extension {
-	   			case ".json":
-	   				payload, err = json.MarshalIndent(items, "", "  ")
-	   				if err != nil {
-	   					panic(err)
-	   				}
-	   			case ".yaml":
-	   				payload, err = yaml.Marshal(items)
-	   				if err != nil {
-	   					panic(err)
-	   				}
-	   			default:
-	   				data := ""
-	   				for _, item := range *items {
-	   					data += item.String()
-	   					data += "\n"
-	   				}
-	   				payload = []byte(data)
-	   			}
+		resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
+		if er != nil {
+			panic(er)
+		}
 
-	   			//	Write to file
-	   			if err := ioutil.WriteFile(exportfile, payload, 0644); err != nil {
-	   				panic(err)
-	   			}
+		defer resp.Body.Close()
 
-	   			fmt.Println("List exported to:", exportfile)
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
 
-	   		} else {
+		if resp.StatusCode != http.StatusOK {
+			panic("failed to get secrets")
+		}
 
-	   			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.TabIndent)
-	   			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "#", "Key", "Value")
-	   			fmt.Fprintf(w, "\t%s\t%s\t%s\n", "----", "----", "----")
-	   			for index, item := range *items {
-	   				fmt.Fprintf(w, "\t%d\t%s\t%s\n", index+1, item.Key, item.Value)
-	   			}
-	   			w.Flush()
-	   		}
-	   	},
-	*/}
+		var response secretsCommons.APIResponse
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			panic(err)
+		}
+		responseData := response.Data.(map[string]interface{})
+
+		secretPayload := responseData["data"].(map[string]interface{})
+
+		for key, item := range secretPayload {
+			payload := item.(map[string]interface{})
+
+			//	Base64 decode the secret value
+			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Printf("%s=%s", key, string(value))
+			fmt.Println()
+		}
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(exportCmd)

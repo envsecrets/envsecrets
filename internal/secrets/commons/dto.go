@@ -143,7 +143,7 @@ func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
 type GetRequestOptions struct {
 	OrgID   string `json:"org_id"`
 	EnvID   string `json:"env_id"`
-	Key     string `json:"key"`
+	Key     string `json:"key,omitempty"`
 	Version *int   `json:"version,omitempty"`
 }
 
@@ -158,9 +158,9 @@ func (r *GetRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-type GetAllResponse struct {
+type GetResponse struct {
 	Data    map[string]Payload `json:"data"`
-	Version int                `json:"version,omitempty"`
+	Version *int               `json:"version,omitempty"`
 }
 
 type ListRequestOptions struct {

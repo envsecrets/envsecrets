@@ -5,6 +5,7 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -71,24 +72,49 @@ func GetHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
-	//	Call the service function.
-	secret, err := Get(ctx, client, &commons.GetSecretOptions{
-		Key:     payload.Key,
-		KeyPath: payload.OrgID,
-		EnvID:   payload.EnvID,
-		Version: payload.Version,
-	})
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to get the secret",
-			Error:   err.Message,
+	var response *commons.GetResponse
+	var err *errors.Error
+
+	//	If there is a specific key,
+	//	pull the value only for that key.
+	if payload.Key != "" {
+
+		//	Call the service function.
+		response, err = Get(ctx, client, &commons.GetSecretOptions{
+			Key:     payload.Key,
+			KeyPath: payload.OrgID,
+			EnvID:   payload.EnvID,
+			Version: payload.Version,
 		})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: "failed to get the secret",
+				Error:   err.Message,
+			})
+		}
+
+	} else {
+
+		//	Else, pull all values.
+		//	Call the service function.
+		response, err = GetAll(ctx, client, &commons.GetSecretOptions{
+			KeyPath: payload.OrgID,
+			EnvID:   payload.EnvID,
+			Version: payload.Version,
+		})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: "failed to get the secret",
+				Error:   err.Message,
+			})
+		}
 	}
 
 	return c.JSON(http.StatusOK, &commons.APIResponse{
 		Code:    http.StatusOK,
 		Message: "successfully got the secret",
-		Data:    secret.Data[payload.Key],
+		Data:    response,
 	})
 }

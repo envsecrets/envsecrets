@@ -147,6 +147,54 @@ var initCmd = &cobra.Command{
 					}
 				}
 
+				environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+					ProjectID: project.ID,
+				})
+				if er != nil {
+					panic(er.Error)
+				}
+
+				var environmentsStringList []string
+				for _, item := range *environmentsList {
+					environmentsStringList = append(environmentsStringList, item.Name)
+				}
+
+				selection := promptui.SelectWithAdd{
+					Label:    "Choose Your Environment",
+					Items:    environmentsStringList,
+					AddLabel: "Create New Environment",
+				}
+
+				index, result, err := selection.Run()
+				if err != nil {
+					fmt.Printf("Prompt failed %v\n", err)
+					return
+				}
+
+				if index > -1 {
+
+					for itemIndex, item := range *environmentsList {
+						if itemIndex == index {
+							environment = item
+							break
+						}
+					}
+
+				} else {
+
+					//	Create new item
+					item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
+						ProjectID: project.ID,
+						Name:      result,
+					})
+					if er != nil {
+						panic(er.Error.Error())
+					}
+
+					environment.ID = item.ID
+					environment.Name = fmt.Sprint(item.Name)
+				}
+
 			} else {
 
 				//	Create new item
@@ -173,58 +221,6 @@ var initCmd = &cobra.Command{
 
 				environment.ID = envItem.ID
 				environment.Name = fmt.Sprint(envItem.Name)
-			}
-		}
-
-		//	Setup project
-		if len(environmentID) == 0 {
-
-			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
-				ProjectID: project.ID,
-			})
-			if er != nil {
-				panic(er.Error)
-			}
-
-			var environmentsStringList []string
-			for _, item := range *environmentsList {
-				environmentsStringList = append(environmentsStringList, item.Name)
-			}
-
-			selection := promptui.SelectWithAdd{
-				Label:    "Choose Your Environment",
-				Items:    environmentsStringList,
-				AddLabel: "Create New Environment",
-			}
-
-			index, result, err := selection.Run()
-			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
-				return
-			}
-
-			if index > -1 {
-
-				for itemIndex, item := range *environmentsList {
-					if itemIndex == index {
-						environment = item
-						break
-					}
-				}
-
-			} else {
-
-				//	Create new item
-				item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
-					ProjectID: project.ID,
-					Name:      result,
-				})
-				if er != nil {
-					panic(er.Error.Error())
-				}
-
-				environment.ID = item.ID
-				environment.Name = fmt.Sprint(item.Name)
 			}
 		}
 
