@@ -46,7 +46,8 @@ const (
 	//	Github headers
 	AcceptHeader Header = "Accept"
 
-	VaultTokenHeader Header = "X-Vault-Token"
+	VaultTokenHeader     Header = "X-Vault-Token"
+	VaultNamespaceHeader Header = "X-Vault-Namespace"
 )
 
 type CallType string
