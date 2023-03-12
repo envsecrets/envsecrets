@@ -73,6 +73,7 @@ to quickly create a Cobra application.`,
 		}
 
 		const shell = "/bin/bash"
+
 		arguments := []string{"-c"}
 		arguments = append(arguments, args...)
 		userCmd := exec.Cmd{
