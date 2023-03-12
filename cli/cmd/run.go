@@ -59,7 +59,7 @@ to quickly create a Cobra application.`,
 		var variables []string
 
 		//	`envsecrets run -- npm run dev`
-		secretPayload := export()
+		secretPayload := export(nil)
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 

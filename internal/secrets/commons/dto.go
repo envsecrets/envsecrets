@@ -147,10 +147,10 @@ func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
 }
 
 type GetRequestOptions struct {
-	OrgID   string `json:"org_id"`
-	EnvID   string `json:"env_id"`
-	Key     string `json:"key,omitempty"`
-	Version *int   `json:"version,omitempty"`
+	OrgID   string `query:"org_id"`
+	EnvID   string `query:"env_id"`
+	Key     string `query:"key"`
+	Version *int   `query:"version"`
 }
 
 type GetSecretOptions struct {

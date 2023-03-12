@@ -31,19 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
-	"github.com/envsecrets/envsecrets/cli/commons"
-
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -65,75 +56,21 @@ to quickly create a Cobra application.`,
 		}
 		key := args[0]
 
-		//	Autocapitalize the key
+		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
-		var secretVersion *int
-
-		if version > -1 {
-			secretVersion = &version
-		}
-
-		//	Load the project config
-		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-		if err != nil {
-			panic(err)
-		}
-
-		projectConfig := projectConfigPayload.(*configCommons.Project)
-
-		//	Get the secret service
-		payload := &secretsCommons.GetRequestOptions{
-			OrgID:   projectConfig.Organisation,
-			EnvID:   projectConfig.Environment,
-			Key:     key,
-			Version: secretVersion,
-		}
-
-		reqBody, _ := payload.Marshal()
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
-		if err != nil {
-			panic(err)
-		}
-
-		resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if er != nil {
-			panic(er)
-		}
-
-		defer resp.Body.Close()
-
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			panic("failed to get secret")
-		}
-
-		var response secretsCommons.APIResponse
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			panic(err)
-		}
-
-		responseData := response.Data.(map[string]interface{})
-
-		secretPayload := responseData["data"].(map[string]interface{})[key].(map[string]interface{})
-		version := responseData["version"].(float64)
-
-		if secretPayload["value"] != nil {
+		secretPayload := export(&key)
+		for key, item := range secretPayload {
+			payload := item.(map[string]interface{})
 
 			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(secretPayload["value"].(string))
+			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				panic(err)
 			}
 
-			if len(value) > 0 {
-				fmt.Println("Value: ", string(value))
-				fmt.Println("Version: ", version)
-			}
+			fmt.Printf("%s=%s", key, string(value))
+			fmt.Println()
 		}
 	},
 }

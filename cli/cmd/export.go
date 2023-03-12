@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -60,7 +59,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		secretPayload := export()
+		secretPayload := export(nil)
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 
@@ -76,7 +75,7 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func export() map[string]interface{} {
+func export(key *string) map[string]interface{} {
 
 	var secretVersion *int
 
@@ -92,19 +91,22 @@ func export() map[string]interface{} {
 
 	projectConfig := projectConfigPayload.(*configCommons.Project)
 
-	//	Get the secret service
-	payload := &secretsCommons.GetRequestOptions{
-		OrgID:   projectConfig.Organisation,
-		EnvID:   projectConfig.Environment,
-		Version: secretVersion,
-	}
-
-	reqBody, _ := payload.Marshal()
-	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", nil)
 	if err != nil {
 		panic(err)
 	}
 
+	//	Set the query params.
+	query := req.URL.Query()
+	query.Set("org_id", projectConfig.Organisation)
+	query.Set("env_id", projectConfig.Environment)
+	if key != nil {
+		query.Set("key", *key)
+	}
+	if secretVersion != nil {
+		query.Set("version", fmt.Sprint(*secretVersion))
+	}
+	req.URL.RawQuery = query.Encode()
 	resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
 	if er != nil {
 		panic(er)
