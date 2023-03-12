@@ -48,6 +48,10 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 			Key:   string(VaultTokenHeader),
 			Value: os.Getenv("VAULT_ACCESS_TOKEN"),
 		})
+		response.CustomHeaders = append(response.CustomHeaders, CustomHeader{
+			Key:   string(VaultNamespaceHeader),
+			Value: "admin/default",
+		})
 	}
 
 	return &response
