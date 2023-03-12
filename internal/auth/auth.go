@@ -118,3 +118,35 @@ func RefreshToken(payload map[string]interface{}) (*LoginResponse, error) {
 
 	return &response, nil
 }
+
+func RefreshAndSave() error {
+
+	//	Fetch account configuration
+	accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)
+	if err != nil {
+		return err
+	}
+
+	accountConfig := accountConfigPayload.(*configCommons.Account)
+
+	response, refreshErr := RefreshToken(map[string]interface{}{
+		"refreshToken": accountConfig.RefreshToken,
+	})
+
+	if refreshErr != nil {
+		return err
+	}
+
+	//	Save the refreshed account config
+	refreshConfig := configCommons.Account{
+		AccessToken:  response.Session.AccessToken,
+		RefreshToken: response.Session.RefreshToken,
+		User:         response.Session.User,
+	}
+
+	if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
+		return err
+	}
+
+	return nil
+}

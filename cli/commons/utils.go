@@ -8,9 +8,7 @@ import (
 )
 
 //	Initialize common GQL Client for the CLI
-var GQLClient = clients.NewGQLClient(&clients.GQLConfig{
-	Type: clients.HasuraClientType,
-})
+var GQLClient *clients.GQLClient
 
 //	Initialize common HTTP Client for the CLI
 var HTTPClient *clients.HTTPClient
@@ -29,7 +27,13 @@ func init() {
 		BaseURL: API + "/v1",
 	})
 
+	//	Initialize GQL client
+	GQLClient = clients.NewGQLClient(&clients.GQLConfig{
+		BaseURL: NHOST_GRAPHQL_URL,
+	})
+
 	if config != nil {
 		HTTPClient.Authorization = "Bearer " + config.AccessToken
+		GQLClient.Authorization = "Bearer " + config.AccessToken
 	}
 }

@@ -33,9 +33,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -130,20 +128,8 @@ to quickly create a Cobra application.`,
 			panic(httpErr)
 		}
 
-		defer resp.Body.Close()
-
-		_, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-
 		if resp.StatusCode != http.StatusOK {
-			panic("failed to get secret")
-		}
-
-		//	Set the values in current application
-		if err := os.Setenv(key, value); err != nil {
-			panic(err)
+			panic("failed to set secret")
 		}
 
 		//	Export the values in current shell

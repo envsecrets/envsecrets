@@ -5,9 +5,8 @@ Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/spf13/cobra"
 )
@@ -23,17 +22,28 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		shell := os.Getenv("SHELL")
-		command := exec.Command(shell, "-c", "export HELLO=WORLD")
-		command.Stdin = os.Stdin
-		command.Stdout = os.Stdout
-		command.Stderr = os.Stderr
-		if err := command.Run(); err != nil {
+		if err := open("https://docs.envsecrets.com"); err != nil {
 			panic(err)
 		}
-
-		fmt.Println(os.Getenv("HELLO"))
 	},
+}
+
+// open opens the specified URL in the default browser of the user.
+func open(url string) error {
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start"}
+	case "darwin":
+		cmd = "open"
+	default: // "linux", "freebsd", "openbsd", "netbsd"
+		cmd = "xdg-open"
+	}
+	args = append(args, url)
+	return exec.Command(cmd, args...).Start()
 }
 
 func init() {

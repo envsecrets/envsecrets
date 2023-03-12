@@ -19,7 +19,7 @@ auth:
       blocked_email_domains: ""
       blocked_emails: ""
     url:
-      allowed_redirect_urls: ""
+      allowed_redirect_urls: "http://localhost:3000,http://localhost:9876"
   anonymous_users_enabled: false
   client_url: http://localhost:3000
   disable_new_users: false
@@ -57,8 +57,8 @@ auth:
       enabled: false
       scope: email,photos,displayName
     github:
-      client_id: "3f86b7ccf725b5c3b014"
-      client_secret: "4aa4d6417b30b4f0ddf2e631caac7bd7b1997961"
+      client_id: "217f243169654d7a4cfc"
+      client_secret: "994a27ccaa2f814e7f48892de0c5055eaeb6db08"
       enabled: true
       scope: user:email, read:user
       token_url: ""

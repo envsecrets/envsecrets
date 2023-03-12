@@ -17,7 +17,7 @@ type Event struct {
 	Name          string                          `json:"name,omitempty" graphql:"name,omitempty"`
 	IntegrationID string                          `json:"integration_id,omitempty" graphql:"integration_id,omitempty"`
 	EnvID         string                          `json:"env_id,omitempty" graphql:"env_id,omitempty"`
-	EntitySlug    string                          `json:"entity_slug,omitempty" graphql:"entity_slug,omitempty"`
+	EntityDetails map[string]interface{}          `json:"entity_details,omitempty" graphql:"entity_details,omitempty"`
 	Integration   integrationsCommons.Integration `json:"integration,omitempty" graphql:"integration,omitempty"`
 }
 

@@ -99,7 +99,17 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	return nil
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, *errors.Error) {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
+
+	//	Directly delete the key-value in Hasura.
+	if err := graphql.Delete(ctx, client, options); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	//	Inittialize our secret data
 	data := commons.Data{
@@ -125,6 +135,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		}
 
 		data.Payload = resp.Data[data.Key]
+		options.Version = &resp.Version
 	}
 
 	//	Only if the saved value was of type `ciphertext`,
@@ -145,11 +156,65 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		data.Payload.Type = commons.Plaintext
 	}
 
-	return &commons.Secret{
+	return &commons.GetResponse{
 		Data: map[string]commons.Payload{
-			options.Key: data.Payload,
+			data.Key: data.Payload,
 		},
+		Version: options.Version,
 	}, nil
+}
+
+func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
+
+	var data commons.GetResponse
+
+	//	If the request has a specific version specified,
+	//	make the call for only that version
+	if options.Version != nil {
+
+		resp, err := graphql.GetByVersion(ctx, client, options)
+		if err != nil {
+			return nil, err
+		}
+
+		data = *resp
+
+	} else {
+
+		resp, err := graphql.Get(ctx, client, options)
+		if err != nil {
+			return nil, err
+		}
+
+		data = *resp
+	}
+
+	//	Only if the saved value was of type `ciphertext`,
+	//	we have to descrypt the value.
+	for key, item := range data.Data {
+		if item.Type == commons.Ciphertext {
+
+			//	Decrypt the value from Vault.
+			response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
+				Data: commons.Data{
+					Key:     key,
+					Payload: item,
+				},
+				KeyLocation: options.KeyPath,
+				EnvID:       options.EnvID,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			data.Data[key] = commons.Payload{
+				Value: response.Data.Plaintext,
+				Type:  commons.Plaintext,
+			}
+		}
+	}
+
+	return &data, nil
 }
 
 func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) (*commons.VaultResponse, *errors.Error) {

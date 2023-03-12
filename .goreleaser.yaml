@@ -18,6 +18,8 @@ builds:
       - -X cli/commons.VERSION={{.Version}}
       - -X cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
       - -X config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
+      - -X cli/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
+      - -X cli/commons.NHOST_GRAPHQL_URL=http://localhost:1337/v1/graphql
 
 release:
   prerelease: auto

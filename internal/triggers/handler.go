@@ -145,7 +145,7 @@ func SecretInserted(c echo.Context) error {
 		go func(event *eventCommons.Event) {
 			if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
 				InstallationID: event.Integration.InstallationID,
-				EntitySlug:     event.EntitySlug,
+				EntityDetails:  event.EntityDetails,
 				Data:           data,
 			}); err != nil {
 				log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)

@@ -3,8 +3,6 @@ package clients
 import (
 	"os"
 
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
@@ -85,43 +83,13 @@ func (c *GQLClient) send(ctx context.ServiceContext, req *graphql.Request, resp 
 		//	refresh the JWT and re-call the request.
 		if apiError.IsType(errors.ErrorTypeJWTExpired) {
 
-			//	Fetch account configuration
-			accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)
-			if err != nil {
-				return errors.New(err, "failed to load account configuration", errors.ErrorTypeInvalidAccountConfiguration, errors.ErrorSourceGo)
-			}
-
-			accountConfig := accountConfigPayload.(*configCommons.Account)
-
-			response, refreshErr := auth.RefreshToken(map[string]interface{}{
-				"refreshToken": accountConfig.RefreshToken,
-			})
-
-			if refreshErr != nil {
-				return &errors.Error{
-					Message: "failed to refresh auth token",
-					Type:    errors.ErrorTypeTokenRefresh,
-					Source:  errors.ErrorSourceNhost,
-				}
-			}
-
-			//	Save the refreshed account config
-			refreshConfig := configCommons.Account{
-				AccessToken:  response.Session.AccessToken,
-				RefreshToken: response.Session.RefreshToken,
-				User:         response.Session.User,
-			}
-
-			if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
-				return &errors.Error{
-					Message: "failed to save refreshed login response",
-					Type:    errors.ErrorTypeTokenRefresh,
-					Source:  errors.ErrorSourceGo,
-				}
+			if err := auth.RefreshAndSave(); err != nil {
+				return errors.New(err, "failed to refresh and save auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
 			}
 
 			//	Re-run the request
 			c.Do(ctx, req, resp)
+
 		} else {
 			return apiError
 		}

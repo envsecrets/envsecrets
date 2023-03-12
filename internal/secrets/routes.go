@@ -8,4 +8,5 @@ func AddRoutes(sg *echo.Group) {
 
 	group.POST("", SetHandler)
 	group.GET("", GetHandler)
+	group.DELETE("", DeleteHandler)
 }
