@@ -56,7 +56,7 @@ to quickly create a Cobra application.`,
 		}
 		key := args[0]
 
-		//	Autocapitalize the key
+		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
 		secretPayload := export(&key)
