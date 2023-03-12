@@ -142,7 +142,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 		  data(path: $key)
 		  version
 		}
-	  }					
+	  }
 	`)
 
 	req.Var("env_id", options.EnvID)
