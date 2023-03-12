@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 
@@ -63,6 +64,9 @@ to quickly create a Cobra application.`,
 			panic("invalid key format")
 		}
 		key := args[0]
+
+		//	Autocapitalize the key
+		key = strings.ToUpper(key)
 
 		var secretVersion *int
 
@@ -97,15 +101,15 @@ to quickly create a Cobra application.`,
 			panic(er)
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			panic("failed to get secret")
-		}
-
 		defer resp.Body.Close()
 
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			panic(err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			panic("failed to get secret")
 		}
 
 		var response secretsCommons.APIResponse

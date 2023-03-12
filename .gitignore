@@ -17,3 +17,4 @@ variables.sh
 api
 cli/build.sh
 cli/cli
+cli/test.sh

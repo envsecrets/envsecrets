@@ -60,57 +60,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var secretVersion *int
-
-		if version > -1 {
-			secretVersion = &version
-		}
-
-		//	Load the project config
-		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-		if err != nil {
-			panic(err)
-		}
-
-		projectConfig := projectConfigPayload.(*configCommons.Project)
-
-		//	Get the secret service
-		payload := &secretsCommons.GetRequestOptions{
-			OrgID:   projectConfig.Organisation,
-			EnvID:   projectConfig.Environment,
-			Version: secretVersion,
-		}
-
-		reqBody, _ := payload.Marshal()
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
-		if err != nil {
-			panic(err)
-		}
-
-		resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if er != nil {
-			panic(er)
-		}
-
-		defer resp.Body.Close()
-
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			panic("failed to get secrets")
-		}
-
-		var response secretsCommons.APIResponse
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			panic(err)
-		}
-		responseData := response.Data.(map[string]interface{})
-
-		secretPayload := responseData["data"].(map[string]interface{})
-
+		secretPayload := export()
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 
@@ -124,6 +74,60 @@ to quickly create a Cobra application.`,
 			fmt.Println()
 		}
 	},
+}
+
+func export() map[string]interface{} {
+
+	var secretVersion *int
+
+	if version > -1 {
+		secretVersion = &version
+	}
+
+	//	Load the project config
+	projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	projectConfig := projectConfigPayload.(*configCommons.Project)
+
+	//	Get the secret service
+	payload := &secretsCommons.GetRequestOptions{
+		OrgID:   projectConfig.Organisation,
+		EnvID:   projectConfig.Environment,
+		Version: secretVersion,
+	}
+
+	reqBody, _ := payload.Marshal()
+	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
+	if err != nil {
+		panic(err)
+	}
+
+	resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
+	if er != nil {
+		panic(er)
+	}
+
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		panic("failed to get secrets")
+	}
+
+	var response secretsCommons.APIResponse
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		panic(err)
+	}
+	responseData := response.Data.(map[string]interface{})
+
+	return responseData["data"].(map[string]interface{})
 }
 
 func init() {
