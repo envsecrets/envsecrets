@@ -31,7 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 )
@@ -48,8 +51,43 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	TODO: `envsecrets run -- npm run dev`
-		fmt.Println("run called")
+		//	Format checks.
+		if len(args) < 1 {
+			panic("invalid format")
+		}
+
+		var variables []string
+
+		//	`envsecrets run -- npm run dev`
+		secretPayload := export()
+		for key, item := range secretPayload {
+			payload := item.(map[string]interface{})
+
+			//	Base64 decode the secret value
+			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
+			if err != nil {
+				panic(err)
+			}
+
+			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
+		}
+
+		const shell = "/bin/bash"
+
+		arguments := []string{"-c"}
+		arguments = append(arguments, args...)
+		userCmd := exec.Cmd{
+			Path:   shell,
+			Args:   arguments,
+			Env:    variables,
+			Stdin:  os.Stdin,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+
+		if err := userCmd.Run(); err != nil {
+			panic(err)
+		}
 	},
 }
 
