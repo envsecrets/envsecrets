@@ -37,6 +37,9 @@ func main() {
 	//	Add healthcheck endpoint
 	e.GET("/healthz", healthz)
 
+	//	Add healthcheck endpoint
+	e.GET("/healthz", healthz)
+
 	//	Load the JWT signing from env vars
 	JWT_SIGNING_KEY := getJWTSecret("NHOST_JWT_SECRET")
 
