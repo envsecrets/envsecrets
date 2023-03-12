@@ -19,7 +19,7 @@ builds:
       - -X github.com/envsecrets/envsecrets/cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
       - -X github.com/envsecrets/envsecrets/config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
       - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
-      - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_GRAPHQL_URL=http://localhost:1337/v1/graphql
+      - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_GRAPHQL_URL=https://vtlttqmxlifmlwsrvddp.graphql.eu-central-1.nhost.run/v1
 
 release:
   prerelease: auto
