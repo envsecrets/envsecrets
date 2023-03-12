@@ -34,6 +34,7 @@ import (
 	"bytes"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
@@ -59,6 +60,9 @@ to quickly create a Cobra application.`,
 			panic("invalid key format")
 		}
 		key := args[0]
+
+		//	Auto-capitalize the key
+		key = strings.ToUpper(key)
 
 		var secretVersion *int
 

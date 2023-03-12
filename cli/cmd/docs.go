@@ -5,6 +5,7 @@ Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 package cmd
 
 import (
+	"fmt"
 	"os/exec"
 	"runtime"
 
@@ -22,8 +23,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := open("https://docs.envsecrets.com"); err != nil {
-			panic(err)
+		url := "https://docs.envsecrets.com"
+		if err := open(url); err != nil {
+			fmt.Println("Documentation: ", url)
 		}
 	},
 }
