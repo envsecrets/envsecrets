@@ -33,7 +33,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -127,13 +126,6 @@ to quickly create a Cobra application.`,
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
 			panic(httpErr)
-		}
-
-		defer resp.Body.Close()
-
-		_, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
 		}
 
 		if resp.StatusCode != http.StatusOK {

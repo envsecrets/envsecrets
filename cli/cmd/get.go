@@ -60,7 +60,7 @@ to quickly create a Cobra application.`,
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			panic("invalid key-value pair")
+			panic("invalid key format")
 		}
 		key := args[0]
 
@@ -118,17 +118,19 @@ to quickly create a Cobra application.`,
 		secretPayload := responseData["data"].(map[string]interface{})[key].(map[string]interface{})
 		version := responseData["version"].(float64)
 
-		//	Base64 decode the secret value
-		value, err := base64.StdEncoding.DecodeString(secretPayload["value"].(string))
-		if err != nil {
-			panic(err)
-		}
+		if secretPayload["value"] != nil {
 
-		if len(value) > 0 {
-			fmt.Println("Value: ", string(value))
-			fmt.Println("Version: ", version)
-		}
+			//	Base64 decode the secret value
+			value, err := base64.StdEncoding.DecodeString(secretPayload["value"].(string))
+			if err != nil {
+				panic(err)
+			}
 
+			if len(value) > 0 {
+				fmt.Println("Value: ", string(value))
+				fmt.Println("Version: ", version)
+			}
+		}
 	},
 }
 

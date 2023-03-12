@@ -23,7 +23,7 @@ func SetupHandler(c echo.Context) error {
 	service := GetService()
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Run the service handler.
 	if err := service.Setup(ctx, serviceType, c.QueryParams()); err != nil {
@@ -61,7 +61,7 @@ func ListEntitiesHandler(c echo.Context) error {
 	service := GetService()
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{

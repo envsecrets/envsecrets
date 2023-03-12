@@ -31,8 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
+	"bytes"
+	"net/http"
+	"os/exec"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +53,65 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+
+		//	Run sanity checks
+		if len(args) != 1 {
+			panic("invalid key format")
+		}
+		key := args[0]
+
+		var secretVersion *int
+
+		if version > -1 {
+			secretVersion = &version
+		}
+
+		data := secretsCommons.Data{
+			Key: key,
+		}
+
+		//	Load the project configuration
+		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
+		if er != nil {
+			panic(er.Error())
+		}
+
+		projectConfig := projectConfigData.(*configCommons.Project)
+
+		//	Send the secrets to vault
+		payload := secretsCommons.SetRequestOptions{
+			Data:       data,
+			EnvID:      projectConfig.Environment,
+			OrgID:      projectConfig.Organisation,
+			KeyVersion: secretVersion,
+		}
+
+		reqBody, err := payload.Marshal()
+		if err != nil {
+			panic(err)
+		}
+
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
+		if err != nil {
+			panic(err)
+		}
+
+		//	Set content-type header
+		req.Header.Set("content-type", "application/json")
+
+		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
+		if httpErr != nil {
+			panic(httpErr)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			panic("failed to set secret")
+		}
+
+		//	Export the values in current shell
+		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
+			panic(err)
+		}
 	},
 }
 

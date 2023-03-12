@@ -123,7 +123,7 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 	}
 
 	if len(resp) == 0 {
-		return nil, nil
+		return nil, errors.New(nil, "no record found", errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
 	}
 
 	return &commons.Secret{
@@ -169,7 +169,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	}
 
 	if len(resp) == 0 {
-		return nil, nil
+		return nil, errors.New(nil, "no record found", errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
 	}
 
 	return &commons.Secret{
@@ -204,6 +204,59 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	//	Update our key in the data
 	payload[options.Data.Key] = options.Data.Payload
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {
+		insert_secrets(objects: {env_id: $env_id, data: $data, version: $version}) {
+		  affected_rows
+		}
+	  }					
+	`)
+
+	//	Set the variables for our GQL query.
+	req.Var("env_id", options.EnvID)
+	req.Var("version", version)
+	req.Var("data", payload)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["insert_secrets"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(nil, "failed to save ciphered secret value", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
+}
+
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
+
+	//	Fetch the secret of latest version.
+	latestEntry, err := Get(ctx, client, &commons.GetSecretOptions{
+		EnvID: options.EnvID,
+	})
+	if err != nil {
+		return err
+	}
+
+	//	We need to create an incremented version.
+	incrementBy := 1
+	version := incrementBy
+	if latestEntry.Version != nil {
+		version += *latestEntry.Version
+	}
+
+	payload := map[string]commons.Payload{}
+	for key, secret := range latestEntry.Data {
+		payload[key] = secret
+	}
+
+	//	Delete our key-value pair.
+	delete(payload, options.Data.Key)
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {

@@ -2,21 +2,26 @@ package context
 
 import (
 	"context"
+
+	"github.com/labstack/echo/v4"
 )
 
 type ServiceContext struct {
 	context.Context
-	Type ContextType
+	Type        ContextType
+	EchoContext echo.Context
 }
 
 type Config struct {
-	Type    ContextType
-	Context context.Context
+	Type        ContextType
+	Context     context.Context
+	EchoContext echo.Context
 }
 
 func NewContext(config *Config) ServiceContext {
 	var response ServiceContext
 	response.Context = config.Context
+	response.EchoContext = config.EchoContext
 	if response.Context == nil {
 		response.Context = context.Background()
 	}

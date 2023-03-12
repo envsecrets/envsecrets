@@ -51,6 +51,46 @@ func SetHandler(c echo.Context) error {
 	})
 }
 
+func DeleteHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.SetRequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize new Hasura client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type:          clients.HasuraClientType,
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+	})
+
+	//	Call the service function.
+	if err := Delete(ctx, client, &commons.DeleteSecretOptions{
+		EnvID:      payload.EnvID,
+		Data:       payload.Data,
+		KeyVersion: payload.KeyVersion,
+	}); err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to set the secret",
+			Error:   err.Message,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &commons.APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully set the secret",
+	})
+}
+
 func GetHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	internalErrors "errors"
 
@@ -28,7 +29,8 @@ func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *Setup
 		return err
 	}
 
-	//	TODO: Redirect the user to front-end to complete post-integration steps.
+	//	Redirect the user to front-end to complete post-integration steps.
+	http.Redirect(nil, ctx.EchoContext.Request(), os.Getenv("FE_URL"), http.StatusOK)
 	return nil
 }
 

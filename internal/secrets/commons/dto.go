@@ -103,7 +103,7 @@ type SetRequestOptions struct {
 	OrgID      string `json:"org_id"`
 	EnvID      string `json:"env_id"`
 	Data       Data   `json:"data"`
-	KeyVersion int    `json:"key_version,omitempty"`
+	KeyVersion *int   `json:"key_version,omitempty"`
 }
 
 func (r *SetRequestOptions) Marshal() ([]byte, error) {
@@ -114,7 +114,7 @@ type SetSecretOptions struct {
 	KeyPath    string `json:"key_path"`
 	EnvID      string `json:"env_id"`
 	Data       Data   `json:"data"`
-	KeyVersion int    `json:"key_version,omitempty"`
+	KeyVersion *int   `json:"key_version,omitempty"`
 }
 
 func (r *SetSecretOptions) Marshal() ([]byte, error) {
@@ -126,6 +126,12 @@ func (s *SetSecretOptions) GetVaultOptions() map[string]interface{} {
 		"plaintext":   s.Data.Payload.Value,
 		"key_version": s.KeyVersion,
 	}
+}
+
+type DeleteSecretOptions struct {
+	EnvID      string `json:"env_id"`
+	Data       Data   `json:"data"`
+	KeyVersion *int   `json:"key_version,omitempty"`
 }
 
 type DecryptSecretOptions struct {

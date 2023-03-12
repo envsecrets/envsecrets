@@ -99,6 +99,16 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	return nil
 }
 
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
+
+	//	Directly delete the key-value in Hasura.
+	if err := graphql.Delete(ctx, client, options); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	//	Inittialize our secret data

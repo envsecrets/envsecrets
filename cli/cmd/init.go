@@ -5,7 +5,9 @@ Copyright © 2023 Mrinal Wahal mrinalwahal@gmail.com
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
@@ -61,6 +63,16 @@ var initCmd = &cobra.Command{
 		var project projects.Project
 		var environment environments.Environment
 
+		//	All names entered by the user must be slugs.
+		var re = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+		validate := func(input string) error {
+			if len(re.FindAllString(input, -1)) == 0 {
+				return errors.New("should be a slug")
+			}
+
+			return nil
+		}
+
 		//	Setup organisation first
 		if len(organisationID) == 0 {
 
@@ -79,6 +91,7 @@ var initCmd = &cobra.Command{
 				Label:    "Choose Your Organisation",
 				Items:    orgsStringList,
 				AddLabel: "Create New Organisation",
+				Validate: validate,
 			}
 
 			index, result, err := selection.Run()
@@ -130,6 +143,7 @@ var initCmd = &cobra.Command{
 				Label:    "Choose Your Project",
 				Items:    projectsStringList,
 				AddLabel: "Create New Project",
+				Validate: validate,
 			}
 
 			index, result, err := selection.Run()
@@ -163,6 +177,7 @@ var initCmd = &cobra.Command{
 					Label:    "Choose Your Environment",
 					Items:    environmentsStringList,
 					AddLabel: "Create New Environment",
+					Validate: validate,
 				}
 
 				index, result, err := selection.Run()
@@ -213,7 +228,7 @@ var initCmd = &cobra.Command{
 				//	Create new item
 				envItem, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
 					ProjectID: project.ID,
-					Name:      result,
+					Name:      "dev",
 				})
 				if er != nil {
 					panic(er.Error.Error())
