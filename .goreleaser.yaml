@@ -32,7 +32,7 @@ brews:
     name: envsecrets
     homepage: "https://envsecrets.com"
     description: "CLI-first management of your environment secrets."
-    download_strategy: GitDownloadStrategy
+    download_strategy: CurlDownloadStrategy
 
     tap:
       owner: mrinalwahal
