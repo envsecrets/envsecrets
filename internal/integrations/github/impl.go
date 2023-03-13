@@ -2,10 +2,12 @@ package github
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	internalErrors "errors"
 
@@ -224,8 +226,17 @@ func deleteRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPCl
 
 func GetInstallationAccessToken(ctx context.ServiceContext, installationID string) (*InstallationAccessTokenResponse, *errors.Error) {
 
+	//	Load the github private key
+	key := os.Getenv("GITHUB_PRIVATE_KEY")
+
+	//	Base64 decode the key to get PEM data
+	value, er := base64.StdEncoding.DecodeString(key)
+	if er != nil {
+		return nil, errors.New(er, "failed to base64 decode PEM file", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
+	}
+
 	//	Authenticate as a github app
-	jwt, err := generateGithuAppJWT("keys/github-private-key.pem")
+	jwt, err := generateGithuAppJWT(value)
 	if err != nil {
 		return nil, err
 	}
