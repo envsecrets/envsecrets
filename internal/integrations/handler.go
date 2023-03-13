@@ -3,6 +3,7 @@ package integrations
 import (
 	"errors"
 	"net/http"
+	"os"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -34,10 +35,8 @@ func SetupHandler(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
-		Message: "successfully executed service callback",
-	})
+	//	Redirect the user to front-end to complete post-integration steps.
+	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"?message='Integration Successful'&integration_type=github")
 }
 
 func ListEntitiesHandler(c echo.Context) error {

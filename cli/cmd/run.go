@@ -32,29 +32,44 @@ package cmd
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
+	"runtime"
+	"strings"
+	"syscall"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "run -- [command]",
+	Short: "Run a command with secrets injected into the environment",
+	Example: `envsecrets run -- YOUR_COMMAND --YOUR-FLAG
+envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		// The --command flag and args are mututally exclusive
+		usingCommandFlag := cmd.Flags().Changed("command")
+		if usingCommandFlag {
+			command := cmd.Flag("command").Value.String()
+			if command == "" {
+				return errors.New("--command flag requires a value")
+			}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-		//	Format checks.
-		if len(args) < 1 {
-			panic("invalid format")
+			if len(args) > 0 {
+				return errors.New("arg(s) may not be set when using --command flag")
+			}
+		} else if len(args) == 0 {
+			return errors.New("requires at least 1 arg(s), received 0")
 		}
+
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
 
 		var variables []string
 
@@ -66,29 +81,104 @@ to quickly create a Cobra application.`,
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
-				panic(err)
+				log.Errorf("failed to base64 decode value for secret %s", key)
+				log.Debugln(err)
+				os.Exit(1)
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
 		}
 
-		const shell = "/bin/bash"
-
-		arguments := []string{"-c"}
-		arguments = append(arguments, args...)
-		userCmd := exec.Cmd{
-			Path:   shell,
-			Args:   arguments,
-			Env:    variables,
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
+		//	Overwrite reserved keys
+		reservedKeys := []string{"PATH", "PS1", "HOME"}
+		for _, item := range reservedKeys {
+			variables = append(variables, fmt.Sprintf("%s=%s", item, os.Getenv(item)))
 		}
 
-		if err := userCmd.Run(); err != nil {
-			panic(err)
+		var userCmd *exec.Cmd
+
+		if cmd.Flags().Changed("command") {
+			shell := [2]string{"sh", "-c"}
+			if runtime.GOOS == "windows" {
+				shell = [2]string{"cmd", "/C"}
+			} else {
+				// these shells all support the same options we use for sh
+				shells := []string{"/bash", "/dash", "/fish", "/zsh", "/ksh", "/csh", "/tcsh"}
+				envShell := os.Getenv("SHELL")
+				for _, s := range shells {
+					if strings.HasSuffix(envShell, s) || strings.HasSuffix(envShell, "/bin"+s) {
+						shell[0] = envShell
+						break
+					}
+				}
+			}
+			userCmd = exec.Command(shell[0], shell[1], cmd.Flag("command").Value.String())
+		} else {
+			userCmd = exec.Command(args[0], args[1:]...)
 		}
+
+		userCmd.Env = variables
+		userCmd.Stdin = os.Stdin
+		userCmd.Stdout = os.Stdout
+		userCmd.Stderr = os.Stderr
+
+		exitCode, err := execCommand(userCmd, false, nil)
+		if err != nil {
+			log.Errorln("command execution failed or completed ungracefully")
+			log.Debugln(err)
+			os.Exit(1)
+		}
+
+		os.Exit(exitCode)
 	},
+}
+
+func execCommand(cmd *exec.Cmd, forwardSignals bool, onExit func()) (int, error) {
+	if onExit != nil {
+		// ensure the onExit handler is called, regardless of how/when we return
+		defer onExit()
+	}
+
+	// signal handling logic adapted from aws-vault https://github.com/99designs/aws-vault/
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan)
+
+	if err := cmd.Start(); err != nil {
+		return 1, err
+	}
+
+	// handle all signals
+	go func() {
+		for {
+			// When running with a TTY, user-generated signals (like SIGINT) are sent to the entire process group.
+			// If we forward the signal, the child process will end up receiving the signal twice.
+			if forwardSignals {
+				// forward to process
+				sig := <-sigChan
+				cmd.Process.Signal(sig) // #nosec G104
+			} else {
+				// ignore
+				<-sigChan
+			}
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		// ignore errors
+		cmd.Process.Signal(os.Kill) // #nosec G104
+
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return exitError.ExitCode(), exitError
+		}
+
+		return 2, err
+	}
+
+	waitStatus, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
+	if !ok {
+		return 2, fmt.Errorf("Unexpected ProcessState type, expected syscall.WaitStatus, got %T", waitStatus)
+	}
+	return waitStatus.ExitStatus(), nil
 }
 
 func init() {
@@ -102,5 +192,5 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// runCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
 }

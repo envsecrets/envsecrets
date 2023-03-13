@@ -153,7 +153,6 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		}
 
 		data.Payload.Value = response.Data.Plaintext
-		data.Payload.Type = commons.Plaintext
 	}
 
 	return &commons.GetResponse{
@@ -209,7 +208,7 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 			data.Data[key] = commons.Payload{
 				Value: response.Data.Plaintext,
-				Type:  commons.Plaintext,
+				Type:  item.Type,
 			}
 		}
 	}

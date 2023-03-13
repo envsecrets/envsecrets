@@ -32,8 +32,10 @@ brews:
     name: envsecrets
     homepage: "https://envsecrets.com"
     description: "CLI-first management of your environment secrets."
+    download_strategy: CurlDownloadStrategy
+
     tap:
-      owner: mrinalwahal
+      owner: envsecrets
       name: homebrew-tap
     commit_author:
       name: mrinalwahal
