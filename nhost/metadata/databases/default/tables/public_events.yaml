@@ -68,7 +68,7 @@ event_triggers:
     webhook: '{{API}}/v1/triggers/events/new'
     headers:
       - name: x-hasura-webhook-secret
-        value: "\tNHOST_WEBHOOK_SECRET"
+        value_from_env: NHOST_WEBHOOK_SECRET
     cleanup_config:
       batch_size: 10000
       clean_invocation_logs: false

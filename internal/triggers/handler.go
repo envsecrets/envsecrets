@@ -2,6 +2,7 @@ package triggers
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -237,8 +238,9 @@ func EventInserted(c echo.Context) error {
 	for key, payload := range response.Data {
 
 		//	If the secret is of type `ciphertext`,
-		//	we will need to decode it first.
+		//	we will need to decrypt it first.
 		if payload.Type == secretCommons.Ciphertext {
+
 			secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
 				Data: secretCommons.Data{
 					Key:     key,
@@ -293,8 +295,11 @@ func EventInserted(c echo.Context) error {
 		EntityDetails:  row.EntityDetails,
 		Data:           data,
 	}); err != nil {
-		log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)
-		log.Println(err)
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID),
+			Error:   err.Error.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, &APIResponse{
