@@ -3,7 +3,6 @@ package github
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -12,11 +11,7 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-func generateGithuAppJWT(keyLocation string) (string, *errors.Error) {
-	file, err := ioutil.ReadFile(keyLocation)
-	if err != nil {
-		return "", errors.New(err, "failed to read key file", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
-	}
+func generateGithuAppJWT(file []byte) (string, *errors.Error) {
 
 	// expires in 60 minutes
 	expiration := time.Now().Add(time.Second * 600)
