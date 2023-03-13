@@ -197,8 +197,10 @@ func EventInserted(c echo.Context) error {
 	})
 
 	//	--- Flow ---
-	//	1. Get the events linked to this new secret row.
-	//	2. Call the appropriate integration service to sync the secrets.
+	//	1. Get the organisation linked to the environment of this event.
+	//	2. Get the integration linked to this event.
+	//	3. Fetch latest secrets linked to the environment of this event.
+	//	4. Call the appropriate integration service to sync the secrets.
 
 	//	Get the organisation to which this event's environment belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
