@@ -49,8 +49,8 @@ var (
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Authenticate your envsecrets account",
-	Run: func(cmd *cobra.Command, args []string) {
+	Short: "Authenticate your envsecrets cloud account",
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		var err error
 
@@ -70,7 +70,7 @@ var loginCmd = &cobra.Command{
 			email, err = emailPrompt.Run()
 			if err != nil {
 				fmt.Printf("Prompt failed %v\n", err)
-				return
+				return err
 			}
 		}
 
@@ -85,7 +85,7 @@ var loginCmd = &cobra.Command{
 			password, err = passwordPrompt.Run()
 			if err != nil {
 				fmt.Printf("Prompt failed %v\n", err)
-				return
+				return err
 			}
 		}
 
@@ -97,7 +97,7 @@ var loginCmd = &cobra.Command{
 
 		response, err := auth.Login(payload)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		//	Save the account config
@@ -106,8 +106,12 @@ var loginCmd = &cobra.Command{
 			RefreshToken: response.Session.RefreshToken,
 			User:         response.Session.User,
 		}, configCommons.AccountConfig); err != nil {
-			panic(err)
+			return err
 		}
+
+		return nil
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
 		fmt.Println("You are logged in!")
 	},
 }

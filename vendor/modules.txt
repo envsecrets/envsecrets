@@ -9,7 +9,6 @@ github.com/golang-jwt/jwt
 github.com/golang-jwt/jwt/v4
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
-github.com/gorilla/mux
 # github.com/inconshreveable/mousetrap v1.0.1
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
@@ -48,6 +47,9 @@ github.com/mattn/go-isatty
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/sirupsen/logrus v1.9.0
+## explicit; go 1.13
+github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.6.1
 ## explicit; go 1.15
 github.com/spf13/cobra
@@ -82,7 +84,9 @@ golang.org/x/net/idna
 # golang.org/x/sys v0.5.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
+golang.org/x/sys/windows
 # golang.org/x/text v0.7.0
 ## explicit; go 1.17
 golang.org/x/text/secure/bidirule

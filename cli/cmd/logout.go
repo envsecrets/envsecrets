@@ -31,23 +31,27 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/envsecrets/envsecrets/internal/auth"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // logoutCmd represents the logout command
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Logout from your envsecrets account locally",
-	Run: func(cmd *cobra.Command, args []string) {
+	Short: "Locally logout from your envsecrets account",
+	Long:  "This will render your CLI un-usable until you login again.",
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if err := auth.Logout(); err != nil {
-			panic("failed to logout")
+			log.Errorln("failed to logout")
+			return err
 		}
 
-		fmt.Println("You are logged out!\nUse `envsecrets login` to sign-in again.")
+		return nil
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		log.Infoln("You are logged out!\nUse `envsecrets login` to sign-in again.")
 	},
 }
 
