@@ -81,7 +81,7 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
-				log.Errorf("failed to base64 decode value for secret %f", key)
+				log.Errorf("failed to base64 decode value for secret %s", key)
 				log.Debugln(err)
 				os.Exit(1)
 			}
