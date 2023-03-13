@@ -35,7 +35,7 @@ brews:
     download_strategy: CurlDownloadStrategy
 
     tap:
-      owner: mrinalwahal
+      owner: envsecrets
       name: homebrew-tap
     commit_author:
       name: mrinalwahal

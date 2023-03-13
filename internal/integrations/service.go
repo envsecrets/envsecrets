@@ -13,12 +13,17 @@ import (
 )
 
 type Service interface {
+	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, *errors.Error)
 	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (interface{}, *errors.Error)
 	Setup(context.ServiceContext, commons.IntegrationType, url.Values) *errors.Error
 	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
 }
 
 type DefaultIntegrationService struct{}
+
+func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, *errors.Error) {
+	return graphql.Get(ctx, client, id)
+}
 
 func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string) (interface{}, *errors.Error) {
 

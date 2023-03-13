@@ -162,6 +162,147 @@ func SecretInserted(c echo.Context) error {
 	})
 }
 
+//	Called when a new row is inserted inside the `events` table.
+func EventInserted(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusOK, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var row eventCommons.Event
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	--- Flow ---
+	//	1. Get the events linked to this new secret row.
+	//	2. Call the appropriate integration service to sync the secrets.
+
+	//	Get the organisation to which this event's environment belong to.
+	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	if err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to get organisation to which tthis event is associated with",
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Get the integration to which this event belong to.
+	integration, err := integrations.GetService().Get(ctx, client, row.IntegrationID)
+	if err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to get integration to which this event is associated with",
+			Error:   err.Error.Error(),
+		})
+	}
+
+	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
+		KeyPath: organisation.ID,
+		EnvID:   row.EnvID,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to get secrets associated with this event",
+			Error:   err.Error.Error(),
+		})
+	}
+
+	data := make(map[string]secretCommons.Payload)
+
+	//	Decrypt the value of every secret.
+	for key, payload := range response.Data {
+
+		//	If the secret is of type `ciphertext`,
+		//	we will need to decode it first.
+		if payload.Type == secretCommons.Ciphertext {
+			secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
+				Data: secretCommons.Data{
+					Key:     key,
+					Payload: payload,
+				},
+				KeyLocation: organisation.ID,
+				EnvID:       row.EnvID,
+			})
+			if err != nil {
+				return c.JSON(http.StatusBadGateway, &APIResponse{
+					Code:    http.StatusBadRequest,
+					Message: "failed to decrypt value of secret: " + key,
+					Error:   err.Error.Error(),
+				})
+			}
+
+			//	Base64 decode the secret value
+			b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
+			if er != nil {
+				return c.JSON(http.StatusBadGateway, &APIResponse{
+					Code:    http.StatusBadRequest,
+					Message: "failed to base 64 decode the decrypted value of secret: " + key,
+					Error:   er.Error(),
+				})
+			}
+
+			payload.Value = string(b64Decoded)
+
+		} else if payload.Type == secretCommons.Plaintext {
+
+			//	Base64 decode the secret value
+			b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
+			if er != nil {
+				return c.JSON(http.StatusBadGateway, &APIResponse{
+					Code:    http.StatusBadRequest,
+					Message: "failed to base 64 decode the decrypted value of secret: " + key,
+					Error:   er.Error(),
+				})
+			}
+
+			payload.Value = string(b64Decoded)
+		}
+
+		data[key] = payload
+	}
+
+	//	Get the integration service
+	integrationService := integrations.GetService()
+
+	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
+		InstallationID: integration.InstallationID,
+		EntityDetails:  row.EntityDetails,
+		Data:           data,
+	}); err != nil {
+		log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)
+		log.Println(err)
+	}
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully synced secrets",
+	})
+}
+
 //	Called when a new row is inserted inside the `organisations` table.
 func OrganisationInserted(c echo.Context) error {
 

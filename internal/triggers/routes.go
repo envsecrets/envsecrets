@@ -12,17 +12,22 @@ func AddRoutes(sg *echo.Group) {
 	//	Prepend the webhook middleware to this group.
 	triggers.Use(middlewares.WebhookHeader())
 
-	//	envsecrets secrets group
+	//	secrets group
 	secrets := triggers.Group("/secrets")
 
 	secrets.POST("/new", SecretInserted)
 
-	//	envsecrets organisations group
+	//	events group
+	events := triggers.Group("/events")
+
+	events.POST("/new", EventInserted)
+
+	//	organisations group
 	organisations := triggers.Group("/organisations")
 
 	organisations.POST("/new", OrganisationInserted)
 
-	//	envsecrets permissions group
+	// permissions group
 	permissions := triggers.Group("/permissions")
 
 	permissions.POST("/organisation", OrganisationLevelPermissions)
