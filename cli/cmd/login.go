@@ -69,7 +69,6 @@ var loginCmd = &cobra.Command{
 
 			email, err = emailPrompt.Run()
 			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
 				return err
 			}
 		}
@@ -84,7 +83,6 @@ var loginCmd = &cobra.Command{
 
 			password, err = passwordPrompt.Run()
 			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
 				return err
 			}
 		}

@@ -31,16 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/base64"
-	"fmt"
-	"strings"
-
 	"github.com/spf13/cobra"
 )
 
-// getCmd represents the get command
-var getCmd = &cobra.Command{
-	Use:   "get",
+// mergeCmd represents the merge command
+var mergeCmd = &cobra.Command{
+	Use:   "merge",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -48,51 +44,47 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Run sanity checks
-		if len(args) != 1 {
-			log.Error("Invalid key format")
-		}
-		key := args[0]
+	   		//	Load the project config
+	   		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+	   		if err != nil {
+	   			panic(err)
+	   		}
 
-		//	Auto-capitalize the key
-		key = strings.ToUpper(key)
+	   		projectConfig := projectConfigPayload.(*configCommons.Project)
 
-		secretPayload, err := export(&key)
-		if err != nil {
-			log.Debug(err)
-			log.Error("Failed to fetch the secret value")
-			return
-		}
+	   		//	Fetch environments
+	   		environments, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+	   			ProjectID: projectConfig.Project,
+	   		})
+	   		if er != nil {
+	   			panic(er)
+	   		}
 
-		for key, item := range secretPayload {
-			payload := item.(map[string]interface{})
+	   		selection := promptui.Select{
+	   			Label: "Environment to merge from",
+	   			Items: environments,
+	   		}
 
-			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
-			if err != nil {
-				log.Debug(err)
-				log.Error("Failed to base64 decode secret value")
-				return
-			}
-
-			fmt.Printf("%s=%s", key, string(value))
-			fmt.Println()
-		}
-	},
-}
+	   		index, result, err := selection.Run()
+	   		if err != nil {
+	   			fmt.Printf("Prompt failed %v\n", err)
+	   			return
+	   		}
+	   	},
+	*/}
 
 func init() {
-	rootCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(mergeCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// getCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// mergeCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
+	mergeCmd.Flags().StringVar(&environmentID, "from-env", "", "Environment ID to sync from")
 }

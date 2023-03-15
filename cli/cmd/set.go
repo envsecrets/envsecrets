@@ -60,17 +60,20 @@ to quickly create a Cobra application.`,
 
 		//	Run sanity checks
 		if len(args) < 1 {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		if !strings.Contains(args[0], "=") {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		pair := strings.Split(args[0], "=")
 
 		if len(pair) != 2 {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		key := pair[0]
@@ -98,7 +101,9 @@ to quickly create a Cobra application.`,
 		//	Load the project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
-			panic(er.Error())
+			log.Debug(er)
+			log.Error("Failed to load project configuration")
+			return
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -112,12 +117,16 @@ to quickly create a Cobra application.`,
 
 		reqBody, err := payload.Marshal()
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare request payload")
+			return
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare the request")
+			return
 		}
 
 		//	Set content-type header
@@ -125,16 +134,21 @@ to quickly create a Cobra application.`,
 
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
-			panic(httpErr)
+			log.Debug(httpErr)
+			log.Error("Failed to complete the request")
+			return
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			panic("failed to set secret")
+			log.Error("Request returned a non-OK response")
+			return
 		}
 
 		//	Export the values in current shell
 		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to set the values in current shell")
+			return
 		}
 	},
 }

@@ -33,6 +33,7 @@ package cmd
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -59,14 +60,22 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		secretPayload := export(nil)
+		secretPayload, err := export(nil)
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to fetch all the secret values")
+			return
+		}
+
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
-				panic(err)
+				log.Debug(err)
+				log.Error("Failed to base64 decode the secret value")
+				return
 			}
 
 			fmt.Printf("%s=%s", key, string(value))
@@ -75,7 +84,7 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func export(key *string) map[string]interface{} {
+func export(key *string) (map[string]interface{}, error) {
 
 	var secretVersion *int
 
@@ -86,14 +95,14 @@ func export(key *string) map[string]interface{} {
 	//	Load the project config
 	projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	projectConfig := projectConfigPayload.(*configCommons.Project)
 
 	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	//	Set the query params.
@@ -109,27 +118,27 @@ func export(key *string) map[string]interface{} {
 	req.URL.RawQuery = query.Encode()
 	resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
 	if er != nil {
-		panic(er)
+		return nil, er.Error
 	}
 
 	defer resp.Body.Close()
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		panic("failed to get secrets")
+		return nil, errors.New("request returned non-OK response code")
 	}
 
 	var response secretsCommons.APIResponse
 	if err := json.Unmarshal(respBody, &response); err != nil {
-		panic(err)
+		return nil, err
 	}
 	responseData := response.Data.(map[string]interface{})
 
-	return responseData["data"].(map[string]interface{})
+	return responseData["data"].(map[string]interface{}), nil
 }
 
 func init() {

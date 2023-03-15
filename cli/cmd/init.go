@@ -94,7 +94,7 @@ var initCmd = &cobra.Command{
 		var re = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 		validate := func(input string) error {
 			if len(re.FindAllString(input, -1)) == 0 {
-				return errors.New("should be a slug")
+				return errors.New("should be a slug; example: my-new-idea")
 			}
 
 			return nil
@@ -106,7 +106,9 @@ var initCmd = &cobra.Command{
 			//	Check whether user has access to at least 1 organisation.
 			orgs, er := organisations.List(commons.DefaultContext, commons.GQLClient)
 			if er != nil {
-				panic(er.Error)
+				log.Debug(er)
+				log.Error("Failed to fetch list of organisations")
+				return
 			}
 
 			var orgsStringList []string
@@ -123,7 +125,6 @@ var initCmd = &cobra.Command{
 
 			index, result, err := selection.Run()
 			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
 				return
 			}
 
@@ -143,7 +144,9 @@ var initCmd = &cobra.Command{
 					Name: result,
 				})
 				if er != nil {
-					panic(er.Error.Error())
+					log.Debug(er)
+					log.Error("Failed to create new organisation")
+					return
 				}
 
 				organisation.ID = item.ID
@@ -158,7 +161,9 @@ var initCmd = &cobra.Command{
 				OrgID: organisation.ID,
 			})
 			if er != nil {
-				panic(er.Error)
+				log.Debug(er)
+				log.Error("Failed to fetch list of projects")
+				return
 			}
 
 			var projectsStringList []string
@@ -175,7 +180,6 @@ var initCmd = &cobra.Command{
 
 			index, result, err := selection.Run()
 			if err != nil {
-				fmt.Printf("Prompt failed %v\n", err)
 				return
 			}
 
@@ -192,7 +196,9 @@ var initCmd = &cobra.Command{
 					ProjectID: project.ID,
 				})
 				if er != nil {
-					panic(er.Error)
+					log.Debug(er)
+					log.Error("Failed to fetch list of environments")
+					return
 				}
 
 				var environmentsStringList []string
@@ -209,7 +215,6 @@ var initCmd = &cobra.Command{
 
 				index, result, err := selection.Run()
 				if err != nil {
-					fmt.Printf("Prompt failed %v\n", err)
 					return
 				}
 
@@ -230,7 +235,9 @@ var initCmd = &cobra.Command{
 						Name:      result,
 					})
 					if er != nil {
-						panic(er.Error.Error())
+						log.Debug(er.Error)
+						log.Error("Failed to create new environment")
+						return
 					}
 
 					environment.ID = item.ID
@@ -245,7 +252,9 @@ var initCmd = &cobra.Command{
 					Name:  result,
 				})
 				if er != nil {
-					panic(er.Error.Error())
+					log.Debug(er.Error)
+					log.Error("Failed to create new project")
+					return
 				}
 
 				project.ID = item.ID
@@ -258,7 +267,9 @@ var initCmd = &cobra.Command{
 					Name:      "dev",
 				})
 				if er != nil {
-					panic(er.Error.Error())
+					log.Debug(er.Error)
+					log.Error("Failed to create new environment")
+					return
 				}
 
 				environment.ID = envItem.ID
@@ -273,7 +284,9 @@ var initCmd = &cobra.Command{
 			Project:      project.ID,
 			Environment:  environment.ID,
 		}); err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to save new project configuration locally")
+			return
 		}
 	},
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
 )
 
@@ -307,6 +308,59 @@ func EventInserted(c echo.Context) error {
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
 		Message: "successfully synced secrets",
+	})
+}
+
+//	Called when a new row is inserted inside the `users` table.
+func UserInserted(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusOK, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var user userCommons.User
+	if err := MapToStruct(payload.Event.Data.New, &user); err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	Create a new `default` organisation for the new user.
+	_, err := organisations.Create(ctx, client, &organisations.CreateOptions{
+		Name: "default",
+	})
+	if err != nil {
+		return c.JSON(http.StatusNotModified, &APIResponse{
+			Code:    http.StatusNotModified,
+			Message: "failed to create default organisation",
+			Error:   err.Message,
+		})
+	}
+
+	//	TODO: Shoot a welcome email to the user
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully generated the transit key",
 	})
 }
 
