@@ -33,12 +33,13 @@ package cmd
 import (
 	"bytes"
 	"net/http"
-	"os/exec"
+	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
@@ -53,11 +54,21 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			panic("invalid key format")
+			log.Error("Invalid key format")
+			os.Exit(1)
 		}
 		key := args[0]
 
@@ -70,34 +81,35 @@ to quickly create a Cobra application.`,
 			secretVersion = &version
 		}
 
-		data := secretsCommons.Data{
-			Key: key,
-		}
-
 		//	Load the project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
-			panic(er.Error())
+			log.Debug(er)
+			log.Error("Failed to fetch project configuration")
+			os.Exit(1)
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := secretsCommons.SetRequestOptions{
-			Data:       data,
-			EnvID:      projectConfig.Environment,
-			OrgID:      projectConfig.Organisation,
-			KeyVersion: secretVersion,
+		payload := secretsCommons.DeleteRequestOptions{
+			EnvID:   projectConfig.Environment,
+			Key:     key,
+			Version: secretVersion,
 		}
 
 		reqBody, err := payload.Marshal()
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare request body")
+			os.Exit(1)
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare request")
+			os.Exit(1)
 		}
 
 		//	Set content-type header
@@ -105,16 +117,15 @@ to quickly create a Cobra application.`,
 
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
-			panic(httpErr)
+			log.Debug(httpErr)
+			log.Error("Failed to complete the request")
+			os.Exit(1)
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			panic("failed to set secret")
-		}
-
-		//	Export the values in current shell
-		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
-			panic(err)
+			log.Debug(resp.StatusCode)
+			log.Error("Request returned non-OK response")
+			os.Exit(1)
 		}
 	},
 }

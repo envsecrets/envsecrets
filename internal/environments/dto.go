@@ -26,11 +26,6 @@ type CreateOptions struct {
 	ProjectID string `json:"project_id" graphql:"project_id"`
 }
 
-type CreateResponse struct {
-	ID   string `json:"id,omitempty" graphql:"id,omitempty"`
-	Name string `json:"name,omitempty" graphql:"name,omitempty"`
-}
-
 type UpdateOptions struct {
 	Name string `json:"name"`
 }

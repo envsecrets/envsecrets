@@ -79,6 +79,9 @@ type GenerateKeyOptions struct {
 	//	Whether the key can be exported in the future.
 	Exportable bool `json:"exportable,omitempty"`
 
+	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
+	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
+
 	//	Key Type. We are using "aes256-gcm96" as the default one.
 	Type string `json:"type,omitempty" default:"aes256-gcm96"`
 }
@@ -88,10 +91,11 @@ func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
 }
 
 type VaultResponse struct {
-	RequestID     string `json:"request_id"`
-	LeaseID       string `json:"lease_id"`
-	Renewable     bool   `json:"renewable"`
-	LeaseDuration int    `json:"lease_duration"`
+	Errors        []interface{} `json:"errors,omitempty"`
+	RequestID     string        `json:"request_id"`
+	LeaseID       string        `json:"lease_id"`
+	Renewable     bool          `json:"renewable"`
+	LeaseDuration int           `json:"lease_duration"`
 	Data          struct {
 		Ciphertext string `json:"ciphertext,omitempty"`
 		Plaintext  string `json:"plaintext,omitempty"`
@@ -100,10 +104,10 @@ type VaultResponse struct {
 }
 
 type SetRequestOptions struct {
-	OrgID      string `json:"org_id"`
-	EnvID      string `json:"env_id"`
-	Data       Data   `json:"data"`
-	KeyVersion *int   `json:"key_version,omitempty"`
+	OrgID      string             `json:"org_id"`
+	EnvID      string             `json:"env_id"`
+	Data       map[string]Payload `json:"data"`
+	KeyVersion *int               `json:"key_version,omitempty"`
 }
 
 func (r *SetRequestOptions) Marshal() ([]byte, error) {
@@ -111,10 +115,10 @@ func (r *SetRequestOptions) Marshal() ([]byte, error) {
 }
 
 type SetSecretOptions struct {
-	KeyPath    string `json:"key_path"`
-	EnvID      string `json:"env_id"`
-	Data       Data   `json:"data"`
-	KeyVersion *int   `json:"key_version,omitempty"`
+	KeyPath    string             `json:"key_path"`
+	EnvID      string             `json:"env_id"`
+	Data       map[string]Payload `json:"data"`
+	KeyVersion *int               `json:"key_version,omitempty"`
 }
 
 func (r *SetSecretOptions) Marshal() ([]byte, error) {
@@ -123,15 +127,25 @@ func (r *SetSecretOptions) Marshal() ([]byte, error) {
 
 func (s *SetSecretOptions) GetVaultOptions() map[string]interface{} {
 	return map[string]interface{}{
-		"plaintext":   s.Data.Payload.Value,
+		"plaintext":   s.Data,
 		"key_version": s.KeyVersion,
 	}
 }
 
 type DeleteSecretOptions struct {
-	EnvID      string `json:"env_id"`
-	Data       Data   `json:"data"`
-	KeyVersion *int   `json:"key_version,omitempty"`
+	EnvID   string `json:"env_id"`
+	Key     string `json:"key"`
+	Version *int   `json:"version"`
+}
+
+type DeleteRequestOptions struct {
+	EnvID   string `json:"env_id"`
+	Key     string `json:"key"`
+	Version *int   `json:"version"`
+}
+
+func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
 }
 
 type DecryptSecretOptions struct {
@@ -153,6 +167,10 @@ type GetRequestOptions struct {
 	Version *int   `query:"version"`
 }
 
+func (r *GetRequestOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
 type GetSecretOptions struct {
 	Key     string `json:"key"`
 	KeyPath string `json:"key_path"`
@@ -160,13 +178,61 @@ type GetSecretOptions struct {
 	Version *int   `json:"version,omitempty"`
 }
 
-func (r *GetRequestOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
 type GetResponse struct {
 	Data    map[string]Payload `json:"data"`
 	Version *int               `json:"version,omitempty"`
+}
+
+type MergeRequestOptions struct {
+	OrgID         string `json:"org_id"`
+	SourceEnvID   string `json:"source_env_id"`
+	SourceVersion *int   `json:"source_version"`
+	TargetEnvID   string `json:"target_env_id"`
+}
+
+func (r *MergeRequestOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+type MergeSecretOptions struct {
+	KeyPath       string `json:"key_path"`
+	SourceEnvID   string `json:"source_env_id"`
+	SourceVersion *int   `json:"source_version"`
+	TargetEnvID   string `json:"target_env_id"`
+}
+
+type MergeResponse struct {
+	Version *int `json:"version,omitempty"`
+}
+
+type KeyRestoreRequestOptions struct {
+	OrgID  string `json:"org_id"`
+	Backup string `json:"backup"`
+}
+
+type KeyRestoreOptions struct {
+	Backup string `json:"backup"`
+}
+
+func (r *KeyRestoreOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+type VaultKeyExportResponse struct {
+	Data struct {
+		Name string                 `json:"name"`
+		Keys map[string]interface{} `json:"keys"`
+	} `json:"data"`
+}
+
+type KeyBackupRequestOptions struct {
+	OrgID string `query:"org_id"`
+}
+
+type KeyBackupResponse struct {
+	Data struct {
+		Backup string `json:"backup"`
+	} `json:"data"`
 }
 
 type ListRequestOptions struct {

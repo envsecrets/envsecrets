@@ -33,8 +33,10 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -48,25 +50,50 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			panic("invalid key format")
+			log.Error("Key not found. Use `--help` for usage information.")
+			os.Exit(1)
 		}
 		key := args[0]
 
 		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
-		secretPayload := export(&key)
+		secretPayload, err := export(&key)
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to fetch the secrets")
+			os.Exit(1)
+		}
+
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
+
+			//	If the value is empty/nil,
+			//	then it either doesn't exist or wasn't fetched.
+			if payload["value"] == nil {
+				log.Errorf("Value for key '%s' not found in version %v", key, payload["version"])
+				os.Exit(1)
+			}
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
-				panic(err)
+				log.Debug(err)
+				log.Error("Failed to base64 decode secret value")
+				os.Exit(1)
 			}
 
 			fmt.Printf("%s=%s", key, string(value))

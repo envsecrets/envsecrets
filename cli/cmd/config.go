@@ -31,10 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
+	"os"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
-	"github.com/envsecrets/envsecrets/config/commons"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/organisations"
+	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/spf13/cobra"
 )
 
@@ -51,14 +55,43 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Load the current project configuration
-		projectConfigData, er := config.GetService().Load(commons.ProjectConfig)
+		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
-			panic(er.Error())
+			log.Debug(er)
+			log.Error("Failed to load project configuration")
+			os.Exit(1)
 		}
 
-		projectConfig := projectConfigData.(*commons.Project)
+		projectConfig := projectConfigData.(*configCommons.Project)
 
-		fmt.Println(projectConfig)
+		//	Get the organisation name.
+		organisation, err := organisations.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Organisation)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Error("Failed to fetch organisation.")
+			os.Exit(1)
+		}
+
+		//	Get the project name.
+		project, err := projects.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Project)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Error("Failed to fetch project.")
+			os.Exit(1)
+		}
+
+		//	Get the environment name.
+		environment, err := environments.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Environment)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Error("Failed to fetch environment.")
+			os.Exit(1)
+		}
+
+		//	Pretty print the configuration.
+		log.Infof("Organisation: %s (%s)", organisation.Name, organisation.ID)
+		log.Infof("Project: %s (%s)", project.Name, project.ID)
+		log.Infof("Environment: %s (%s)", environment.Name, environment.ID)
 	},
 }
 

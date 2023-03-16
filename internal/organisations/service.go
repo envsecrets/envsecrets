@@ -11,7 +11,7 @@ import (
 )
 
 //	Create a new organisation
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
@@ -37,7 +37,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []CreateResponse
+	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}

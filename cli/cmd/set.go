@@ -33,6 +33,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -40,6 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
@@ -56,21 +58,33 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
 		if len(args) < 1 {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		if !strings.Contains(args[0], "=") {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		pair := strings.Split(args[0], "=")
 
 		if len(pair) != 2 {
-			panic("invalid key-value pair")
+			log.Error("Invalid key-value pair")
+			return
 		}
 
 		key := pair[0]
@@ -87,37 +101,41 @@ to quickly create a Cobra application.`,
 
 		//	Base64 encode the secret value
 		base64Value := base64.StdEncoding.EncodeToString([]byte(value))
-		data := secretsCommons.Data{
-			Key: key,
-			Payload: secretsCommons.Payload{
-				Value: base64Value,
-				Type:  typ,
-			},
-		}
 
 		//	Load the project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
-			panic(er.Error())
+			log.Debug(er)
+			log.Error("Failed to load project configuration")
+			return
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
 		payload := secretsCommons.SetRequestOptions{
-			Data:  data,
+			Data: map[string]secretsCommons.Payload{
+				key: {
+					Value: base64Value,
+					Type:  typ,
+				},
+			},
 			OrgID: projectConfig.Organisation,
 			EnvID: projectConfig.Environment,
 		}
 
 		reqBody, err := payload.Marshal()
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare request payload")
+			return
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
-			panic(err)
+			log.Debug(err)
+			log.Error("Failed to prepare the request")
+			return
 		}
 
 		//	Set content-type header
@@ -125,16 +143,21 @@ to quickly create a Cobra application.`,
 
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
-			panic(httpErr)
+			log.Debug(httpErr.Error)
+			log.Error("Failed to complete the request")
+			return
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			panic("failed to set secret")
+			log.Error("Request returned a non-OK response")
+			return
 		}
 
 		//	Export the values in current shell
-		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
-			panic(err)
+		if err := exec.Command("sh", "-c", "export", fmt.Sprintf("%s=%v", key, value)).Run(); err != nil {
+			log.Debug(err)
+			log.Error("Failed to set the values in current shell")
+			return
 		}
 	},
 }

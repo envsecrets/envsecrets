@@ -41,7 +41,6 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -74,16 +73,22 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		var variables []string
 
 		//	`envsecrets run -- npm run dev`
-		secretPayload := export(nil)
+		secretPayload, err := export(nil)
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to fetch all the secret values")
+			return
+		}
+
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
-				log.Errorf("failed to base64 decode value for secret %s", key)
-				log.Debugln(err)
-				os.Exit(1)
+				log.Debug(err)
+				log.Error("Failed to base64 decode value for secrets: ", key)
+				return
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
@@ -124,8 +129,8 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		exitCode, err := execCommand(userCmd, false, nil)
 		if err != nil {
-			log.Errorln("command execution failed or completed ungracefully")
 			log.Debugln(err)
+			log.Errorln("command execution failed or completed ungracefully")
 			os.Exit(1)
 		}
 

@@ -28,15 +28,11 @@ func SetupHandler(c echo.Context) error {
 
 	//	Run the service handler.
 	if err := service.Setup(ctx, serviceType, c.QueryParams()); err != nil {
-		return c.JSON(http.StatusBadGateway, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to execute service callback",
-			Error:   err.Message,
-		})
+		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed&integration_type="+integration_type)
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"?message='Integration Successful'&integration_type=github")
+	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
 }
 
 func ListEntitiesHandler(c echo.Context) error {

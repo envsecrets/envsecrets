@@ -32,7 +32,6 @@ package cmd
 
 import (
 	"github.com/envsecrets/envsecrets/internal/auth"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +43,6 @@ var logoutCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if err := auth.Logout(); err != nil {
-			log.Errorln("failed to logout")
 			return err
 		}
 
