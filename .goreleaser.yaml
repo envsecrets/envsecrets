@@ -1,5 +1,7 @@
 builds:
-  - binary: envsecrets
+  - 
+    id: envsecrets
+    binary: envsecrets
     main: ./cli
     goos:
       - darwin
