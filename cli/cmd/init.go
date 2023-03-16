@@ -33,6 +33,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -57,15 +58,14 @@ var (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize your project for envsecrets",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
-			return loginCmd.RunE(cmd, args)
+			loginCmd.Run(cmd, args)
 		}
 
-		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -108,7 +108,7 @@ var initCmd = &cobra.Command{
 			if er != nil {
 				log.Debug(er)
 				log.Error("Failed to fetch list of organisations")
-				return
+				os.Exit(1)
 			}
 
 			var orgsStringList []string
@@ -125,7 +125,8 @@ var initCmd = &cobra.Command{
 
 			index, result, err := selection.Run()
 			if err != nil {
-				return
+				log.Debug(err)
+				os.Exit(1)
 			}
 
 			if index > -1 {
@@ -146,7 +147,7 @@ var initCmd = &cobra.Command{
 				if er != nil {
 					log.Debug(er)
 					log.Error("Failed to create new organisation")
-					return
+					os.Exit(1)
 				}
 
 				organisation.ID = item.ID
@@ -163,7 +164,7 @@ var initCmd = &cobra.Command{
 			if er != nil {
 				log.Debug(er)
 				log.Error("Failed to fetch list of projects")
-				return
+				os.Exit(1)
 			}
 
 			var projectsStringList []string
@@ -180,7 +181,8 @@ var initCmd = &cobra.Command{
 
 			index, result, err := selection.Run()
 			if err != nil {
-				return
+				log.Debug(err)
+				os.Exit(1)
 			}
 
 			if index > -1 {
@@ -198,7 +200,7 @@ var initCmd = &cobra.Command{
 				if er != nil {
 					log.Debug(er)
 					log.Error("Failed to fetch list of environments")
-					return
+					os.Exit(1)
 				}
 
 				var environmentsStringList []string
@@ -215,7 +217,8 @@ var initCmd = &cobra.Command{
 
 				index, result, err := selection.Run()
 				if err != nil {
-					return
+					log.Debug(err)
+					os.Exit(1)
 				}
 
 				if index > -1 {
@@ -237,7 +240,7 @@ var initCmd = &cobra.Command{
 					if er != nil {
 						log.Debug(er.Error)
 						log.Error("Failed to create new environment")
-						return
+						os.Exit(1)
 					}
 
 					environment.ID = item.ID
@@ -254,7 +257,7 @@ var initCmd = &cobra.Command{
 				if er != nil {
 					log.Debug(er.Error)
 					log.Error("Failed to create new project")
-					return
+					os.Exit(1)
 				}
 
 				project.ID = item.ID
@@ -269,7 +272,7 @@ var initCmd = &cobra.Command{
 				if er != nil {
 					log.Debug(er.Error)
 					log.Error("Failed to create new environment")
-					return
+					os.Exit(1)
 				}
 
 				environment.ID = envItem.ID
@@ -286,7 +289,7 @@ var initCmd = &cobra.Command{
 		}); err != nil {
 			log.Debug(err)
 			log.Error("Failed to save new project configuration locally")
-			return
+			os.Exit(1)
 		}
 	},
 }

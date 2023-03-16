@@ -33,11 +33,13 @@ package cmd
 import (
 	"bytes"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
@@ -52,12 +54,21 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
 		if len(args) != 1 {
 			log.Error("Invalid key format")
-			return
+			os.Exit(1)
 		}
 		key := args[0]
 
@@ -75,7 +86,7 @@ to quickly create a Cobra application.`,
 		if er != nil {
 			log.Debug(er)
 			log.Error("Failed to fetch project configuration")
-			return
+			os.Exit(1)
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -91,14 +102,14 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Debug(err)
 			log.Error("Failed to prepare request body")
-			return
+			os.Exit(1)
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			log.Debug(err)
 			log.Error("Failed to prepare request")
-			return
+			os.Exit(1)
 		}
 
 		//	Set content-type header
@@ -108,13 +119,13 @@ to quickly create a Cobra application.`,
 		if httpErr != nil {
 			log.Debug(httpErr)
 			log.Error("Failed to complete the request")
-			return
+			os.Exit(1)
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			log.Debug(resp.StatusCode)
 			log.Error("Request returned non-OK response")
-			return
+			os.Exit(1)
 		}
 	},
 }

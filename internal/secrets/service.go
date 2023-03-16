@@ -232,6 +232,7 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
 		KeyPath: options.KeyPath,
 		EnvID:   options.SourceEnvID,
+		Version: options.SourceVersion,
 	})
 	if err != nil {
 		return nil, err

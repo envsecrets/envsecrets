@@ -76,9 +76,10 @@ func MergeHandler(c echo.Context) error {
 
 	//	Call the service function.
 	secret, err := Merge(ctx, client, &commons.MergeSecretOptions{
-		KeyPath:     payload.OrgID,
-		SourceEnvID: payload.SourceEnvID,
-		TargetEnvID: payload.TargetEnvID,
+		KeyPath:       payload.OrgID,
+		SourceEnvID:   payload.SourceEnvID,
+		TargetEnvID:   payload.TargetEnvID,
+		SourceVersion: payload.SourceVersion,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &commons.APIResponse{

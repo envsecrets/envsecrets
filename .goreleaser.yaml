@@ -24,6 +24,11 @@ builds:
 release:
   prerelease: auto
 
+  # We want to publish our binaries in a different public repository.
+  github:
+    owner: envsecrets
+    name: cli
+
 universal_binaries:
   - replace: true
 

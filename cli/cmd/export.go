@@ -37,6 +37,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
@@ -64,7 +65,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Debug(err)
 			log.Error("Failed to fetch all the secret values")
-			return
+			os.Exit(1)
 		}
 
 		for key, item := range secretPayload {
@@ -75,7 +76,7 @@ to quickly create a Cobra application.`,
 			if err != nil {
 				log.Debug(err)
 				log.Error("Failed to base64 decode the secret value")
-				return
+				os.Exit(1)
 			}
 
 			fmt.Printf("%s=%s", key, string(value))

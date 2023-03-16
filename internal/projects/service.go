@@ -10,7 +10,7 @@ import (
 )
 
 //	Create a new workspace
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*CreateResponse, *errors.Error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
@@ -37,7 +37,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []CreateResponse
+	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}

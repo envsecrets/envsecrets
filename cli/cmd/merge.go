@@ -40,6 +40,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
@@ -56,6 +57,15 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if environmentID == "" {
@@ -135,6 +145,10 @@ to quickly create a Cobra application.`,
 			TargetEnvID: projectConfig.Environment,
 		}
 
+		if version > -1 {
+			payload.SourceVersion = &version
+		}
+
 		reqBody, err := payload.Marshal()
 		if err != nil {
 			log.Debug(err)
@@ -196,5 +210,6 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
+	mergeCmd.Flags().IntVarP(&version, "version", "v", -1, "Secret version of your source environment")
 	mergeCmd.Flags().StringVar(&environmentID, "source-env-id", "", "Environment ID to sync from")
 }

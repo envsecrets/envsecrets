@@ -33,6 +33,7 @@ package cmd
 import (
 	"fmt"
 	"net/mail"
+	"os"
 
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
@@ -50,7 +51,7 @@ var (
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate your envsecrets cloud account",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 
 		var err error
 
@@ -69,7 +70,8 @@ var loginCmd = &cobra.Command{
 
 			email, err = emailPrompt.Run()
 			if err != nil {
-				return err
+				log.Debug(err)
+				os.Exit(1)
 			}
 		}
 
@@ -83,7 +85,8 @@ var loginCmd = &cobra.Command{
 
 			password, err = passwordPrompt.Run()
 			if err != nil {
-				return err
+				log.Debug(err)
+				os.Exit(1)
 			}
 		}
 
@@ -95,7 +98,9 @@ var loginCmd = &cobra.Command{
 
 		response, err := auth.Login(payload)
 		if err != nil {
-			return err
+			log.Debug(err)
+			log.Error("Authentication failed")
+			os.Exit(1)
 		}
 
 		//	Save the account config
@@ -104,10 +109,10 @@ var loginCmd = &cobra.Command{
 			RefreshToken: response.Session.RefreshToken,
 			User:         response.Session.User,
 		}, configCommons.AccountConfig); err != nil {
-			return err
+			log.Debug(err)
+			log.Error("Failed to save account configuration locally")
+			os.Exit(1)
 		}
-
-		return nil
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		fmt.Println("You are logged in!")

@@ -184,9 +184,10 @@ type GetResponse struct {
 }
 
 type MergeRequestOptions struct {
-	OrgID       string `json:"org_id"`
-	SourceEnvID string `json:"source_env_id"`
-	TargetEnvID string `json:"target_env_id"`
+	OrgID         string `json:"org_id"`
+	SourceEnvID   string `json:"source_env_id"`
+	SourceVersion *int   `json:"source_version"`
+	TargetEnvID   string `json:"target_env_id"`
 }
 
 func (r *MergeRequestOptions) Marshal() ([]byte, error) {
@@ -194,9 +195,10 @@ func (r *MergeRequestOptions) Marshal() ([]byte, error) {
 }
 
 type MergeSecretOptions struct {
-	KeyPath     string `json:"key_path"`
-	SourceEnvID string `json:"source_env_id"`
-	TargetEnvID string `json:"target_env_id"`
+	KeyPath       string `json:"key_path"`
+	SourceEnvID   string `json:"source_env_id"`
+	SourceVersion *int   `json:"source_version"`
+	TargetEnvID   string `json:"target_env_id"`
 }
 
 type MergeResponse struct {
