@@ -134,7 +134,7 @@ to quickly create a Cobra application.`,
 
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
-			log.Debug(httpErr)
+			log.Debug(httpErr.Error)
 			log.Error("Failed to complete the request")
 			return
 		}

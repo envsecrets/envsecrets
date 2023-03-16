@@ -91,10 +91,11 @@ func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
 }
 
 type VaultResponse struct {
-	RequestID     string `json:"request_id"`
-	LeaseID       string `json:"lease_id"`
-	Renewable     bool   `json:"renewable"`
-	LeaseDuration int    `json:"lease_duration"`
+	Errors        []interface{} `json:"errors,omitempty"`
+	RequestID     string        `json:"request_id"`
+	LeaseID       string        `json:"lease_id"`
+	Renewable     bool          `json:"renewable"`
+	LeaseDuration int           `json:"lease_duration"`
 	Data          struct {
 		Ciphertext string `json:"ciphertext,omitempty"`
 		Plaintext  string `json:"plaintext,omitempty"`

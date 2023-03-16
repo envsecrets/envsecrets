@@ -35,13 +35,14 @@ import (
 	"io"
 	"os"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var verbosity string
 
-var log = logrus.New()
+var log = commons.Logger
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -97,13 +98,13 @@ func (f *myFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 //setUpLogs set the log output ans the log level
 func setUpLogs(out io.Writer, level string) error {
-	logrus.SetOutput(out)
+	log.SetOutput(out)
 	lvl, err := logrus.ParseLevel(level)
 	if err != nil {
 		return err
 	}
-	logrus.SetLevel(lvl)
-	logrus.SetFormatter(&myFormatter{logrus.TextFormatter{
+	log.SetLevel(lvl)
+	log.SetFormatter(&myFormatter{logrus.TextFormatter{
 		FullTimestamp:          true,
 		TimestampFormat:        "2006-01-02 15:04:05",
 		ForceColors:            true,
