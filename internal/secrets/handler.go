@@ -158,3 +158,68 @@ func GetHandler(c echo.Context) error {
 		Data:    response,
 	})
 }
+
+func KeyBackupHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.KeyBackupRequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Call the service function.
+	response, err := BackupKey(ctx, payload.OrgID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to set the secret",
+			Error:   err.Message,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &commons.APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully generated key plaintext backup",
+		Data:    response.Data,
+	})
+}
+
+func KeyRestoreHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.KeyRestoreRequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Call the service function.
+	err := RestoreKey(ctx, payload.OrgID, commons.KeyRestoreOptions{
+		Backup: payload.Backup,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to set the secret",
+			Error:   err.Message,
+		})
+	}
+
+	return c.JSON(http.StatusOK, &commons.APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully restored key from plaintext backup",
+	})
+}

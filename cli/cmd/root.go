@@ -122,5 +122,5 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().StringVarP(&verbosity, "level", "l", logrus.InfoLevel.String(), "Log levels - debug, info (default), warn, error")
+	rootCmd.PersistentFlags().StringVarP(&verbosity, "level", "l", logrus.InfoLevel.String(), "Log levels - debug, info, warn, error")
 }

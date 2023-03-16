@@ -391,7 +391,8 @@ func OrganisationInserted(c echo.Context) error {
 
 	//	Generate new transit for this organisation in vault.
 	if err := secrets.GenerateKey(ctx, organisation.ID, commons.GenerateKeyOptions{
-		Exportable: true,
+		Exportable:           true,
+		AllowPlaintextBackup: true,
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, &APIResponse{
 			Code:    http.StatusInternalServerError,

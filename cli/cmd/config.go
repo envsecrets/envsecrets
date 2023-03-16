@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"os"
+
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
@@ -57,7 +59,7 @@ to quickly create a Cobra application.`,
 		if er != nil {
 			log.Debug(er)
 			log.Error("Failed to load project configuration")
-			return
+			os.Exit(1)
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -67,7 +69,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Debug(err.Error)
 			log.Error("Failed to fetch organisation.")
-			return
+			os.Exit(1)
 		}
 
 		//	Get the project name.
@@ -75,7 +77,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Debug(err.Error)
 			log.Error("Failed to fetch project.")
-			return
+			os.Exit(1)
 		}
 
 		//	Get the environment name.
@@ -83,13 +85,13 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			log.Debug(err.Error)
 			log.Error("Failed to fetch environment.")
-			return
+			os.Exit(1)
 		}
 
 		//	Pretty print the configuration.
-		log.Infoln("Organisation: ", organisation.Name)
-		log.Infoln("Project: ", project.Name)
-		log.Infoln("Environment: ", environment.Name)
+		log.Infof("Organisation: %s (%s)", organisation.Name, organisation.ID)
+		log.Infof("Project: %s (%s)", project.Name, project.ID)
+		log.Infof("Environment: %s (%s)", environment.Name, environment.ID)
 	},
 }
 

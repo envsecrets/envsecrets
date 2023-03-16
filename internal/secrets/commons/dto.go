@@ -79,6 +79,9 @@ type GenerateKeyOptions struct {
 	//	Whether the key can be exported in the future.
 	Exportable bool `json:"exportable,omitempty"`
 
+	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
+	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
+
 	//	Key Type. We are using "aes256-gcm96" as the default one.
 	Type string `json:"type,omitempty" default:"aes256-gcm96"`
 }
@@ -153,6 +156,10 @@ type GetRequestOptions struct {
 	Version *int   `query:"version"`
 }
 
+func (r *GetRequestOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
 type GetSecretOptions struct {
 	Key     string `json:"key"`
 	KeyPath string `json:"key_path"`
@@ -160,13 +167,39 @@ type GetSecretOptions struct {
 	Version *int   `json:"version,omitempty"`
 }
 
-func (r *GetRequestOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
 type GetResponse struct {
 	Data    map[string]Payload `json:"data"`
 	Version *int               `json:"version,omitempty"`
+}
+
+type KeyRestoreRequestOptions struct {
+	OrgID  string `json:"org_id"`
+	Backup string `json:"backup"`
+}
+
+type KeyRestoreOptions struct {
+	Backup string `json:"backup"`
+}
+
+func (r *KeyRestoreOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+type VaultKeyExportResponse struct {
+	Data struct {
+		Name string                 `json:"name"`
+		Keys map[string]interface{} `json:"keys"`
+	} `json:"data"`
+}
+
+type KeyBackupRequestOptions struct {
+	OrgID string `query:"org_id"`
+}
+
+type KeyBackupResponse struct {
+	Data struct {
+		Backup string `json:"backup"`
+	} `json:"data"`
 }
 
 type ListRequestOptions struct {

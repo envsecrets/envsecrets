@@ -9,4 +9,8 @@ func AddRoutes(sg *echo.Group) {
 	group.POST("", SetHandler)
 	group.GET("", GetHandler)
 	group.DELETE("", DeleteHandler)
+
+	keys := group.Group("/keys")
+	keys.GET("/backup", KeyBackupHandler)
+	keys.POST("/restore", KeyRestoreHandler)
 }
