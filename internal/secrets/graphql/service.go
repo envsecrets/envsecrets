@@ -14,7 +14,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
-		secrets(where: {env_id: {_eq: $env_id}}, order_by: {version: desc}, limit: 1) {
+		secrets(where: {env_id: {_eq: $env_id}}, order_by: {version: desc}) {
 		  data
 		  version
 		}
@@ -138,7 +138,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!, $version: Int!) {
-		secrets(where: {env_id: {_eq: $env_id}, version: {_eq: $version}}) {
+		secrets(limit: 1, where: {env_id: {_eq: $env_id}, version: {_eq: $version}}) {
 		  data(path: $key)
 		  version
 		}
@@ -180,14 +180,14 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	}, nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) *errors.Error {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, *errors.Error) {
 
 	//	Fetch the secret of latest version.
 	latestEntry, err := Get(ctx, client, &commons.GetSecretOptions{
 		EnvID: options.EnvID,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//	We need to create an incremented version.
@@ -197,18 +197,16 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		version += *latestEntry.Version
 	}
 
-	payload := map[string]commons.Payload{}
-	for key, secret := range latestEntry.Data {
-		payload[key] = secret
+	for key, payload := range latestEntry.Data {
+		options.Data[key] = payload
 	}
-
-	//	Update our key in the data
-	payload[options.Data.Key] = options.Data.Payload
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {
 		insert_secrets(objects: {env_id: $env_id, data: $data, version: $version}) {
-		  affected_rows
+		  returning {
+			version
+		  }
 		}
 	  }					
 	`)
@@ -216,21 +214,30 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	//	Set the variables for our GQL query.
 	req.Var("env_id", options.EnvID)
 	req.Var("version", version)
-	req.Var("data", payload)
+	req.Var("data", options.Data)
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
-		return err
+		return nil, err
 	}
 
-	returned := response["insert_secrets"].(map[string]interface{})
+	returned := response["insert_secrets"].(map[string]interface{})["returning"].([]interface{})
 
-	affectedRows := returned["affected_rows"].(float64)
-	if affectedRows == 0 {
-		return errors.New(nil, "failed to save ciphered secret value", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	if len(returned) == 0 {
+		return nil, errors.New(nil, "failed to save ciphered secret value", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
 	}
 
-	return nil
+	data, er := json.Marshal(returned[0])
+	if er != nil {
+		return nil, errors.New(er, "failed to marshal returned secrets array", errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
+	}
+
+	var secret commons.Secret
+	if err := json.Unmarshal(data, &secret); err != nil {
+		return nil, errors.New(err, "failed to unmarshal created secrets", errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return &secret, nil
 }
 
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
@@ -250,13 +257,13 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		version += *latestEntry.Version
 	}
 
-	payload := map[string]commons.Payload{}
-	for key, secret := range latestEntry.Data {
-		payload[key] = secret
+	data := map[string]commons.Payload{}
+	for key, payload := range latestEntry.Data {
+		data[key] = payload
 	}
 
 	//	Delete our key-value pair.
-	delete(payload, options.Data.Key)
+	delete(data, options.Key)
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($env_id: uuid!, $data: jsonb!, $version: Int!) {
@@ -269,7 +276,7 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	//	Set the variables for our GQL query.
 	req.Var("env_id", options.EnvID)
 	req.Var("version", version)
-	req.Var("data", payload)
+	req.Var("data", data)
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {

@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -87,9 +88,13 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 	}
 
 	//	Backup the body in case it is required to re-run the request.
-	body, err := req.GetBody()
-	if err != nil {
-		return nil, errors.New(err, "failed to create copy of request body", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	var body io.ReadCloser
+	var err error
+	if req.Body != nil {
+		body, err = req.GetBody()
+		if err != nil {
+			return nil, errors.New(err, "failed to create copy of request body", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		}
 	}
 
 	//	Make the request
@@ -135,7 +140,9 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 		c.Authorization = "Bearer " + response.Session.AccessToken
 
 		//	Re-set the body in the request, because it would have already been read once.
-		req.Body = ioutil.NopCloser(body)
+		if body != nil {
+			req.Body = ioutil.NopCloser(body)
+		}
 
 		return c.Run(ctx, req)
 	}

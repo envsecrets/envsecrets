@@ -128,14 +128,15 @@ func export(key *string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("request returned non-OK response code")
-	}
-
 	var response secretsCommons.APIResponse
 	if err := json.Unmarshal(respBody, &response); err != nil {
 		return nil, err
 	}
+
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
 	responseData := response.Data.(map[string]interface{})
 
 	return responseData["data"].(map[string]interface{}), nil

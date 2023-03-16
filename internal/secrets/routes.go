@@ -7,6 +7,7 @@ func AddRoutes(sg *echo.Group) {
 	group := sg.Group("/secrets")
 
 	group.POST("", SetHandler)
+	group.POST("/merge", MergeHandler)
 	group.GET("", GetHandler)
 	group.DELETE("", DeleteHandler)
 

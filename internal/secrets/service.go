@@ -108,50 +108,55 @@ func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
 	return nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) *errors.Error {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, *errors.Error) {
 
-	//	If the secret type `ciphertext`,
-	//	encrypt it from vault before saving the value.
-	if options.Data.Payload.Type == commons.Ciphertext {
+	for key, payload := range options.Data {
 
-		postBody, _ := json.Marshal(options.GetVaultOptions())
+		//	If the secret type `ciphertext`,
+		//	encrypt it from vault before saving the value.
+		if payload.Type == commons.Ciphertext {
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/encrypt/"+options.KeyPath, bytes.NewBuffer(postBody))
-		if err != nil {
-			return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+			postBody, _ := json.Marshal(map[string]interface{}{
+				"plaintext":   payload.Value,
+				"key_version": options.KeyVersion,
+			})
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/encrypt/"+options.KeyPath, bytes.NewBuffer(postBody))
+			if err != nil {
+				return nil, errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+			}
+
+			client := clients.NewHTTPClient(&clients.HTTPConfig{
+				Type: clients.VaultClientType,
+			})
+
+			resp, er := client.Run(ctx, req)
+			if er != nil {
+				return nil, er
+			}
+
+			defer resp.Body.Close()
+
+			respBody, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return nil, errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+			}
+
+			var response commons.VaultResponse
+			if err := json.Unmarshal(respBody, &response); err != nil {
+				return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+			}
+
+			//	Replace the secret value with ciphered version.
+			payload.Value = response.Data.Ciphertext
+
+			//	Update the map
+			options.Data[key] = payload
 		}
-
-		client := clients.NewHTTPClient(&clients.HTTPConfig{
-			Type: clients.VaultClientType,
-		})
-
-		resp, er := client.Run(ctx, req)
-		if er != nil {
-			return er
-		}
-
-		defer resp.Body.Close()
-
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-		}
-
-		var response commons.VaultResponse
-		if err := json.Unmarshal(respBody, &response); err != nil {
-			return errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-		}
-
-		//	Replace the secret value with ciphered version.
-		options.Data.Payload.Value = response.Data.Ciphertext
 	}
 
 	//	Insert the encrypted secret in Hasura.
-	if err := graphql.Set(ctx, client, options); err != nil {
-		return err
-	}
-
-	return nil
+	return graphql.Set(ctx, client, options)
 }
 
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
@@ -216,6 +221,49 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		},
 		Version: options.Version,
 	}, nil
+}
+
+//	Pulls all secret key-value pairs from the source environment,
+//	and overwrites them in the target environment.
+//	It creates a new secret version.
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, *errors.Error) {
+
+	//	Fetch all key-value pairs of the source environment.
+	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
+		KeyPath: options.KeyPath,
+		EnvID:   options.SourceEnvID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//	Fetch all key-value pairs of the target environment.
+	targetVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
+		KeyPath: options.KeyPath,
+		EnvID:   options.TargetEnvID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//	If the target variables is nil,
+	//	then no pairs were fetched.
+	if targetVariables.Data == nil {
+		targetVariables.Data = make(map[string]commons.Payload)
+	}
+
+	//	Iterate through the target pairs,
+	//	and overwrite the matching ones from the source pairs.
+	for key, payload := range sourceVariables.Data {
+		targetVariables.Data[key] = payload
+	}
+
+	//	Set the updated pairs in Hasura.
+	return Set(ctx, client, &commons.SetSecretOptions{
+		KeyPath: options.KeyPath,
+		EnvID:   options.TargetEnvID,
+		Data:    targetVariables.Data,
+	})
 }
 
 func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {

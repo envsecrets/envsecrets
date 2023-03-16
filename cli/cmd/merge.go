@@ -31,6 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"os"
+
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/environments"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -44,36 +56,134 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	/* 	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 
-	   		//	Load the project config
-	   		projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-	   		if err != nil {
-	   			panic(err)
-	   		}
+		if environmentID == "" {
 
-	   		projectConfig := projectConfigPayload.(*configCommons.Project)
+			//	Load the project config
+			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+			if err != nil {
+				log.Debug(err)
+				log.Error("Failed to read local project configuration")
+				os.Exit(1)
+			}
 
-	   		//	Fetch environments
-	   		environments, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
-	   			ProjectID: projectConfig.Project,
-	   		})
-	   		if er != nil {
-	   			panic(er)
-	   		}
+			projectConfig := projectConfigPayload.(*configCommons.Project)
 
-	   		selection := promptui.Select{
-	   			Label: "Environment to merge from",
-	   			Items: environments,
-	   		}
+			//	Fetch environments
+			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+				ProjectID: projectConfig.Project,
+			})
+			if er != nil {
+				log.Debug(err)
+				log.Error("Failed to fetch list of environments")
+				os.Exit(1)
+			}
 
-	   		index, result, err := selection.Run()
-	   		if err != nil {
-	   			fmt.Printf("Prompt failed %v\n", err)
-	   			return
-	   		}
-	   	},
-	*/}
+			//	Remove the existing environment
+			var envs []environments.Environment
+			for _, item := range *environmentsList {
+				if item.ID != projectConfig.Environment {
+					envs = append(envs, item)
+				}
+			}
+
+			if len(envs) == 0 {
+				log.Error("You have no other environment in this project to merge from")
+				log.Info("First create a new environment using `init` command")
+				os.Exit(1)
+			}
+
+			var environmentsStringList []string
+			for _, item := range envs {
+				environmentsStringList = append(environmentsStringList, item.Name)
+			}
+
+			selection := promptui.Select{
+				Label: "Source Environment To Merge From",
+				Items: environmentsStringList,
+			}
+
+			index, _, err := selection.Run()
+			if err != nil {
+				return
+			}
+
+			for itemIndex, item := range envs {
+				if itemIndex == index {
+					environmentID = item.ID
+					break
+				}
+			}
+
+		}
+
+		//	Load the project configuration
+		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
+		if er != nil {
+			log.Debug(er)
+			log.Error("Failed to load project configuration")
+			os.Exit(1)
+		}
+
+		projectConfig := projectConfigData.(*configCommons.Project)
+
+		//	Send the secrets to vault
+		payload := secretsCommons.MergeRequestOptions{
+			OrgID:       projectConfig.Organisation,
+			SourceEnvID: environmentID,
+			TargetEnvID: projectConfig.Environment,
+		}
+
+		reqBody, err := payload.Marshal()
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to prepare request payload")
+			return
+		}
+
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets/merge", bytes.NewBuffer(reqBody))
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to prepare the request")
+			return
+		}
+
+		//	Set content-type header
+		req.Header.Set("content-type", "application/json")
+
+		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
+		if httpErr != nil {
+			log.Debug(httpErr.Error)
+			log.Error("Failed to complete the request")
+			return
+		}
+
+		defer resp.Body.Close()
+
+		result, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Debug(err)
+			log.Error("Failed to read response body")
+			return
+		}
+
+		var response secretsCommons.APIResponse
+		if err := json.Unmarshal(result, &response); err != nil {
+			log.Debug(err)
+			log.Error("Failed to read API response")
+			os.Exit(1)
+		}
+
+		if response.Error != "" {
+			log.Debug(response.Error)
+			log.Error("Failed to merge secrets")
+			os.Exit(1)
+		}
+
+		log.Info("Merge Complete! Created version ", response.Data.(map[string]interface{})["version"])
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
@@ -86,5 +196,5 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	mergeCmd.Flags().StringVar(&environmentID, "from-env", "", "Environment ID to sync from")
+	mergeCmd.Flags().StringVar(&environmentID, "source-env-id", "", "Environment ID to sync from")
 }

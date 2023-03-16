@@ -70,10 +70,6 @@ to quickly create a Cobra application.`,
 			secretVersion = &version
 		}
 
-		data := secretsCommons.Data{
-			Key: key,
-		}
-
 		//	Load the project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
@@ -85,11 +81,10 @@ to quickly create a Cobra application.`,
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := secretsCommons.SetRequestOptions{
-			Data:       data,
-			EnvID:      projectConfig.Environment,
-			OrgID:      projectConfig.Organisation,
-			KeyVersion: secretVersion,
+		payload := secretsCommons.DeleteRequestOptions{
+			EnvID:   projectConfig.Environment,
+			Key:     key,
+			Version: secretVersion,
 		}
 
 		reqBody, err := payload.Marshal()

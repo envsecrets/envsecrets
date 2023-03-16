@@ -33,6 +33,7 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -52,7 +53,8 @@ to quickly create a Cobra application.`,
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			log.Error("Invalid key format")
+			log.Error("Key not found. Use `--help` for usage information.")
+			os.Exit(1)
 		}
 		key := args[0]
 
@@ -62,19 +64,26 @@ to quickly create a Cobra application.`,
 		secretPayload, err := export(&key)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch the secret value")
-			return
+			log.Error("Failed to fetch the secrets")
+			os.Exit(1)
 		}
 
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
+
+			//	If the value is empty/nil,
+			//	then it either doesn't exist or wasn't fetched.
+			if payload["value"] == nil {
+				log.Errorf("Value for key '%s' not found in version %v", key, payload["version"])
+				os.Exit(1)
+			}
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				log.Debug(err)
 				log.Error("Failed to base64 decode secret value")
-				return
+				os.Exit(1)
 			}
 
 			fmt.Printf("%s=%s", key, string(value))

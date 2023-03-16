@@ -33,6 +33,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -90,13 +91,6 @@ to quickly create a Cobra application.`,
 
 		//	Base64 encode the secret value
 		base64Value := base64.StdEncoding.EncodeToString([]byte(value))
-		data := secretsCommons.Data{
-			Key: key,
-			Payload: secretsCommons.Payload{
-				Value: base64Value,
-				Type:  typ,
-			},
-		}
 
 		//	Load the project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
@@ -110,7 +104,12 @@ to quickly create a Cobra application.`,
 
 		//	Send the secrets to vault
 		payload := secretsCommons.SetRequestOptions{
-			Data:  data,
+			Data: map[string]secretsCommons.Payload{
+				key: {
+					Value: base64Value,
+					Type:  typ,
+				},
+			},
 			OrgID: projectConfig.Organisation,
 			EnvID: projectConfig.Environment,
 		}
@@ -145,7 +144,7 @@ to quickly create a Cobra application.`,
 		}
 
 		//	Export the values in current shell
-		if err := exec.Command("sh", "-c", "export", data.String()).Run(); err != nil {
+		if err := exec.Command("sh", "-c", "export", fmt.Sprintf("%s=%v", key, value)).Run(); err != nil {
 			log.Debug(err)
 			log.Error("Failed to set the values in current shell")
 			return
