@@ -77,7 +77,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 
 func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response interface{}) *errors.Error {
 
-	c.log.Debug("Sending HTTP request to: ", req.URL.String())
+	c.log.Debug("Sending request to: ", req.URL.String())
 
 	//	Set content-type header
 	req.Header.Set("content-type", "application/json")
