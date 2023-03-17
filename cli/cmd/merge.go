@@ -50,19 +50,25 @@ import (
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Merge from a different environment into current one.",
+	Long: `NOTE: This will overwrite the values of existing secrets.
+	
+	For precaution, this command generates a new version of your secret
+	with new/overrided values. You can safely rollback to older version
+	containing original/unedited values.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
 			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
 		}
 
 	},

@@ -41,15 +41,34 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run -- [command]",
-	Short: "Run a command with secrets injected into the environment",
-	Example: `envsecrets run -- YOUR_COMMAND --YOUR-FLAG
-envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+	Short: "Run a command with secrets injected into the current shell",
+	Example: `envsecrets run -- YOUR_COMMAND
+	envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
+	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// The --command flag and args are mututally exclusive
 		usingCommandFlag := cmd.Flags().Changed("command")

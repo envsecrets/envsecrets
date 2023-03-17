@@ -57,20 +57,26 @@ var file string
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
-	Use:   "set",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "set KEY=VALUE",
+	Short: "Set new key-value pairs as secrets in your current environment.",
+	Long: `envsecrets set KEY=VALUE
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+You can also load your variables directly from files: envsecrets set --file .env
+
+NOTE: This command auto-capitalizes your keys.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
 			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
 		}
 
 	},

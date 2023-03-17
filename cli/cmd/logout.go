@@ -39,7 +39,7 @@ import (
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Locally logout from your envsecrets account",
-	Long:  "This will render your CLI un-usable until you login again.",
+	Long:  "This will render your CLI un-useable until you login again.",
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if err := auth.Logout(); err != nil {

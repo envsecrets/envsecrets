@@ -33,6 +33,7 @@ package cmd
 import (
 	"bytes"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -45,20 +46,21 @@ import (
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "delete [KEY]",
+	Short: "Deletes a key-value pair from your current environment's secrets.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
 			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
 		}
 
 	},
@@ -84,7 +86,6 @@ to quickly create a Cobra application.`,
 		if er != nil {
 			log.Debug(er)
 			log.Fatal("Failed to fetch project configuration")
-
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)

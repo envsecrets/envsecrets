@@ -37,10 +37,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
@@ -51,13 +53,23 @@ var exportfile string
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Prints decrypted list of your environment's (key-value) secret pairs.",
+	PreRun: func(cmd *cobra.Command, args []string) {
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		secretPayload, err := export(nil)
