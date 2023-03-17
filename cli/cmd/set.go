@@ -200,9 +200,26 @@ to quickly create a Cobra application.`,
 			log.Fatal("Failed to complete the request")
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			log.Fatal("Request returned a non-OK response")
+		defer resp.Body.Close()
+
+		result, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to read response body")
 		}
+
+		var response secretsCommons.APIResponse
+		if err := json.Unmarshal(result, &response); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to read API response")
+		}
+
+		if response.Error != "" {
+			log.Debug(response.Error)
+			log.Fatal("Failed to merge secrets")
+		}
+
+		log.Info("Secrets set! Created version ", response.Data.(map[string]interface{})["version"])
 	},
 }
 
