@@ -76,8 +76,7 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		secretPayload, err := export(nil)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch all the secret values")
-			return
+			log.Fatal("Failed to fetch all the secret values")
 		}
 
 		for key, item := range secretPayload {
@@ -87,8 +86,7 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to base64 decode value for secrets: ", key)
-				return
+				log.Fatal("Failed to base64 decode value for secrets: ", key)
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
@@ -129,9 +127,8 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		exitCode, err := execCommand(userCmd, false, nil)
 		if err != nil {
-			log.Debugln(err)
-			log.Errorln("command execution failed or completed ungracefully")
-			os.Exit(1)
+			log.Debug(err)
+			log.Fatal("command execution failed or completed ungracefully")
 		}
 
 		os.Exit(exitCode)

@@ -40,16 +40,16 @@ var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Locally logout from your envsecrets account",
 	Long:  "This will render your CLI un-usable until you login again.",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 
 		if err := auth.Logout(); err != nil {
-			return err
+			log.Debug(err)
+			log.Error("failed to log you out")
+			log.Info("you can manually delete this file: ~/.envsecrets/config.yaml")
 		}
-
-		return nil
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Infoln("You are logged out!\nUse `envsecrets login` to sign-in again.")
+		log.Info("You are logged out!\nUse `envsecrets login` to sign-in again.")
 	},
 }
 

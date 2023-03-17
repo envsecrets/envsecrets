@@ -70,7 +70,6 @@ var loginCmd = &cobra.Command{
 
 			email, err = emailPrompt.Run()
 			if err != nil {
-				log.Debug(err)
 				os.Exit(1)
 			}
 		}
@@ -85,7 +84,6 @@ var loginCmd = &cobra.Command{
 
 			password, err = passwordPrompt.Run()
 			if err != nil {
-				log.Debug(err)
 				os.Exit(1)
 			}
 		}
@@ -99,8 +97,8 @@ var loginCmd = &cobra.Command{
 		response, err := auth.Login(payload)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Authentication failed")
-			os.Exit(1)
+			log.Fatal("Authentication failed")
+
 		}
 
 		//	Save the account config
@@ -110,8 +108,8 @@ var loginCmd = &cobra.Command{
 			User:         response.Session.User,
 		}, configCommons.AccountConfig); err != nil {
 			log.Debug(err)
-			log.Error("Failed to save account configuration locally")
-			os.Exit(1)
+			log.Fatal("Failed to save account configuration locally")
+
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

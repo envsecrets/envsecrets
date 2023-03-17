@@ -33,7 +33,6 @@ package cmd
 import (
 	"bytes"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -67,8 +66,7 @@ to quickly create a Cobra application.`,
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			log.Error("Invalid key format")
-			os.Exit(1)
+			log.Fatal("Invalid key format")
 		}
 		key := args[0]
 
@@ -85,8 +83,8 @@ to quickly create a Cobra application.`,
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to fetch project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to fetch project configuration")
+
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -101,15 +99,15 @@ to quickly create a Cobra application.`,
 		reqBody, err := payload.Marshal()
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request body")
-			os.Exit(1)
+			log.Fatal("Failed to prepare request body")
+
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request")
-			os.Exit(1)
+			log.Fatal("Failed to prepare request")
+
 		}
 
 		//	Set content-type header
@@ -118,14 +116,14 @@ to quickly create a Cobra application.`,
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
 			log.Debug(httpErr)
-			log.Error("Failed to complete the request")
-			os.Exit(1)
+			log.Fatal("Failed to complete the request")
+
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			log.Debug(resp.StatusCode)
-			log.Error("Request returned non-OK response")
-			os.Exit(1)
+			log.Fatal("Request returned non-OK response")
+
 		}
 	},
 }

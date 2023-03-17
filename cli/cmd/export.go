@@ -37,7 +37,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
@@ -64,22 +63,27 @@ to quickly create a Cobra application.`,
 		secretPayload, err := export(nil)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch all the secret values")
-			os.Exit(1)
+			log.Fatal("Failed to fetch all the secret values")
 		}
 
 		for key, item := range secretPayload {
 			payload := item.(map[string]interface{})
 
+			//	If the value is empty/nil,
+			//	then it either doesn't exist or wasn't fetched.
+			if payload["value"] == nil {
+				log.Fatal("Values not found for key: ", key)
+			}
+
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
+				log.Debugf("key: %s; value %v", key, payload["value"])
 				log.Debug(err)
-				log.Error("Failed to base64 decode the secret value")
-				os.Exit(1)
+				log.Fatal("Failed to base64 decode the secret value")
 			}
 
-			fmt.Printf("%s=%s", key, string(value))
+			fmt.Printf("%s=%v", key, string(value))
 			fmt.Println()
 		}
 	},

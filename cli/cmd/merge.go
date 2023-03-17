@@ -74,8 +74,7 @@ to quickly create a Cobra application.`,
 			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to read local project configuration")
-				os.Exit(1)
+				log.Fatal("Failed to read local project configuration")
 			}
 
 			projectConfig := projectConfigPayload.(*configCommons.Project)
@@ -86,8 +85,7 @@ to quickly create a Cobra application.`,
 			})
 			if er != nil {
 				log.Debug(err)
-				log.Error("Failed to fetch list of environments")
-				os.Exit(1)
+				log.Fatal("Failed to fetch list of environments")
 			}
 
 			//	Remove the existing environment
@@ -116,7 +114,7 @@ to quickly create a Cobra application.`,
 
 			index, _, err := selection.Run()
 			if err != nil {
-				return
+				os.Exit(1)
 			}
 
 			for itemIndex, item := range envs {
@@ -132,8 +130,7 @@ to quickly create a Cobra application.`,
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to load project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to load project configuration")
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -152,15 +149,13 @@ to quickly create a Cobra application.`,
 		reqBody, err := payload.Marshal()
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request payload")
-			return
+			log.Fatal("Failed to prepare request payload")
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets/merge", bytes.NewBuffer(reqBody))
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare the request")
-			return
+			log.Fatal("Failed to prepare the request")
 		}
 
 		//	Set content-type header
@@ -169,8 +164,7 @@ to quickly create a Cobra application.`,
 		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
 		if httpErr != nil {
 			log.Debug(httpErr.Error)
-			log.Error("Failed to complete the request")
-			return
+			log.Fatal("Failed to complete the request")
 		}
 
 		defer resp.Body.Close()
@@ -178,21 +172,18 @@ to quickly create a Cobra application.`,
 		result, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to read response body")
-			return
+			log.Fatal("Failed to read response body")
 		}
 
 		var response secretsCommons.APIResponse
 		if err := json.Unmarshal(result, &response); err != nil {
 			log.Debug(err)
-			log.Error("Failed to read API response")
-			os.Exit(1)
+			log.Fatal("Failed to read API response")
 		}
 
 		if response.Error != "" {
 			log.Debug(response.Error)
-			log.Error("Failed to merge secrets")
-			os.Exit(1)
+			log.Fatal("Failed to merge secrets")
 		}
 
 		log.Info("Merge Complete! Created version ", response.Data.(map[string]interface{})["version"])

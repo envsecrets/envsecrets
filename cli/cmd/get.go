@@ -33,7 +33,6 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/auth"
@@ -63,8 +62,7 @@ to quickly create a Cobra application.`,
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			log.Error("Key not found. Use `--help` for usage information.")
-			os.Exit(1)
+			log.Fatal("Key not found. Use `--help` for usage information.")
 		}
 		key := args[0]
 
@@ -74,8 +72,7 @@ to quickly create a Cobra application.`,
 		secretPayload, err := export(&key)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch the secrets")
-			os.Exit(1)
+			log.Fatal("Failed to fetch the secrets")
 		}
 
 		for key, item := range secretPayload {
@@ -84,20 +81,17 @@ to quickly create a Cobra application.`,
 			//	If the value is empty/nil,
 			//	then it either doesn't exist or wasn't fetched.
 			if payload["value"] == nil {
-				log.Errorf("Value for key '%s' not found in version %v", key, payload["version"])
-				os.Exit(1)
+				log.Fatalf("Value for key '%s' not found in version %v", key, payload["version"])
 			}
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to base64 decode secret value")
-				os.Exit(1)
+				log.Fatal("Failed to base64 decode secret value")
 			}
 
-			fmt.Printf("%s=%s", key, string(value))
-			fmt.Println()
+			fmt.Println(string(value))
 		}
 	},
 }

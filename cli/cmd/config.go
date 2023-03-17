@@ -31,8 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"os"
-
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
@@ -58,8 +56,8 @@ to quickly create a Cobra application.`,
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to load project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to load project configuration")
+
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -68,24 +66,24 @@ to quickly create a Cobra application.`,
 		organisation, err := organisations.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Organisation)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch organisation.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch organisation.")
+
 		}
 
 		//	Get the project name.
 		project, err := projects.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Project)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch project.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch project.")
+
 		}
 
 		//	Get the environment name.
 		environment, err := environments.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Environment)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch environment.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch environment.")
+
 		}
 
 		//	Pretty print the configuration.
