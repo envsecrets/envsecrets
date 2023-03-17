@@ -46,14 +46,8 @@ import (
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "delete [KEY]",
+	Short: "Deletes a key-value pair from your current environment's secrets.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
@@ -62,13 +56,19 @@ to quickly create a Cobra application.`,
 			loginCmd.Run(cmd, args)
 		}
 
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Run sanity checks
 		if len(args) != 1 {
-			log.Error("Invalid key format")
-			os.Exit(1)
+			log.Fatal("Invalid key format")
 		}
 		key := args[0]
 
@@ -85,8 +85,7 @@ to quickly create a Cobra application.`,
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to fetch project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to fetch project configuration")
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -101,31 +100,29 @@ to quickly create a Cobra application.`,
 		reqBody, err := payload.Marshal()
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request body")
-			os.Exit(1)
+			log.Fatal("Failed to prepare request body")
+
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request")
-			os.Exit(1)
+			log.Fatal("Failed to prepare request")
+
 		}
 
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if httpErr != nil {
-			log.Debug(httpErr)
-			log.Error("Failed to complete the request")
-			os.Exit(1)
+		var response commons.APIResponse
+		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to complete the request")
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			log.Debug(resp.StatusCode)
-			log.Error("Request returned non-OK response")
-			os.Exit(1)
+		if response.Error != "" {
+			log.Debug(err)
+			log.Fatal("Failed to delete: ", key)
 		}
 	},
 }

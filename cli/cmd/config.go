@@ -45,21 +45,25 @@ import (
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Prints your local project configuration.",
+	PreRun: func(cmd *cobra.Command, args []string) {
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		//	Load the current project configuration
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to load project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to load project configuration")
+
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -68,24 +72,24 @@ to quickly create a Cobra application.`,
 		organisation, err := organisations.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Organisation)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch organisation.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch organisation.")
+
 		}
 
 		//	Get the project name.
 		project, err := projects.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Project)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch project.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch project.")
+
 		}
 
 		//	Get the environment name.
 		environment, err := environments.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Environment)
 		if err != nil {
 			log.Debug(err.Error)
-			log.Error("Failed to fetch environment.")
-			os.Exit(1)
+			log.Fatal("Failed to fetch environment.")
+
 		}
 
 		//	Pretty print the configuration.

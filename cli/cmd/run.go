@@ -41,15 +41,34 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run -- [command]",
-	Short: "Run a command with secrets injected into the environment",
-	Example: `envsecrets run -- YOUR_COMMAND --YOUR-FLAG
+	Short: "Run a command with secrets injected into the current shell",
+	Example: `envsecrets run -- YOUR_COMMAND
 envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+		//	If the user is not already authenticated,
+		//	log them in first.
+		if !auth.IsLoggedIn() {
+			loginCmd.Run(cmd, args)
+		}
+
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
+	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// The --command flag and args are mututally exclusive
 		usingCommandFlag := cmd.Flags().Changed("command")
@@ -76,19 +95,19 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		secretPayload, err := export(nil)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch all the secret values")
-			return
+			log.Fatal("Failed to fetch all the secret values")
 		}
 
-		for key, item := range secretPayload {
+		log.Debug("Injecting environment secrets version ", secretPayload["version"], " into your process!")
+
+		for key, item := range secretPayload["data"].(map[string]interface{}) {
 			payload := item.(map[string]interface{})
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to base64 decode value for secrets: ", key)
-				return
+				log.Fatal("Failed to base64 decode value for secrets: ", key)
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
@@ -129,9 +148,8 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		exitCode, err := execCommand(userCmd, false, nil)
 		if err != nil {
-			log.Debugln(err)
-			log.Errorln("command execution failed or completed ungracefully")
-			os.Exit(1)
+			log.Debug(err)
+			log.Fatal("command execution failed or completed ungracefully")
 		}
 
 		os.Exit(exitCode)

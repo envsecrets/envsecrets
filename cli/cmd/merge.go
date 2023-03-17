@@ -32,8 +32,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -50,13 +48,14 @@ import (
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Merge secrets from a different environment into current one.",
+	Long: `Merge secrets from a different environment into current one.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+NOTE: This will overwrite the values of current latest version of secrets.
+	
+For precaution, this command generates a new version of your secret
+with new/overrided values. You can safely rollback to older version
+containing original/unedited values.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
@@ -65,7 +64,15 @@ to quickly create a Cobra application.`,
 			loginCmd.Run(cmd, args)
 		}
 
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
+			os.Exit(1)
+		}
+
 	},
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if environmentID == "" {
@@ -74,8 +81,7 @@ to quickly create a Cobra application.`,
 			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to read local project configuration")
-				os.Exit(1)
+				log.Fatal("Failed to read local project configuration")
 			}
 
 			projectConfig := projectConfigPayload.(*configCommons.Project)
@@ -86,8 +92,7 @@ to quickly create a Cobra application.`,
 			})
 			if er != nil {
 				log.Debug(err)
-				log.Error("Failed to fetch list of environments")
-				os.Exit(1)
+				log.Fatal("Failed to fetch list of environments")
 			}
 
 			//	Remove the existing environment
@@ -116,7 +121,7 @@ to quickly create a Cobra application.`,
 
 			index, _, err := selection.Run()
 			if err != nil {
-				return
+				os.Exit(1)
 			}
 
 			for itemIndex, item := range envs {
@@ -132,8 +137,7 @@ to quickly create a Cobra application.`,
 		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
 		if er != nil {
 			log.Debug(er)
-			log.Error("Failed to load project configuration")
-			os.Exit(1)
+			log.Fatal("Failed to load project configuration")
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
@@ -152,47 +156,27 @@ to quickly create a Cobra application.`,
 		reqBody, err := payload.Marshal()
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare request payload")
-			return
+			log.Fatal("Failed to prepare request payload")
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets/merge", bytes.NewBuffer(reqBody))
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to prepare the request")
-			return
+			log.Fatal("Failed to prepare the request")
 		}
 
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if httpErr != nil {
-			log.Debug(httpErr.Error)
-			log.Error("Failed to complete the request")
-			return
-		}
-
-		defer resp.Body.Close()
-
-		result, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
+		var response commons.APIResponse
+		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
 			log.Debug(err)
-			log.Error("Failed to read response body")
-			return
-		}
-
-		var response secretsCommons.APIResponse
-		if err := json.Unmarshal(result, &response); err != nil {
-			log.Debug(err)
-			log.Error("Failed to read API response")
-			os.Exit(1)
+			log.Fatal("Failed to complete the request")
 		}
 
 		if response.Error != "" {
-			log.Debug(response.Error)
-			log.Error("Failed to merge secrets")
-			os.Exit(1)
+			log.Debug(err)
+			log.Fatal("Failed to merge secrets")
 		}
 
 		log.Info("Merge Complete! Created version ", response.Data.(map[string]interface{})["version"])

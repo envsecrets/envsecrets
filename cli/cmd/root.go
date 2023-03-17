@@ -47,13 +47,15 @@ var log = commons.Logger
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "envsecrets",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "CLI-first manangement of your environment secrets and variables.",
+	Long: `
+CLI-first manangement of your environment secrets and variables.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Homepage: https://envsecrets.com
+Documentation: https://docs.envsecrets.com
+DM me on Twitter for help: @MrinalWahal
+`,
+	Version: commons.VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := setUpLogs(os.Stdout, verbosity); err != nil {
 			return err
@@ -85,13 +87,13 @@ func (f *myFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	var levelColor int
 	switch entry.Level {
 	case logrus.DebugLevel, logrus.TraceLevel:
-		levelColor = 31 // gray
+		levelColor = 37 // white
 	case logrus.WarnLevel:
 		levelColor = 33 // yellow
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 		levelColor = 31 // red
 	default:
-		levelColor = 36 // blue
+		levelColor = 34 // blue
 	}
 	return []byte(fmt.Sprintf("\x1b[%dm>\x1b[0m %s\n", levelColor, entry.Message)), nil
 }
@@ -119,7 +121,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.envsecrets.yaml)")
+	//	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.envsecrets.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

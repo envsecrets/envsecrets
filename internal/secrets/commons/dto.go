@@ -132,6 +132,11 @@ func (s *SetSecretOptions) GetVaultOptions() map[string]interface{} {
 	}
 }
 
+type CleanupSecretOptions struct {
+	EnvID   string `json:"env_id"`
+	Version int    `json:"version"`
+}
+
 type DeleteSecretOptions struct {
 	EnvID   string `json:"env_id"`
 	Key     string `json:"key"`

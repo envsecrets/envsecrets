@@ -36,20 +36,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/config"
+	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "get [KEY]",
+	Short: "Fetch decrypted value corresponding to your secret key.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
@@ -58,14 +54,17 @@ to quickly create a Cobra application.`,
 			loginCmd.Run(cmd, args)
 		}
 
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-
-		//	Run sanity checks
-		if len(args) != 1 {
-			log.Error("Key not found. Use `--help` for usage information.")
+		//	Ensure the project configuration is initialized and available.
+		if !config.GetService().Exists(configCommons.ProjectConfig) {
+			log.Error("Can't read project configuration")
+			log.Info("Initialize your current directory with `envsecrets init`")
 			os.Exit(1)
 		}
+
+	},
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+
 		key := args[0]
 
 		//	Auto-capitalize the key
@@ -74,30 +73,28 @@ to quickly create a Cobra application.`,
 		secretPayload, err := export(&key)
 		if err != nil {
 			log.Debug(err)
-			log.Error("Failed to fetch the secrets")
-			os.Exit(1)
+			log.Fatal("Failed to fetch the secrets")
 		}
 
-		for key, item := range secretPayload {
+		log.Debug("Fetched secret version ", secretPayload["version"])
+
+		for key, item := range secretPayload["data"].(map[string]interface{}) {
 			payload := item.(map[string]interface{})
 
 			//	If the value is empty/nil,
 			//	then it either doesn't exist or wasn't fetched.
 			if payload["value"] == nil {
-				log.Errorf("Value for key '%s' not found in version %v", key, payload["version"])
-				os.Exit(1)
+				log.Fatalf("Value for key '%s' not found", key)
 			}
 
 			//	Base64 decode the secret value
 			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
 			if err != nil {
 				log.Debug(err)
-				log.Error("Failed to base64 decode secret value")
-				os.Exit(1)
+				log.Fatal("Failed to base64 decode secret value")
 			}
 
-			fmt.Printf("%s=%s", key, string(value))
-			fmt.Println()
+			fmt.Println(string(value))
 		}
 	},
 }

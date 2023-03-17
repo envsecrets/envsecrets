@@ -292,3 +292,32 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	return nil
 }
+
+func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($version: Int!, $env_id: uuid!) {
+		delete_secrets(where: {version: {_lte: $version}, env_id: {_eq: $env_id}}) {
+		  affected_rows
+		}
+	  }					  
+	`)
+
+	//	Set the variables for our GQL query.
+	req.Var("env_id", options.EnvID)
+	req.Var("version", options.Version)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["delete_secrets"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(nil, "failed to cleanup secrets", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
+}

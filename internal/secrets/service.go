@@ -3,7 +3,6 @@ package secrets
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -28,12 +27,7 @@ func GenerateKey(ctx context.ServiceContext, path string, options commons.Genera
 		Type: clients.VaultClientType,
 	})
 
-	_, er := client.Run(ctx, req)
-	if er != nil {
-		return er
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 //	This endpoint restores the backup as a named key. This will restore the key configurations and all the versions of the named key along with HMAC keys. The input to this endpoint should be the output of /backup endpoint.
@@ -50,8 +44,7 @@ func RestoreKey(ctx context.ServiceContext, path string, options commons.KeyRest
 		Type: clients.VaultClientType,
 	})
 
-	_, er := client.Run(ctx, req)
-	return er
+	return client.Run(ctx, req, nil)
 }
 
 //	This endpoint returns a plaintext backup of a named key. The backup contains all the configuration data and keys of all the versions along with the HMAC key. The response from this endpoint can be used with the /restore endpoint to restore the key.
@@ -67,21 +60,9 @@ func BackupKey(ctx context.ServiceContext, path string) (*commons.KeyBackupRespo
 		Type: clients.VaultClientType,
 	})
 
-	resp, er := client.Run(ctx, req)
-	if er != nil {
-		return nil, er
-	}
-
-	defer resp.Body.Close()
-
-	result, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
-	}
-
 	var response commons.KeyBackupResponse
-	if err := json.Unmarshal(result, &response); err != nil {
-		return nil, errors.New(err, "failed to unmarshal response", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -100,12 +81,7 @@ func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
 		Type: clients.VaultClientType,
 	})
 
-	_, er := client.Run(ctx, req)
-	if er != nil {
-		return er
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, *errors.Error) {
@@ -130,21 +106,9 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 				Type: clients.VaultClientType,
 			})
 
-			resp, er := client.Run(ctx, req)
-			if er != nil {
-				return nil, er
-			}
-
-			defer resp.Body.Close()
-
-			respBody, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return nil, errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-			}
-
 			var response commons.VaultResponse
-			if err := json.Unmarshal(respBody, &response); err != nil {
-				return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+			if err := client.Run(ctx, req, &response); err != nil {
+				return nil, err
 			}
 
 			//	Replace the secret value with ciphered version.
@@ -163,6 +127,16 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	//	Directly delete the key-value in Hasura.
 	if err := graphql.Delete(ctx, client, options); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//	Cleanup entries from `secrets` table.
+func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
+
+	if err := graphql.Cleanup(ctx, client, options); err != nil {
 		return err
 	}
 
@@ -332,21 +306,9 @@ func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) 
 		Type: clients.VaultClientType,
 	})
 
-	resp, err := client.Run(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	respBody, er := ioutil.ReadAll(resp.Body)
-	if er != nil {
-		return nil, errors.New(er, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
-	}
-
 	var response commons.VaultResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, errors.New(err, "failed to unmarshal set response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
