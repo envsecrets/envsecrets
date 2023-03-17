@@ -169,6 +169,16 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return nil
 }
 
+//	Cleanup entries from `secrets` table.
+func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
+
+	if err := graphql.Cleanup(ctx, client, options); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	//	Inittialize our secret data

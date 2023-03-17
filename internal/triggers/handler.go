@@ -58,6 +58,17 @@ func SecretInserted(c echo.Context) error {
 		},
 	})
 
+	//	Cleanup old secrets. Only keep latest 10 secrets.
+	cleanupUntilVersion := row.Version - 10
+	if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
+		EnvID:   row.EnvID,
+		Version: cleanupUntilVersion,
+	}); err != nil {
+		log.Println("Failed to cleanup older secret rows: ", err)
+
+		//	Don't exit.
+	}
+
 	//	--- Flow ---
 	//	1. Get the events linked to this new secret row.
 	//	2. Call the appropriate integration service to sync the secrets.
