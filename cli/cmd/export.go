@@ -32,10 +32,8 @@ package cmd
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -43,7 +41,6 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +67,7 @@ var exportCmd = &cobra.Command{
 		}
 
 	},
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		secretPayload, err := export(nil)
@@ -78,25 +76,31 @@ var exportCmd = &cobra.Command{
 			log.Fatal("Failed to fetch all the secret values")
 		}
 
-		for key, item := range secretPayload {
-			payload := item.(map[string]interface{})
+		log.Debug("Fetched secret version ", secretPayload["version"])
 
-			//	If the value is empty/nil,
-			//	then it either doesn't exist or wasn't fetched.
-			if payload["value"] == nil {
-				log.Fatal("Values not found for key: ", key)
+		if secretPayload["data"] != nil {
+
+			for key, item := range secretPayload["data"].(map[string]interface{}) {
+				payload := item.(map[string]interface{})
+
+				//	If the value is empty/nil,
+				//	then it either doesn't exist or wasn't fetched.
+				if payload["value"] == nil {
+					log.Fatal("Values not found for key: ", key)
+				}
+
+				//	Base64 decode the secret value
+				value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
+				if err != nil {
+					log.Debugf("key: %s; value %v", key, payload["value"])
+					log.Debug(err)
+					log.Fatal("Failed to base64 decode the secret value")
+				}
+
+				fmt.Printf("%s=%v", key, string(value))
+				fmt.Println()
 			}
 
-			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
-			if err != nil {
-				log.Debugf("key: %s; value %v", key, payload["value"])
-				log.Debug(err)
-				log.Fatal("Failed to base64 decode the secret value")
-			}
-
-			fmt.Printf("%s=%v", key, string(value))
-			fmt.Println()
 		}
 	},
 }
@@ -133,30 +137,17 @@ func export(key *string) (map[string]interface{}, error) {
 		query.Set("version", fmt.Sprint(*secretVersion))
 	}
 	req.URL.RawQuery = query.Encode()
-	resp, er := commons.HTTPClient.Run(commons.DefaultContext, req)
-	if er != nil {
-		return nil, er.Error
-	}
 
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var response secretsCommons.APIResponse
-	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, err
+	var response commons.APIResponse
+	if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+		return nil, err.Error
 	}
 
 	if response.Error != "" {
 		return nil, errors.New(response.Error)
 	}
 
-	responseData := response.Data.(map[string]interface{})
-
-	return responseData["data"].(map[string]interface{}), nil
+	return response.Data.(map[string]interface{}), nil
 }
 
 func init() {

@@ -52,7 +52,7 @@ var runCmd = &cobra.Command{
 	Use:   "run -- [command]",
 	Short: "Run a command with secrets injected into the current shell",
 	Example: `envsecrets run -- YOUR_COMMAND
-	envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
@@ -98,7 +98,9 @@ var runCmd = &cobra.Command{
 			log.Fatal("Failed to fetch all the secret values")
 		}
 
-		for key, item := range secretPayload {
+		log.Debug("Injecting environment secrets version ", secretPayload["version"], " into your process!")
+
+		for key, item := range secretPayload["data"].(map[string]interface{}) {
 			payload := item.(map[string]interface{})
 
 			//	Base64 decode the secret value

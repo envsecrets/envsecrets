@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
 	"net/mail"
 	"os"
 
@@ -51,7 +50,7 @@ var (
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate your envsecrets cloud account",
-	Run: func(cmd *cobra.Command, args []string) {
+	Args: func(cmd *cobra.Command, args []string) error {
 
 		var err error
 
@@ -88,6 +87,10 @@ var loginCmd = &cobra.Command{
 			}
 		}
 
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+
 		//	Prepare body
 		payload := map[string]interface{}{
 			"email":    email,
@@ -113,7 +116,7 @@ var loginCmd = &cobra.Command{
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		fmt.Println("You are logged in!")
+		log.Info("You are logged in!")
 	},
 }
 

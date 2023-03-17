@@ -62,12 +62,9 @@ var getCmd = &cobra.Command{
 		}
 
 	},
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Run sanity checks
-		if len(args) != 1 {
-			log.Fatal("Key not found. Use `--help` for usage information.")
-		}
 		key := args[0]
 
 		//	Auto-capitalize the key
@@ -79,13 +76,15 @@ var getCmd = &cobra.Command{
 			log.Fatal("Failed to fetch the secrets")
 		}
 
-		for key, item := range secretPayload {
+		log.Debug("Fetched secret version ", secretPayload["version"])
+
+		for key, item := range secretPayload["data"].(map[string]interface{}) {
 			payload := item.(map[string]interface{})
 
 			//	If the value is empty/nil,
 			//	then it either doesn't exist or wasn't fetched.
 			if payload["value"] == nil {
-				log.Fatalf("Value for key '%s' not found in version %v", key, payload["version"])
+				log.Fatalf("Value for key '%s' not found", key)
 			}
 
 			//	Base64 decode the secret value

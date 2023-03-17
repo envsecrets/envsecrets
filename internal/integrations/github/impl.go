@@ -5,11 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-
-	internalErrors "errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -64,21 +61,10 @@ func ListRepositories(ctx context.ServiceContext, client *clients.HTTPClient) (*
 		return nil, errors.New(err, "failed prepare oauth access token request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	repositoriesResponsePayload, er := client.Run(ctx, req)
+	var repositoriesResponse ListRepositoriesResponse
+	er := client.Run(ctx, req, &repositoriesResponse)
 	if er != nil {
 		return nil, er
-	}
-
-	defer repositoriesResponsePayload.Body.Close()
-
-	repositoriesResponseBody, err := ioutil.ReadAll(repositoriesResponsePayload.Body)
-	if err != nil {
-		return nil, errors.New(err, "failed to read github repositories response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
-	}
-
-	var repositoriesResponse ListRepositoriesResponse
-	if err := json.Unmarshal(repositoriesResponseBody, &repositoriesResponse); err != nil {
-		return nil, errors.New(err, "failed to unmarshal github repositories response body", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &repositoriesResponse, nil
@@ -123,12 +109,43 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 				return errors.New(er, "failed to encrypt secret", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
 			}
 
+			//	Add response handler to HTTP client.
+			client.ResponseHandler = func(response *http.Response) *errors.Error {
+
+				//	Github Responses:
+				//	201 -> New secret created
+				//	204 -> Existing secret updated
+				if response.StatusCode != 201 && response.StatusCode != 204 {
+					return errors.New(fmt.Errorf(fmt.Sprint(response.StatusCode)), "failed to push secret to github repo", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
+				}
+				return nil
+			}
+
 			//	Post the secret to Github actions.
 			if err := pushRepositorySecret(ctx, client, slug, key, publicKey.KeyID, encryptedValue); err != nil {
 				return err
 			}
 
 		} else if payload.Type == secretCommons.Plaintext {
+
+			//	Add response handler to HTTP client.
+			client.ResponseHandler = func(response *http.Response) *errors.Error {
+
+				//	Github Responses:
+				//	201 (Created) -> New variable created
+				//	409 (Conflict) -> Variable exists
+				if response.StatusCode == 409 {
+
+					//	Delete the variable and recreate it.
+					if err := deleteRepositoryVariable(ctx, client, slug, key); err != nil {
+						return err
+					}
+
+					return pushRepositoryVariable(ctx, client, slug, key, payload.Value.(string))
+				}
+
+				return nil
+			}
 
 			//	If the payload type is `plaintext`,
 			//	save it as a normal variable in Github actions.
@@ -157,19 +174,7 @@ func pushRepositorySecret(ctx context.ServiceContext, client *clients.HTTPClient
 		return errors.New(err, "failed prepare http request to push secrets to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	response, er := client.Run(ctx, req)
-	if er != nil {
-		return er
-	}
-
-	//	Github Responses:
-	//	201 -> New secret created
-	//	204 -> Existing secret updated
-	if response.StatusCode != 201 && response.StatusCode != 204 {
-		return errors.New(internalErrors.New(response.Status), "failed to push secret to github repo", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 func pushRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPClient, slug, name, value string) *errors.Error {
@@ -188,25 +193,7 @@ func pushRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPClie
 		return errors.New(err, "failed prepare http request to push variables to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	response, er := client.Run(ctx, req)
-	if er != nil {
-		return er
-	}
-
-	//	Github Responses:
-	//	201 (Created) -> New variable created
-	//	409 (Conflict) -> Variable exists
-	if response.StatusCode == 409 {
-
-		//	Delete the variable and recreate it.
-		if err := deleteRepositoryVariable(ctx, client, slug, name); err != nil {
-			return err
-		}
-
-		return pushRepositoryVariable(ctx, client, slug, name, value)
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 func deleteRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPClient, slug, name string) *errors.Error {
@@ -216,12 +203,7 @@ func deleteRepositoryVariable(ctx context.ServiceContext, client *clients.HTTPCl
 		return errors.New(err, "failed prepare http request to push variables to github repo", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	_, er := client.Run(ctx, req)
-	if er != nil {
-		return er
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 func GetInstallationAccessToken(ctx context.ServiceContext, installationID string) (*InstallationAccessTokenResponse, *errors.Error) {
@@ -253,24 +235,12 @@ func GetInstallationAccessToken(ctx context.ServiceContext, installationID strin
 		return nil, errors.New(er, "failed prepare oauth access token request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	authResponsePayload, err := client.Run(ctx, req)
-	if err != nil {
+	var response InstallationAccessTokenResponse
+	if err := client.Run(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	defer authResponsePayload.Body.Close()
-
-	authResponseBody, er := ioutil.ReadAll(authResponsePayload.Body)
-	if er != nil {
-		return nil, errors.New(er, "failed to read github access token response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
-	}
-
-	var authResponse InstallationAccessTokenResponse
-	if err := json.Unmarshal(authResponseBody, &authResponse); err != nil {
-		return nil, errors.New(err, "failed to unmarshal github access token response body", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-	}
-
-	return &authResponse, nil
+	return &response, nil
 }
 
 //	Fetches the public key for action secrets for supplied repository slug.
@@ -282,22 +252,10 @@ func getRepositoryActionsSecretsPublicKey(ctx context.ServiceContext, client *cl
 		return nil, errors.New(er, "failed prepare repository actions secret public key request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
-	authResponsePayload, err := client.Run(ctx, req)
-	if err != nil {
+	var response RepositoryActionsSecretsPublicKeyResponse
+	if err := client.Run(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	defer authResponsePayload.Body.Close()
-
-	authResponseBody, er := ioutil.ReadAll(authResponsePayload.Body)
-	if er != nil {
-		return nil, errors.New(er, "failed to read repository actions secret public key response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGithub)
-	}
-
-	var authResponse RepositoryActionsSecretsPublicKeyResponse
-	if err := json.Unmarshal(authResponseBody, &authResponse); err != nil {
-		return nil, errors.New(err, "failed to unmarshal github access token response body", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-	}
-
-	return &authResponse, nil
+	return &response, nil
 }

@@ -114,17 +114,15 @@ var deleteCmd = &cobra.Command{
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if httpErr != nil {
-			log.Debug(httpErr)
+		var response commons.APIResponse
+		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to complete the request")
-
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			log.Debug(resp.StatusCode)
-			log.Fatal("Request returned non-OK response")
-
+		if response.Error != "" {
+			log.Debug(err)
+			log.Fatal("Failed to delete: ", key)
 		}
 	},
 }

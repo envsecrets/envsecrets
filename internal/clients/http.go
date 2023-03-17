@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,19 +17,21 @@ import (
 
 type HTTPClient struct {
 	*http.Client
-	BaseURL       string
-	Authorization string
-	CustomHeaders []CustomHeader
-	log           *logrus.Logger
+	BaseURL         string
+	Authorization   string
+	CustomHeaders   []CustomHeader
+	log             *logrus.Logger
+	ResponseHandler func(*http.Response) *errors.Error
 }
 
 type HTTPConfig struct {
-	Type          ClientType
-	BaseURL       string
-	Authorization string
-	Headers       []Header
-	CustomHeaders []CustomHeader
-	Logger        *logrus.Logger
+	Type            ClientType
+	BaseURL         string
+	Authorization   string
+	Headers         []Header
+	CustomHeaders   []CustomHeader
+	Logger          *logrus.Logger
+	ResponseHandler func(*http.Response) *errors.Error
 }
 
 func NewHTTPClient(config *HTTPConfig) *HTTPClient {
@@ -43,6 +46,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 	response.CustomHeaders = config.CustomHeaders
 	response.BaseURL = config.BaseURL
 	response.Authorization = config.Authorization
+	response.ResponseHandler = config.ResponseHandler
 
 	switch config.Type {
 	case GithubClientType:
@@ -50,6 +54,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 			Key:   string(AcceptHeader),
 			Value: "application/vnd.github+json",
 		})
+
 	case VaultClientType:
 		response.CustomHeaders = append(response.CustomHeaders, CustomHeader{
 			Key:   string(VaultTokenHeader),
@@ -70,7 +75,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 	return &response
 }
 
-func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.Response, *errors.Error) {
+func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response interface{}) *errors.Error {
 
 	c.log.Debug("Sending HTTP request to: ", req.URL.String())
 
@@ -93,26 +98,26 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 	if req.Body != nil {
 		body, err = req.GetBody()
 		if err != nil {
-			return nil, errors.New(err, "failed to create copy of request body", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+			return errors.New(err, "failed to create copy of request body", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 		}
 	}
 
 	//	Make the request
-	response, err := c.Do(req)
+	resp, err := c.Do(req)
 	if err != nil {
-		return nil, errors.New(err, "failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
+		return errors.New(err, "failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
 	}
 
 	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
-	if response.StatusCode == 401 {
+	if resp.StatusCode == 401 {
 
 		c.log.Debug("Request failed due to expired token. Refreshing access token to try again.")
 
 		//	Fetch account configuration
 		accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)
 		if err != nil {
-			return nil, errors.New(err, "failed to load account configuration", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
+			return errors.New(err, "failed to load account configuration", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
 		}
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
@@ -122,7 +127,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 		})
 
 		if refreshErr != nil {
-			return nil, errors.New(err, "failed to refresh auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceNhost)
+			return errors.New(err, "failed to refresh auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceNhost)
 		}
 
 		//	Save the refreshed account config
@@ -133,7 +138,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 		}
 
 		if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
-			return nil, errors.New(err, "failed to save updated account configuration", errors.ErrorTypeInvalidAccountConfiguration, errors.ErrorSourceGo)
+			return errors.New(err, "failed to save updated account configuration", errors.ErrorTypeInvalidAccountConfiguration, errors.ErrorSourceGo)
 		}
 
 		//	Update the authorization header in client.
@@ -144,8 +149,22 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request) (*http.R
 			req.Body = ioutil.NopCloser(body)
 		}
 
-		return c.Run(ctx, req)
+		return c.Run(ctx, req, response)
 	}
 
-	return response, nil
+	if response != nil {
+
+		defer resp.Body.Close()
+
+		result, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		if err := json.Unmarshal(result, &response); err != nil {
+			return errors.New(err, "failed to unmarshal response body in provided interface", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+	}
+
+	return nil
 }

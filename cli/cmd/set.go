@@ -34,6 +34,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -59,7 +60,7 @@ var file string
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
 	Short: "Set new key-value pairs as secrets in your current environment.",
-	Long: `envsecrets set KEY=VALUE
+	Long: `Set new key-value pairs as secrets in your current environment.
 
 You can also load your variables directly from files: envsecrets set --file .env
 
@@ -79,6 +80,14 @@ NOTE: This command auto-capitalizes your keys.`,
 			os.Exit(1)
 		}
 
+	},
+	Args: func(cmd *cobra.Command, args []string) error {
+
+		if file == "" && len(args) != 1 {
+			return errors.New("either an import file is required to load variables from or at least 1 key-value pair (of secret) is required")
+		}
+
+		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -200,29 +209,15 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if httpErr != nil {
-			log.Debug(httpErr.Error)
+		var response commons.APIResponse
+		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to complete the request")
 		}
 
-		defer resp.Body.Close()
-
-		result, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to read response body")
-		}
-
-		var response secretsCommons.APIResponse
-		if err := json.Unmarshal(result, &response); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to read API response")
-		}
-
 		if response.Error != "" {
-			log.Debug(response.Error)
-			log.Fatal("Failed to merge secrets")
+			log.Debug(err)
+			log.Fatal("Failed to set the secrets")
 		}
 
 		log.Info("Secrets set! Created version ", response.Data.(map[string]interface{})["version"])
@@ -273,6 +268,6 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	setCmd.Flags().StringVarP(&file, "file", "f", "", "Filepath to read your variables from. [.env, .json, .txt, .yaml]")
+	setCmd.Flags().StringVarP(&file, "file", "f", "", "Filepath to import your variables from [.env, .json, .txt, .yaml]")
 	setCmd.Flags().BoolVarP(&encrypt, "encrypt", "e", true, "Encrypt the value")
 }

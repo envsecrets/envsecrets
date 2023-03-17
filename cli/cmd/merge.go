@@ -32,8 +32,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -50,12 +48,14 @@ import (
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "Merge from a different environment into current one.",
-	Long: `NOTE: This will overwrite the values of existing secrets.
+	Short: "Merge secrets from a different environment into current one.",
+	Long: `Merge secrets from a different environment into current one.
+
+NOTE: This will overwrite the values of current latest version of secrets.
 	
-	For precaution, this command generates a new version of your secret
-	with new/overrided values. You can safely rollback to older version
-	containing original/unedited values.`,
+For precaution, this command generates a new version of your secret
+with new/overrided values. You can safely rollback to older version
+containing original/unedited values.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,
@@ -72,6 +72,7 @@ var mergeCmd = &cobra.Command{
 		}
 
 	},
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if environmentID == "" {
@@ -167,28 +168,14 @@ var mergeCmd = &cobra.Command{
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		resp, httpErr := commons.HTTPClient.Run(commons.DefaultContext, req)
-		if httpErr != nil {
-			log.Debug(httpErr.Error)
+		var response commons.APIResponse
+		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to complete the request")
 		}
 
-		defer resp.Body.Close()
-
-		result, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to read response body")
-		}
-
-		var response secretsCommons.APIResponse
-		if err := json.Unmarshal(result, &response); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to read API response")
-		}
-
 		if response.Error != "" {
-			log.Debug(response.Error)
+			log.Debug(err)
 			log.Fatal("Failed to merge secrets")
 		}
 

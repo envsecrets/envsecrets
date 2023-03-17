@@ -60,13 +60,15 @@ func SecretInserted(c echo.Context) error {
 
 	//	Cleanup old secrets. Only keep latest 10 secrets.
 	cleanupUntilVersion := row.Version - 10
-	if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
-		EnvID:   row.EnvID,
-		Version: cleanupUntilVersion,
-	}); err != nil {
-		log.Println("Failed to cleanup older secret rows: ", err)
+	if cleanupUntilVersion > 10 {
+		if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
+			EnvID:   row.EnvID,
+			Version: cleanupUntilVersion,
+		}); err != nil {
+			log.Println("Failed to cleanup older secret rows: ", err)
 
-		//	Don't exit.
+			//	Don't exit.
+		}
 	}
 
 	//	--- Flow ---
