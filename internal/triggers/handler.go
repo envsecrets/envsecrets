@@ -358,12 +358,13 @@ func UserInserted(c echo.Context) error {
 	})
 
 	//	Create a new `default` organisation for the new user.
-	_, err := organisations.Create(ctx, client, &organisations.CreateOptions{
-		Name: "default",
+	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
+		Name:   "default",
+		UserID: user.ID,
 	})
 	if err != nil {
-		return c.JSON(http.StatusNotModified, &APIResponse{
-			Code:    http.StatusNotModified,
+		return c.JSON(http.StatusExpectationFailed, &APIResponse{
+			Code:    http.StatusExpectationFailed,
 			Message: "failed to create default organisation",
 			Error:   err.Message,
 		})
@@ -434,7 +435,7 @@ func OrganisationDeleted(c echo.Context) error {
 
 	//	Unmarshal the data interface to our required entity.
 	var organisation organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.New, &organisation); err != nil {
+	if err := MapToStruct(payload.Event.Data.Old, &organisation); err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,
 			Message: "failed to unmarshal new data",
@@ -447,8 +448,8 @@ func OrganisationDeleted(c echo.Context) error {
 
 	//	Generate new transit for this organisation in vault.
 	if err := secrets.DeleteKey(ctx, organisation.ID); err != nil {
-		return c.JSON(http.StatusInternalServerError, &APIResponse{
-			Code:    http.StatusInternalServerError,
+		return c.JSON(http.StatusExpectationFailed, &APIResponse{
+			Code:    http.StatusExpectationFailed,
 			Message: "failed to delete the transit key",
 			Error:   err.Message,
 		})

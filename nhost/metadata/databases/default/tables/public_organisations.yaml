@@ -79,7 +79,7 @@ event_triggers:
       interval_sec: 10
       num_retries: 0
       timeout_sec: 60
-    webhook: '{{API}}/api/v1/events/permissions/organisation/delete'
+    webhook: '{{API}}/v1/triggers/organisations/delete'
     headers:
       - name: x-hasura-webhook-secret
         value_from_env: NHOST_WEBHOOK_SECRET

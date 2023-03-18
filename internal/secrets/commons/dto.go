@@ -92,15 +92,16 @@ func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
 
 type VaultResponse struct {
 	Errors        []interface{} `json:"errors,omitempty"`
-	RequestID     string        `json:"request_id"`
-	LeaseID       string        `json:"lease_id"`
-	Renewable     bool          `json:"renewable"`
-	LeaseDuration int           `json:"lease_duration"`
+	RequestID     string        `json:"request_id,omitempty"`
+	LeaseID       string        `json:"lease_id,omitempty"`
+	Renewable     bool          `json:"renewable,omitempty"`
+	LeaseDuration int           `json:"lease_duration,omitempty"`
 	Data          struct {
 		Ciphertext string `json:"ciphertext,omitempty"`
 		Plaintext  string `json:"plaintext,omitempty"`
-		KeyVersion int    `json:"key_version"`
-	} `json:"data"`
+		KeyVersion int    `json:"key_version,omitempty"`
+		Backup     string `json:"backup,omitempty"`
+	} `json:"data,omitempty"`
 }
 
 type SetRequestOptions struct {
@@ -232,6 +233,22 @@ type VaultKeyExportResponse struct {
 
 type KeyBackupRequestOptions struct {
 	OrgID string `query:"org_id"`
+}
+
+type KeyConfigUpdateOptions struct {
+
+	//	Specifies if the key is allowed to be deleted.
+	DeletionAllowed bool `json:"deletion_allowed,omitempty"`
+
+	//	Whether the key can be exported in the future.
+	Exportable bool `json:"exportable,omitempty"`
+
+	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
+	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
+}
+
+func (r *KeyConfigUpdateOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
 }
 
 type KeyBackupResponse struct {

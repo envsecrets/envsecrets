@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	internalErrors "errors"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
@@ -19,6 +21,32 @@ func GenerateKey(ctx context.ServiceContext, path string, options commons.Genera
 
 	postBody, _ := options.Marshal()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, bytes.NewBuffer(postBody))
+	if err != nil {
+		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	}
+
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.VaultClientType,
+	})
+
+	var response commons.VaultResponse
+	if err := client.Run(ctx, req, &response); err != nil {
+		return err
+	}
+
+	if len(response.Errors) != 0 {
+		return errors.New(internalErrors.New(response.Errors[0].(string)), response.Errors[0].(string), errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
+	}
+
+	return nil
+}
+
+//	This endpoint allows tuning configuration values for a given key. (These values are returned during a read operation on the named key.)
+//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#update-key-configuration
+func UpdateKeyConfiguration(ctx context.ServiceContext, path string, options commons.KeyConfigUpdateOptions) *errors.Error {
+
+	postBody, _ := options.Marshal()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path+"/config", bytes.NewBuffer(postBody))
 	if err != nil {
 		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
@@ -44,7 +72,16 @@ func RestoreKey(ctx context.ServiceContext, path string, options commons.KeyRest
 		Type: clients.VaultClientType,
 	})
 
-	return client.Run(ctx, req, nil)
+	var response commons.VaultResponse
+	if err := client.Run(ctx, req, &response); err != nil {
+		return err
+	}
+
+	if len(response.Errors) != 0 {
+		return errors.New(internalErrors.New(response.Errors[0].(string)), response.Errors[0].(string), errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
+	}
+
+	return nil
 }
 
 //	This endpoint returns a plaintext backup of a named key. The backup contains all the configuration data and keys of all the versions along with the HMAC key. The response from this endpoint can be used with the /restore endpoint to restore the key.
@@ -71,6 +108,13 @@ func BackupKey(ctx context.ServiceContext, path string) (*commons.KeyBackupRespo
 //	This endpoint deletes a named encryption key. It will no longer be possible to decrypt any data encrypted with the named key. Because this is a potentially catastrophic operation, the deletion_allowed tunable must be set in the key's /config endpoint.
 //	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#delete-key
 func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
+
+	//	First, update key configuration. And make the key delete-able.
+	if err := UpdateKeyConfiguration(ctx, path, commons.KeyConfigUpdateOptions{
+		DeletionAllowed: true,
+	}); err != nil {
+		return err
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, nil)
 	if err != nil {

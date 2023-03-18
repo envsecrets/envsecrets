@@ -45,6 +45,42 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	return &resp[0], nil
 }
 
+//	Create a new organisation
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($name: String!, $user_id: uuid!) {
+		insert_organisations(objects: {name: $name, user_id: $user_id}) {
+		  returning {
+			id
+			name
+		  }
+		}
+	  }
+	`)
+
+	req.Var("name", options.Name)
+	req.Var("user_id", options.UserID)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
+	if err != nil {
+		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []Organisation
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &resp[0], nil
+}
+
 //	Get a organisation by ID
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, *errors.Error) {
 
