@@ -41,13 +41,14 @@ import (
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/cobra"
 )
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete [KEY]",
-	Short: "Deletes a key-value pair from your current environment's secrets.",
+	Short: "Deletes a key-value pair from your current environment's secrets",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,

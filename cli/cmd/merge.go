@@ -41,6 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/labstack/gommon/log"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -48,7 +49,7 @@ import (
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "Merge secrets from a different environment into current one.",
+	Short: "Merge secrets from a different environment into current one",
 	Long: `Merge secrets from a different environment into current one.
 
 NOTE: This will overwrite the values of current latest version of secrets.

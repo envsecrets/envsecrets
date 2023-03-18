@@ -39,13 +39,14 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/cobra"
 )
 
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get [KEY]",
-	Short: "Fetch decrypted value corresponding to your secret key.",
+	Short: "Fetch decrypted value corresponding to your secret key",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,

@@ -39,13 +39,14 @@ import (
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/cobra"
 )
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Prints your local project configuration.",
+	Short: "Prints your local project configuration",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Ensure the project configuration is initialized and available.

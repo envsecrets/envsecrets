@@ -93,7 +93,7 @@ func (f *myFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 		levelColor = 31 // red
 	default:
-		levelColor = 34 // blue
+		levelColor = 36 // cyan blue
 	}
 	return []byte(fmt.Sprintf("\x1b[%dm>\x1b[0m %s\n", levelColor, entry.Message)), nil
 }
@@ -125,5 +125,5 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().StringVarP(&verbosity, "level", "l", logrus.InfoLevel.String(), "Log levels - debug, info, warn, error")
+	rootCmd.PersistentFlags().StringVarP(&verbosity, "level", "l", logrus.InfoLevel.String(), "log levels - debug, info, warn, error")
 }
