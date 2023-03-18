@@ -19,7 +19,6 @@ import (
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
-	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
@@ -358,12 +357,13 @@ func UserInserted(c echo.Context) error {
 	})
 
 	//	Create a new `default` organisation for the new user.
-	_, err := organisations.Create(ctx, client, &organisations.CreateOptions{
-		Name: "default",
+	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
+		Name:   "default",
+		UserID: user.ID,
 	})
 	if err != nil {
-		return c.JSON(http.StatusNotModified, &APIResponse{
-			Code:    http.StatusNotModified,
+		return c.JSON(http.StatusExpectationFailed, &APIResponse{
+			Code:    http.StatusExpectationFailed,
 			Message: "failed to create default organisation",
 			Error:   err.Message,
 		})
@@ -403,7 +403,7 @@ func OrganisationInserted(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.GenerateKey(ctx, organisation.ID, commons.GenerateKeyOptions{
+	if err := secrets.GenerateKey(ctx, organisation.ID, secretCommons.GenerateKeyOptions{
 		Exportable:           true,
 		AllowPlaintextBackup: true,
 	}); err != nil {
@@ -434,7 +434,7 @@ func OrganisationDeleted(c echo.Context) error {
 
 	//	Unmarshal the data interface to our required entity.
 	var organisation organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.New, &organisation); err != nil {
+	if err := MapToStruct(payload.Event.Data.Old, &organisation); err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,
 			Message: "failed to unmarshal new data",
@@ -447,8 +447,8 @@ func OrganisationDeleted(c echo.Context) error {
 
 	//	Generate new transit for this organisation in vault.
 	if err := secrets.DeleteKey(ctx, organisation.ID); err != nil {
-		return c.JSON(http.StatusInternalServerError, &APIResponse{
-			Code:    http.StatusInternalServerError,
+		return c.JSON(http.StatusExpectationFailed, &APIResponse{
+			Code:    http.StatusExpectationFailed,
 			Message: "failed to delete the transit key",
 			Error:   err.Message,
 		})
