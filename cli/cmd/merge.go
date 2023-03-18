@@ -41,6 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/labstack/gommon/log"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )

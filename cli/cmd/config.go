@@ -39,6 +39,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/cobra"
 )
 
