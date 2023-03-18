@@ -41,7 +41,6 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/labstack/gommon/log"
 	"github.com/spf13/cobra"
 )
 
