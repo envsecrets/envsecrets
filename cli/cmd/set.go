@@ -59,7 +59,7 @@ var file string
 // setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
-	Short: "Set new key-value pairs as secrets in your current environment.",
+	Short: "Set new key-value pairs as secrets in your current environment",
 	Long: `Set new key-value pairs as secrets in your current environment.
 
 You can also load your variables directly from files: envsecrets set --file .env

@@ -45,7 +45,7 @@ import (
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Prints your local project configuration.",
+	Short: "Prints your local project configuration",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Ensure the project configuration is initialized and available.

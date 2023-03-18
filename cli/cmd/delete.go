@@ -47,7 +47,7 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete [KEY]",
-	Short: "Deletes a key-value pair from your current environment's secrets.",
+	Short: "Deletes a key-value pair from your current environment's secrets",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,

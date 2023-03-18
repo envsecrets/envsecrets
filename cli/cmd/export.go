@@ -50,7 +50,7 @@ var exportfile string
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "Prints decrypted list of your environment's (key-value) secret pairs.",
+	Short: "Prints decrypted list of your environment's (key-value) secret pairs",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user is not already authenticated,

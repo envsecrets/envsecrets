@@ -48,7 +48,7 @@ import (
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "Merge secrets from a different environment into current one.",
+	Short: "Merge secrets from a different environment into current one",
 	Long: `Merge secrets from a different environment into current one.
 
 NOTE: This will overwrite the values of current latest version of secrets.
