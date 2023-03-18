@@ -19,7 +19,6 @@ import (
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
-	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
@@ -404,7 +403,7 @@ func OrganisationInserted(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.GenerateKey(ctx, organisation.ID, commons.GenerateKeyOptions{
+	if err := secrets.GenerateKey(ctx, organisation.ID, secretCommons.GenerateKeyOptions{
 		Exportable:           true,
 		AllowPlaintextBackup: true,
 	}); err != nil {
