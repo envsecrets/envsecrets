@@ -22,6 +22,16 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.17
+
+      - name: Install Snapcraft
+        uses: samuelmeuli/action-snapcraft@v2
+
+      # You can now run Snapcraft shell commands
+      - name: Use Snapcraft
+        run: snapcraft --help
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
