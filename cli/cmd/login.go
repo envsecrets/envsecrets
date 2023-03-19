@@ -52,6 +52,9 @@ var loginCmd = &cobra.Command{
 	Short: "Authenticate your envsecrets cloud account",
 	Args: func(cmd *cobra.Command, args []string) error {
 
+		log.Infoln("Enter your envsecrets cloud account e-mail address and password.")
+		log.Infoln("If you do not have an envsecrets cloud account, you can create one at https://app.envsecrets.com")
+
 		var err error
 
 		if len(email) == 0 {
