@@ -49,11 +49,18 @@ var rootCmd = &cobra.Command{
 	Use:   "envsecrets",
 	Short: "CLI-first manangement of your environment secrets and variables.",
 	Long: `
-CLI-first manangement of your environment secrets and variables.
+envsecrets provides a centralized cloud account with rotate-able keys
+to store the environment secrets and variables for all your projects in a single place
+and integrate them with third-party services of your choice.
 
 Homepage: https://envsecrets.com
 Documentation: https://docs.envsecrets.com
 DM me on Twitter for help: @MrinalWahal
+
+Upgrade the CLI:
+
+	MacOS => brew up && brew upgrade envsecrets
+	Linux => snap refresh envsecrets
 `,
 	Version: commons.VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
