@@ -29,6 +29,32 @@ func GenerateKey(ctx context.ServiceContext, path string, options commons.Genera
 		Type: clients.VaultClientType,
 	})
 
+	var response commons.VaultResponse
+	if err := client.Run(ctx, req, &response); err != nil {
+		return err
+	}
+
+	if len(response.Errors) != 0 {
+		return errors.New(internalErrors.New(response.Errors[0].(string)), response.Errors[0].(string), errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
+	}
+
+	return nil
+}
+
+//	This endpoint allows tuning configuration values for a given key. (These values are returned during a read operation on the named key.)
+//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#update-key-configuration
+func UpdateKeyConfiguration(ctx context.ServiceContext, path string, options commons.KeyConfigUpdateOptions) *errors.Error {
+
+	postBody, _ := options.Marshal()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path+"/config", bytes.NewBuffer(postBody))
+	if err != nil {
+		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	}
+
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.VaultClientType,
+	})
+
 	return client.Run(ctx, req, nil)
 }
 
