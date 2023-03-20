@@ -58,23 +58,6 @@ func UpdateKeyConfiguration(ctx context.ServiceContext, path string, options com
 	return client.Run(ctx, req, nil)
 }
 
-//	This endpoint allows tuning configuration values for a given key. (These values are returned during a read operation on the named key.)
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#update-key-configuration
-func UpdateKeyConfiguration(ctx context.ServiceContext, path string, options commons.KeyConfigUpdateOptions) *errors.Error {
-
-	postBody, _ := options.Marshal()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path+"/config", bytes.NewBuffer(postBody))
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	return client.Run(ctx, req, nil)
-}
-
 //	This endpoint restores the backup as a named key. This will restore the key configurations and all the versions of the named key along with HMAC keys. The input to this endpoint should be the output of /backup endpoint.
 //	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#restore-key
 func RestoreKey(ctx context.ServiceContext, path string, options commons.KeyRestoreOptions) *errors.Error {
