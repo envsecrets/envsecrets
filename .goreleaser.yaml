@@ -56,11 +56,9 @@ snapcrafts:
     # we live in tweetspace and your description wants to look good in the snap
     # store.
     description: |
-      Creating an inclusive work environment is imperative to a healthy,
-      supportive, and productive culture, and an environment where everyone
-      feels welcome and included. woke is a text file analysis tool that finds
-      places within your source code that contain non-inclusive language and
-      suggests replacing them with more inclusive alternatives.
+      envsecrets provides a centralized cloud account with rotate-able keys
+      to store the environment secrets and variables for all your projects in a single place
+      and integrate them with third-party services of your choice.
     
     grade: stable
     base: core20
