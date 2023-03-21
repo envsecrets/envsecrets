@@ -29,16 +29,7 @@ func GenerateKey(ctx context.ServiceContext, path string, options commons.Genera
 		Type: clients.VaultClientType,
 	})
 
-	var response commons.VaultResponse
-	if err := client.Run(ctx, req, &response); err != nil {
-		return err
-	}
-
-	if len(response.Errors) != 0 {
-		return errors.New(internalErrors.New(response.Errors[0].(string)), response.Errors[0].(string), errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
-	}
-
-	return nil
+	return client.Run(ctx, req, nil)
 }
 
 //	This endpoint allows tuning configuration values for a given key. (These values are returned during a read operation on the named key.)
