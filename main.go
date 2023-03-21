@@ -44,7 +44,7 @@ func main() {
 	skipRoutes := []string{
 		"/triggers",
 		"integrations",
-		"/healthz",
+		"healthz",
 	}
 
 	e.Use(echojwt.WithConfig(echojwt.Config{

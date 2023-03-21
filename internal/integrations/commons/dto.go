@@ -34,9 +34,15 @@ type Integration struct {
 type Integrations []Integration
 
 type AddIntegrationOptions struct {
+
+	//	Global
 	OrgID          string          `json:"org_id"`
 	InstallationID string          `json:"installation_id"`
 	Type           IntegrationType `json:"type"`
+
+	//	Especially for Vercel
+	Credentials map[string]interface{} `json:"credentials,omitempty"`
+	Scope       map[string]interface{} `json:"scope,omitempty"`
 }
 
 type ListIntegrationFilters struct {

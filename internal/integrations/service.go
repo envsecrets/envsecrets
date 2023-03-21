@@ -8,8 +8,9 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/github"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/github"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
 )
 
 type Service interface {
@@ -45,28 +46,27 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 
 func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationType commons.IntegrationType, params url.Values) *errors.Error {
 
+	//	Extract the Organisation ID and Authorization token from State.
+	payload := strings.Split(params.Get("state"), "/")
+	if len(payload) != 2 {
+		return errors.New(nil, "invalid callback state", errors.ErrorTypeBadRequest, errors.ErrorSourceGithub)
+	}
+	orgID := payload[0]
+	token := payload[1]
+
+	//	Initialize Hasura client with token extract from state parameter
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		CustomHeaders: []clients.CustomHeader{
+			{
+				Key:   string(clients.AuthorizationHeader),
+				Value: "Bearer " + token,
+			},
+		},
+	})
+
 	switch integrationType {
 	case commons.Github:
-
-		//	Extract the Organisation ID and Authorization token from State.
-		payload := strings.Split(params.Get("state"), "/")
-		if len(payload) != 2 {
-			return errors.New(nil, "invalid callback state", errors.ErrorTypeBadRequest, errors.ErrorSourceGithub)
-		}
-		orgID := payload[0]
-		token := payload[1]
-
-		//	Initialize Hasura client with token extract from state parameter
-		client := clients.NewGQLClient(&clients.GQLConfig{
-			Type: clients.HasuraClientType,
-			CustomHeaders: []clients.CustomHeader{
-				{
-					Key:   string(clients.AuthorizationHeader),
-					Value: "Bearer " + token,
-				},
-			},
-		})
-
 		return github.Setup(ctx, client, &github.SetupOptions{
 			InstallationID: params.Get("installation_id"),
 			SetupAction:    params.Get("setup_action"),
@@ -75,7 +75,15 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationT
 			Token:          token,
 		})
 	case commons.Vercel:
-		return nil
+		return vercel.Setup(ctx, client, &vercel.SetupOptions{
+			ConfigurationID: params.Get("configurationId"),
+			Next:            params.Get("next"),
+			Source:          params.Get("source"),
+			Code:            params.Get("code"),
+			State:           params.Get("state"),
+			OrgID:           orgID,
+			Token:           token,
+		})
 	}
 
 	return nil
