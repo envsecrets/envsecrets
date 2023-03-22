@@ -92,6 +92,8 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		req.Header.Set(item.Key, item.Value)
 	}
 
+	req.Header.Get("content-type")
+
 	//	Backup the body in case it is required to re-run the request.
 	var body io.ReadCloser
 	var err error

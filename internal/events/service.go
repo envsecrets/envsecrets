@@ -21,6 +21,7 @@ func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_i
 			id
 			installation_id
 			type
+			credentials
 		  }
 		}
 	  }			  

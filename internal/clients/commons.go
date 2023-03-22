@@ -22,6 +22,7 @@ type ClientType string
 const (
 	HTTPClientType    ClientType = "HTTPClient"
 	GithubClientType  ClientType = "GithubClient"
+	VercelClientType  ClientType = "VercelClient"
 	VaultClientType   ClientType = "VaultClient"
 	HasuraClientType  ClientType = "HasuraClient"
 	GraphQLClientType ClientType = "GraphQLClient"

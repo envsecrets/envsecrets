@@ -26,6 +26,7 @@ insert_permissions:
       set:
         user_id: x-hasura-User-Id
       columns:
+        - credentials
         - installation_id
         - org_id
         - type
@@ -33,12 +34,13 @@ select_permissions:
   - role: user
     permission:
       columns:
-        - installation_id
-        - type
         - created_at
-        - updated_at
+        - credentials
         - id
+        - installation_id
         - org_id
+        - type
+        - updated_at
         - user_id
       filter:
         organisation:

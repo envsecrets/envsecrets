@@ -9,6 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
 
 func SetupHandler(c echo.Context) error {
@@ -28,6 +29,7 @@ func SetupHandler(c echo.Context) error {
 
 	//	Run the service handler.
 	if err := service.Setup(ctx, serviceType, c.QueryParams()); err != nil {
+		log.Error(err)
 		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed&integration_type="+integration_type)
 	}
 
