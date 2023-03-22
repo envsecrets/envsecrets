@@ -34,8 +34,7 @@ func SetupHandler(c echo.Context) error {
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	//		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
-	return c.String(http.StatusOK, "received")
+	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
 }
 
 func ListEntitiesHandler(c echo.Context) error {

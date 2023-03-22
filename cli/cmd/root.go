@@ -57,9 +57,11 @@ DM me on Twitter for help: @MrinalWahal
 `,
 	Version: commons.VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+
 		if err := setUpLogs(os.Stdout, verbosity); err != nil {
 			return err
 		}
+
 		return nil
 	},
 

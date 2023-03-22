@@ -1,11 +1,5 @@
 package vercel
 
-import (
-	"fmt"
-
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-)
-
 type SetupOptions struct {
 	ConfigurationID string
 	Source          string
@@ -42,29 +36,29 @@ type RepositoryActionsSecretsPublicKeyResponse struct {
 	KeyID string `json:"key_id"`
 }
 
-type ListRepositoriesResponse struct {
-	TotalCount           int          `json:"total_count"`
-	RespositorySelection string       `json:"repository_selection"`
-	Repositories         []Repository `json:"repositories"`
+type ListProjectsResponse struct {
+	Projects []interface{} `json:"projects"`
 }
 
-type Repository struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	FullName string `json:"full_name"`
-	HTMLURL  string `json:"html_url"`
-	Owner    struct {
-		Login string `json:"login"`
-	} `json:"owner"`
+type Project struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	AccountID string `json:"accountId"`
 }
 
-func (r *Repository) ToEntity() *commons.Entity {
-	return &commons.Entity{
-		ID:         fmt.Sprint(r.ID),
-		Slug:       r.FullName,
-		URL:        r.HTMLURL,
-		Type:       commons.Github,
-		Name:       r.Name,
-		ParentName: r.Owner.Login,
-	}
+type VercelResponse struct {
+	Error map[string]interface{} `json:"error,omitempty"`
+}
+
+type VercelSecret struct {
+	Error       map[string]interface{} `json:"error,omitempty"`
+	ID          string                 `json:"uid"`
+	Name        string                 `json:"name"`
+	UserID      string                 `json:"userId"`
+	TeamID      string                 `json:"teamId"`
+	Decryptable bool                   `json:"decryptable"`
+	Value       struct {
+		Data interface{} `json:"data"`
+		Type string      `json:"type"`
+	} `json:"value"`
 }

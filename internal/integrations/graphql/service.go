@@ -13,16 +13,20 @@ import (
 func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) *errors.Error {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($org_id: uuid!, $installation_id: String!, $type: String!) {
-		insert_integrations(objects: {org_id: $org_id, installation_id: $installation_id, type: $type}) {
+	mutation MyMutation($org_id: uuid!, $installation_id: String!, $type: String!, $credentials: jsonb) {
+		insert_integrations(objects: {org_id: $org_id, installation_id: $installation_id, type: $type, credentials: $credentials}) {
 		  affected_rows
 		}
-	  }				  
+	  }						
 	`)
 
 	req.Var("org_id", options.OrgID)
 	req.Var("installation_id", options.InstallationID)
 	req.Var("type", options.Type)
+
+	if options.Credentials != nil {
+		req.Var("credentials", options.Credentials)
+	}
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
@@ -49,6 +53,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 		  org_id
 		  type
 		  user_id
+		  credentials
 		}
 	  }					  
 	`)
