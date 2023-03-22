@@ -37,7 +37,7 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	data.Set("client_id", os.Getenv("VERCEL_CLIENT_ID"))
 	data.Set("client_secret", os.Getenv("VERCEL_CLIENT_SECRET"))
 	data.Set("code", options.Code)
-	data.Set("redirect_uri", "http://localhost:9005/v1/integrations/vercel/setup")
+	data.Set("redirect_uri", os.Getenv("REDIRECT_DOMAIN")+"/v1/integrations/vercel/setup")
 
 	req, err := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
