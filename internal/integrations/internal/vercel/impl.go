@@ -165,7 +165,6 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 	}
 
 	if response.Error != nil {
-		fmt.Println(response.Error)
 		return errors.New(fmt.Errorf(response.Error["message"].(string)), "vercel returned errors", errors.ErrorTypeBadResponse, errors.ErrorSourceVercel)
 	}
 
