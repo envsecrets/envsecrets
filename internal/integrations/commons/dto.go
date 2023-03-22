@@ -22,13 +22,14 @@ type APIResponse struct {
 }
 
 type Integration struct {
-	ID             string          `json:"id,omitempty" graphql:"id,omitempty"`
-	CreatedAt      time.Time       `json:"created_at,omitempty" graphql:"created_at,omitempty"`
-	UpdatedAt      time.Time       `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
-	UserID         string          `json:"user_id,omitempty" graphql:"user_id,omitempty"`
-	OrgID          string          `json:"org_id"`
-	InstallationID string          `json:"installation_id"`
-	Type           IntegrationType `json:"type"`
+	ID             string                 `json:"id,omitempty" graphql:"id,omitempty"`
+	CreatedAt      time.Time              `json:"created_at,omitempty" graphql:"created_at,omitempty"`
+	UpdatedAt      time.Time              `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
+	UserID         string                 `json:"user_id,omitempty" graphql:"user_id,omitempty"`
+	OrgID          string                 `json:"org_id"`
+	InstallationID string                 `json:"installation_id"`
+	Type           IntegrationType        `json:"type"`
+	Credentials    map[string]interface{} `json:"credentials,omitempty"`
 }
 
 type Integrations []Integration
@@ -75,5 +76,6 @@ type ListEntitiesRequestOptions struct {
 type SyncOptions struct {
 	InstallationID string                           `json:"installation_id"`
 	EntityDetails  map[string]interface{}           `json:"entity_details"`
+	Credentials    map[string]interface{}           `json:"credentials"`
 	Data           map[string]secretCommons.Payload `json:"data"`
 }

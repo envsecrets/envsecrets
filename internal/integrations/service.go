@@ -38,7 +38,7 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	case commons.Github:
 		return github.ListEntities(ctx, integration)
 	case commons.Vercel:
-		return nil, nil
+		return vercel.ListEntities(ctx, integration)
 	}
 
 	return nil, nil
@@ -95,6 +95,6 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationTy
 	case commons.Github:
 		return github.Sync(ctx, options)
 	default:
-		return nil
+		return vercel.Sync(ctx, options)
 	}
 }

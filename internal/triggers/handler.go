@@ -161,6 +161,7 @@ func SecretInserted(c echo.Context) error {
 				InstallationID: event.Integration.InstallationID,
 				EntityDetails:  event.EntityDetails,
 				Data:           data,
+				Credentials:    event.Integration.Credentials,
 			}); err != nil {
 				log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)
 				log.Println(err)
@@ -220,7 +221,7 @@ func EventInserted(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,
-			Message: "failed to get organisation to which tthis event is associated with",
+			Message: "failed to get organisation to which this event is associated with",
 			Error:   err.Error.Error(),
 		})
 	}
@@ -309,6 +310,7 @@ func EventInserted(c echo.Context) error {
 		InstallationID: integration.InstallationID,
 		EntityDetails:  row.EntityDetails,
 		Data:           data,
+		Credentials:    integration.Credentials,
 	}); err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,

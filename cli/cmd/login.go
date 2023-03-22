@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"fmt"
 	"net/mail"
 	"os"
 
@@ -52,12 +53,12 @@ var loginCmd = &cobra.Command{
 	Short: "Authenticate your envsecrets cloud account",
 	Args: func(cmd *cobra.Command, args []string) error {
 
-		log.Info("Enter your envsecrets cloud account e-mail address and password.")
-		log.Info("You can change your password from the header by logging in at https://app.envsecrets.com")
-
 		var err error
 
 		if len(email) == 0 {
+
+			fmt.Println("Enter your envsecrets cloud account e-mail address and password.")
+			fmt.Println("You can change your password from the header by logging in at https://app.envsecrets.com")
 
 			//	Take email input
 			validate := func(input string) error {
