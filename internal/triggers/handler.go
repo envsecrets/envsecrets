@@ -9,15 +9,16 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/events"
 	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
+	"github.com/envsecrets/envsecrets/internal/mail"
+	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/permissions"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
-	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
@@ -380,7 +381,7 @@ func UserInserted(c echo.Context) error {
 }
 
 //	Called when a new row is inserted inside the `organisations` table.
-func OrganisationInserted(c echo.Context) error {
+func OrganisationCreateKey(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
@@ -392,8 +393,8 @@ func OrganisationInserted(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var organisation organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.New, &organisation); err != nil {
+	var row organisations.Organisation
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,
 			Message: "failed to unmarshal new data",
@@ -405,7 +406,7 @@ func OrganisationInserted(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.GenerateKey(ctx, organisation.ID, secretCommons.GenerateKeyOptions{
+	if err := secrets.GenerateKey(ctx, row.ID, secretCommons.GenerateKeyOptions{
 		Exportable:           true,
 		AllowPlaintextBackup: true,
 	}); err != nil {
@@ -416,9 +417,147 @@ func OrganisationInserted(c echo.Context) error {
 		})
 	}
 
+	//	Export the key.
+	key, err := secrets.BackupKey(ctx, row.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, &APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to export transit key",
+			Error:   err.Message,
+		})
+	}
+
+	//	Get the mailer service.
+	service := mail.GetService()
+
+	//	Email the key to owner.
+	if err := service.SendKey(ctx, &commons.SendKeyOptions{
+		Key:     key.Data.Backup,
+		UserID:  row.UserID,
+		OrgName: row.Name,
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, &APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to email transit key",
+			Error:   err.Message,
+		})
+	}
+
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
 		Message: "successfully generated the transit key",
+	})
+}
+
+//	Called when a new row is inserted inside the `organisations` table.
+func OrganisationCreateDefaultRoles(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusOK, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var row organisations.Organisation
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	Generate default roles for the organisation.
+	roles := []permissionCommons.RoleInsertOptions{
+		{
+			Name: "viewer",
+			Permissions: permissionCommons.Permissions{
+				Projects: permissionCommons.CRUD{
+					Read: true,
+				},
+				Environments: permissionCommons.CRUD{
+					Read: true,
+				},
+			},
+		},
+		{
+			Name: "editor",
+			Permissions: permissionCommons.Permissions{
+				Projects: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
+				Environments: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
+			},
+		},
+		{
+			Name: "admin",
+			Permissions: permissionCommons.Permissions{
+				Permissions: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
+				Projects: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
+				Environments: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
+			},
+		},
+	}
+
+	//	Initialize the permissions service.
+	service := permissions.GetService()
+
+	//	Create the roles.
+	for _, item := range roles {
+
+		//	Set the organisation ID in Role
+		item.OrgID = row.ID
+
+		if err := service.Insert(permissionCommons.RoleLevelPermission, ctx, client, item); err != nil {
+			return c.JSON(http.StatusBadRequest, &APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("failed to create role %s for org_id %s", item.Name, item.OrgID),
+				Error:   err.Message,
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully generated the transit key and created roles",
 	})
 }
 
@@ -462,8 +601,8 @@ func OrganisationDeleted(c echo.Context) error {
 	})
 }
 
-//	Called when a row is inserted/updated/deleted inside the `org_level_permissions` table.
-func OrganisationLevelPermissions(c echo.Context) error {
+//	Called when a new row is inserted inside the `invites` table.
+func InviteInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
@@ -475,8 +614,8 @@ func OrganisationLevelPermissions(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var organisation permissionCommons.OrgnisationPermissions
-	if err := MapToStruct(payload.Event.Data.New, &organisation); err != nil {
+	var row inviteCommons.Invite
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadGateway, &APIResponse{
 			Code:    http.StatusBadRequest,
 			Message: "failed to unmarshal new data",
@@ -484,90 +623,34 @@ func OrganisationLevelPermissions(c echo.Context) error {
 		})
 	}
 
-	incomingPermissions, err := organisation.GetPermissions()
-	if err != nil {
-		return c.JSON(http.StatusBadGateway, &APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to unmarshal incoming permissions",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Fetch the permissions service
-	service := permissions.GetService()
-
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
-	//	Initialize Hasura client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
+	//	Get the mailer service.
+	service := mail.GetService()
 
-	switch payload.Event.Op {
-	case string(Insert):
-
-		var permissions permissionCommons.Permissions
-
-		//	If the user has been given permission to "manage projects" in the organisation,
-		//	we have to give the user permission to manage every environment of every project.
-		if incomingPermissions.ProjectsManage {
-			permissions.EnvironmentsManage = true
-		}
-
-		//	If the user has been given permission to "write secrets" in the organisation,
-		//	we have to give the user permission to write secrets in every environment of every project.
-		if incomingPermissions.SecretsWrite {
-			permissions.SecretsWrite = true
-		}
-
-		//	If the user has been given permission to "manage permissions" in the organisation,
-		//	we have to give the user permission to manage permissions in every environment of every project.
-		if incomingPermissions.PermissionsManage {
-			permissions.PermissionsManage = true
-		}
-
-		//	Fetch all projects of the organisation
-		projects, err := projects.List(ctx, client, &projects.ListOptions{
-			OrgID: organisation.OrgID,
+	//	Send the invitation email.
+	if err := service.Invite(ctx, &commons.InvitationOptions{
+		ID:            row.ID,
+		Key:           row.Key,
+		ReceiverEmail: row.Email,
+		OrgID:         row.OrgID,
+		SenderID:      row.UserID,
+	}); err != nil {
+		return c.JSON(http.StatusBadRequest, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: err.Message,
+			Error:   err.Error.Error(),
 		})
-		if err != nil {
-			return c.JSON(http.StatusBadGateway, &APIResponse{
-				Code:    http.StatusBadRequest,
-				Message: "failed to fetch projects for organisation",
-				Error:   err.Message,
-			})
-		}
-
-		//	Insert permissions for every project
-		for _, item := range *projects {
-			if err := service.Insert(
-				permissionCommons.ProjectLevelPermission,
-				ctx,
-				client,
-				permissionCommons.ProjectPermissionsInsertOptions{
-					ProjectID:   item.ID,
-					UserID:      organisation.UserID,
-					Permissions: permissions}); err != nil {
-				return c.JSON(http.StatusBadGateway, &APIResponse{
-					Code:    http.StatusBadRequest,
-					Message: "failed to insert permissions for project: " + item.ID,
-					Error:   err.Message,
-				})
-			}
-		}
 	}
 
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
-		Message: "successfully inserted project level permissions",
+		Message: "successfully sent invitation email to " + row.Email,
 	})
 }
 
-//	Called when a row is inserted/updated/deleted inside the `project_level_permissions` table.
+/* //	Called when a row is inserted/updated/deleted inside the `project_level_permissions` table.
 func ProjectLevelPermissions(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -683,3 +766,4 @@ func EnvironmentLevelPermissions(c echo.Context) error {
 		Message: "un-built event endpoint",
 	})
 }
+*/

@@ -1,0 +1,92 @@
+table:
+  name: org_has_user
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+  - name: role
+    using:
+      foreign_key_constraint_on: role_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true
+      columns:
+        - org_id
+        - role_id
+        - user_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - created_at
+        - id
+        - org_id
+        - role_id
+        - updated_at
+        - user_id
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - user_id:
+              _eq: X-Hasura-User-Id
+          - _and:
+              - user_id:
+                  _eq: X-Hasura-User-Id
+              - permissions:
+                  _contains:
+                    permissions_manage: true
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - role_id
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - permissions:
+                      _contains:
+                        permissions_manage: true

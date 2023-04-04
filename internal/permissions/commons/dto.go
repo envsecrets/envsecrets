@@ -12,21 +12,59 @@ import (
 
 type Permissions struct {
 
-	//	Invite/remove users and their permissions.
-	PermissionsManage bool `json:"permissions_manage,omitempty"`
+	//	Other members and their permissions.
+	Permissions CRUD `json:"permissions,omitempty"`
 
-	//	Create/Delete projects.
-	ProjectsManage bool `json:"projects_manage,omitempty"`
+	//	Projects and their environments.
+	Projects CRUD `json:"projects,omitempty"`
 
-	//	Create/Delete environments.
-	EnvironmentsManage bool `json:"environments_manage,omitempty"`
-
-	//	Create/Update secrets.
-	SecretsWrite bool `json:"secrets_write,omitempty"`
+	//	Environments and their secrets.
+	Environments CRUD `json:"environments,omitempty"`
 }
 
 func (p *Permissions) Marshal() ([]byte, error) {
 	return json.Marshal(p)
+}
+
+type CRUD struct {
+	Create bool `json:"create,omitempty"`
+	Read   bool `json:"read,omitempty"`
+	Update bool `json:"update,omitempty"`
+	Delete bool `json:"delete,omitempty"`
+}
+
+func (p *CRUD) Marshal() ([]byte, error) {
+	return json.Marshal(p)
+}
+
+type Role struct {
+	ID        string    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+
+	Name string `json:"name"`
+
+	OrgID        string                     `json:"org_id,omitempty"`
+	Organisation organisations.Organisation `json:"organisation,omitempty"`
+
+	Permissions string `json:"permissions,omitempty"`
+}
+
+//	Permissions structure will also have to be manually unmarshalled.
+//	Because Hasura sends stringified JSON.
+func (o *Role) GetPermissions() (*Permissions, error) {
+	var response Permissions
+	err := json.Unmarshal([]byte(o.Permissions), &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
+
+type RoleInsertOptions struct {
+	OrgID       string      `json:"org_id,omitempty"`
+	Name        string      `json:"name"`
+	Permissions Permissions `json:"permissions,omitempty"`
 }
 
 type OrgnisationPermissions struct {
@@ -55,9 +93,9 @@ func (o *OrgnisationPermissions) GetPermissions() (*Permissions, error) {
 }
 
 type OrganisationPermissionsInsertOptions struct {
-	OrgID       string      `json:"org_id,omitempty"`
-	UserID      string      `json:"user_id,omitempty"`
-	Permissions Permissions `json:"permissions,omitempty"`
+	OrgID  string `json:"org_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
+	RoleID string `json:"role_id,omitempty"`
 }
 
 type ProjectPermissions struct {

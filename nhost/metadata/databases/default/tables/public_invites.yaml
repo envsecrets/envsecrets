@@ -1,0 +1,104 @@
+table:
+  name: invites
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+  - name: role
+    using:
+      foreign_key_constraint_on: role_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            create: true
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - email
+        - org_id
+        - role_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - accepted
+        - email
+        - created_at
+        - updated_at
+        - id
+        - org_id
+        - role_id
+        - user_id
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            read: true
+      allow_aggregations: true
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            delete: true
+event_triggers:
+  - name: invite_new
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/v1/triggers/invites/new'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60

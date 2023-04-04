@@ -20,6 +20,8 @@ const (
 	ErrorTypeDoesNotExist                ErrorType = "DoesNotExist"
 	ErrorTypeInvalidKey                  ErrorType = "InvalidKey"
 	ErrorTypeInvalidAccountConfiguration ErrorType = "InvalidAccountConfiguration"
+
+	ErrorTypeEmailFailed ErrorType = "EmailFailed"
 )
 
 type ErrorSource string
@@ -27,6 +29,8 @@ type ErrorSource string
 const (
 	ErrorSourceHTTP    ErrorSource = "http"
 	ErrorSourceGraphQL ErrorSource = "graphql"
+	ErrorSourceHermes  ErrorSource = "hermes"
+	ErrorSourceMailer  ErrorSource = "mailer"
 
 	ErrorSourceVault ErrorSource = "vault"
 	ErrorSourceNhost ErrorSource = "nhost"

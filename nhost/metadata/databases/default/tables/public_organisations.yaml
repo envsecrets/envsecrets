@@ -13,12 +13,19 @@ array_relationships:
         table:
           name: integrations
           schema: public
-  - name: org_level_permissions
+  - name: invites
     using:
       foreign_key_constraint_on:
         column: org_id
         table:
-          name: org_level_permissions
+          name: invites
+          schema: public
+  - name: org_has_user
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: org_has_user
           schema: public
   - name: projects
     using:
@@ -26,6 +33,13 @@ array_relationships:
         column: org_id
         table:
           name: projects
+          schema: public
+  - name: roles
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: roles
           schema: public
 insert_permissions:
   - role: user
@@ -50,7 +64,7 @@ select_permissions:
         _or:
           - user_id:
               _eq: X-Hasura-User-Id
-          - org_level_permissions:
+          - org_has_user:
               user_id:
                 _eq: X-Hasura-User-Id
       allow_aggregations: true
@@ -70,6 +84,26 @@ delete_permissions:
         user_id:
           _eq: X-Hasura-User-Id
 event_triggers:
+  - name: org_create_roles
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/v1/triggers/organisations/create-roles'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60
   - name: org_delete
     definition:
       delete:
@@ -99,7 +133,7 @@ event_triggers:
       interval_sec: 10
       num_retries: 0
       timeout_sec: 60
-    webhook: '{{API}}/v1/triggers/organisations/new'
+    webhook: '{{API}}/v1/triggers/organisations/create-key'
     headers:
       - name: x-hasura-webhook-secret
         value_from_env: NHOST_WEBHOOK_SECRET
