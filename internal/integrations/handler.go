@@ -34,8 +34,7 @@ func SetupHandler(c echo.Context) error {
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	//		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
-	return c.String(http.StatusOK, "received")
+	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
 }
 
 func ListEntitiesHandler(c echo.Context) error {
@@ -47,14 +46,6 @@ func ListEntitiesHandler(c echo.Context) error {
 		return errors.New("invalid integration type")
 	}
 
-	/* 	//	Validate required query params.
-	   	requiredParams := []string{"org_id"}
-	   	for _, item := range requiredParams {
-	   		if c.QueryParam(item) == "" {
-	   			return errors.New("invalid or incomplete query parameters")
-	   		}
-	   	}
-	*/
 	//	Get the service.
 	service := GetService()
 
@@ -70,16 +61,16 @@ func ListEntitiesHandler(c echo.Context) error {
 	//	Run the service handler.
 	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID))
 	if err != nil {
-		return c.JSON(http.StatusBadGateway, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to execute service callback",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("failed to fetch integration entities"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &commons.APIResponse{
 		Code:    http.StatusOK,
-		Message: "successfully executed service callback",
+		Message: "successfully fetched integration entities",
 		Data:    entities,
 	})
 }

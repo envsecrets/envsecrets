@@ -31,13 +31,15 @@ insert_permissions:
           _or:
             - user_id:
                 _eq: X-Hasura-User-Id
-            - org_level_permissions:
+            - org_has_user:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        projects_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          projects:
+                            create: true
       set:
         user_id: x-hasura-User-Id
       columns:
@@ -58,9 +60,16 @@ select_permissions:
           - organisation:
               user_id:
                 _eq: X-Hasura-User-Id
-          - project_level_permissions:
-              user_id:
-                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          projects:
+                            read: true
           - user_id:
               _eq: X-Hasura-User-Id
       allow_aggregations: true
@@ -74,13 +83,15 @@ update_permissions:
           _or:
             - user_id:
                 _eq: X-Hasura-User-Id
-            - org_level_permissions:
+            - org_has_user:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        projects_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          projects:
+                            update: true
       check: null
 delete_permissions:
   - role: user
@@ -90,10 +101,33 @@ delete_permissions:
           _or:
             - user_id:
                 _eq: X-Hasura-User-Id
-            - org_level_permissions:
+            - org_has_user:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        projects_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          projects:
+                            delete: true
+event_triggers:
+  - name: project_create_envs
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{API}}/v1/triggers/projects/new'
+    headers:
+      - name: x-hasura-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET
+    cleanup_config:
+      batch_size: 10000
+      clean_invocation_logs: false
+      clear_older_than: 168
+      paused: true
+      schedule: 0 0 * * *
+      timeout: 60

@@ -1,0 +1,71 @@
+table:
+  name: roles
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+array_relationships:
+  - name: invites
+    using:
+      foreign_key_constraint_on:
+        column: role_id
+        table:
+          name: invites
+          schema: public
+  - name: org_has_users
+    using:
+      foreign_key_constraint_on:
+        column: role_id
+        table:
+          name: org_has_user
+          schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id
+      columns:
+        - name
+        - org_id
+        - permissions
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - permissions
+        - name
+        - created_at
+        - updated_at
+        - id
+        - org_id
+      filter:
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                user_id:
+                  _eq: X-Hasura-User-Id
+      allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - name
+        - permissions
+      filter:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id

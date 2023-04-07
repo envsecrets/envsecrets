@@ -94,8 +94,7 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		//	`envsecrets run -- npm run dev`
 		secretPayload, err := export(nil)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch all the secret values")
+			log.Fatal(err)
 		}
 
 		log.Debug("Injecting environment secrets version ", secretPayload["version"], " into your process!")

@@ -46,8 +46,9 @@ var log = commons.Logger
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "envsecrets",
-	Short: "CLI-first manangement of your environment secrets and variables.",
+	Use:     "envsecrets",
+	Aliases: []string{"envs"},
+	Short:   "CLI-first manangement of your environment secrets and variables.",
 	Long: `
 envsecrets provides a centralized cloud account with rotate-able keys
 to store the environment secrets and variables for all your projects in a single place

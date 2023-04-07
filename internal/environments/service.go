@@ -12,6 +12,8 @@ import (
 //	Create a new environment
 func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, *errors.Error) {
 
+	errorMessage := "Failed to create the environment"
+
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!) {
 		insert_environments(objects: {name: $name, project_id: $project_id}) {
@@ -20,7 +22,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 			name
 		  }
 		}
-	  }	  
+	  }			
 	`)
 
 	req.Var("name", options.Name)
@@ -33,13 +35,53 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &resp[0], nil
+}
+
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, *errors.Error) {
+
+	errorMessage := "Failed to create the environment"
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($name: String!, $project_id: uuid!, $user_id: uuid) {
+		insert_environments(objects: {name: $name, project_id: $project_id, user_id: $user_id}) {
+		  returning {
+			id
+			name
+		  }
+		}
+	  }			
+	`)
+
+	req.Var("name", options.Name)
+	req.Var("project_id", options.ProjectID)
+	if options.UserID != "" {
+		req.Var("user_id", options.UserID)
+	}
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
+	if err != nil {
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []Environment
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
@@ -47,6 +89,8 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 //	Get a environment by ID
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, *errors.Error) {
+
+	errorMessage := "Failed to fetch the environment"
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -66,13 +110,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 
 	returning, err := json.Marshal(response["environments_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -80,6 +124,8 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 
 //	List environments
 func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, *errors.Error) {
+
+	errorMessage := "Failed to list the environments"
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -99,13 +145,13 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	returning, err := json.Marshal(response["environments"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -113,6 +159,8 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 //	Update a environment by ID
 func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, *errors.Error) {
+
+	errorMessage := "Failed to update the environment"
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -133,13 +181,13 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_environments_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil

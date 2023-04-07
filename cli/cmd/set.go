@@ -211,13 +211,13 @@ NOTE: This command auto-capitalizes your keys.`,
 
 		var response commons.APIResponse
 		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to complete the request")
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
 		}
 
 		if response.Error != "" {
-			log.Debug(err)
-			log.Fatal("Failed to set the secrets")
+			log.Debug(response.Error)
+			log.Fatal(response.Message)
 		}
 
 		log.Info("Secrets set! Created version ", response.Data.(map[string]interface{})["version"])

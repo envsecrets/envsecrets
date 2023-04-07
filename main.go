@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/integrations"
+	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/envsecrets/envsecrets/internal/triggers"
 	"github.com/joho/godotenv"
@@ -45,6 +46,7 @@ func main() {
 		"/triggers",
 		"integrations",
 		"healthz",
+		"invites",
 	}
 
 	e.Use(echojwt.WithConfig(echojwt.Config{
@@ -74,11 +76,9 @@ func main() {
 	//	Integrations group
 	integrations.AddRoutes(v1Group)
 
-	/*
-		//	Invites group
-		invites := v1Group.Group("/invites")
-		invites.POST("/:id/accept", api.AcceptInvite)
-	*/
+	//	Invites group
+	invites.AddRoutes(v1Group)
+
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }

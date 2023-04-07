@@ -5,17 +5,18 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
-		users_by_pk(id: $id) {
+		users(where: {id: {_eq: $id}}) {
 			id
-			name
+			displayName
 			email
 		}
 	  }
@@ -25,31 +26,31 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
-		return nil, err.Error
+		return nil, err
 	}
 
-	returning, err := json.Marshal(response["users_by_pk"])
+	returning, err := json.Marshal(response["users"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.User
+	var resp []commons.User
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to nmarshal returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
-	return &resp, nil
+	return &resp[0], nil
 }
 
-func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, error) {
+func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, *errors.Error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery($email: String!) {
-		users_by_pk(email: $email) {
-			id
-			name
+	query MyQuery($email: citext!) {
+		users(where: {email: {_eq: $email}}) {
 			email
+			id
+			displayName
 		}
 	  }	  
 	`)
@@ -58,19 +59,19 @@ func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email str
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
-		return nil, err.Error
+		return nil, err
 	}
 
-	returning, err := json.Marshal(response["users_by_pk"])
+	returning, err := json.Marshal(response["users"])
 	if err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to marshal json response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.User
+	var resp []commons.User
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
+		return nil, errors.New(err, "failed to nmarshal returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
-	return &resp, nil
+	return &resp[0], nil
 }

@@ -11,6 +11,7 @@ type Project struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at"`
 	Name      string    `json:"name,omitempty" graphql:"name"`
 	OrgID     string    `json:"org_id,omitempty" graphql:"org_id"`
+	UserID    string    `json:"user_id"`
 }
 
 func (w *Project) Marshal() ([]byte, error) {

@@ -26,17 +26,25 @@ func AddRoutes(sg *echo.Group) {
 	users := triggers.Group("/users")
 	users.POST("/new", UserInserted)
 
+	//	invites group
+	invites := triggers.Group("/invites")
+	invites.POST("/new", InviteInserted)
+
 	//	organisations group
 	organisations := triggers.Group("/organisations")
 
-	organisations.POST("/new", OrganisationInserted)
+	organisations.POST("/create-key", OrganisationCreateKey)
+	organisations.POST("/create-roles", OrganisationCreateDefaultRoles)
 	organisations.POST("/delete", OrganisationDeleted)
+
+	//	projects group
+	projects := triggers.Group("/projects")
+	projects.POST("/new", ProjectInserted)
 
 	// permissions group
 	permissions := triggers.Group("/permissions")
 
-	permissions.POST("/organisation", OrganisationLevelPermissions)
 	permissions.POST("/organisation/delete", OrganisationDeleted)
-	permissions.POST("/project", ProjectLevelPermissions)
-	permissions.POST("/environment", EnvironmentLevelPermissions)
+	//permissions.POST("/project", ProjectLevelPermissions)
+	//permissions.POST("/environment", EnvironmentLevelPermissions)
 }

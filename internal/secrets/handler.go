@@ -39,9 +39,9 @@ func SetHandler(c echo.Context) error {
 		KeyVersion: payload.KeyVersion,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to set the secret",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to set the secret"),
 			Error:   err.Message,
 		})
 	}
@@ -82,9 +82,9 @@ func MergeHandler(c echo.Context) error {
 		SourceVersion: payload.SourceVersion,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to merge secrets",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to merge the secrets"),
 			Error:   err.Message,
 		})
 	}
@@ -122,16 +122,16 @@ func DeleteHandler(c echo.Context) error {
 		EnvID: payload.EnvID,
 		Key:   payload.Key,
 	}); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to set the secret",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to delete the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &commons.APIResponse{
 		Code:    http.StatusOK,
-		Message: "successfully set the secret",
+		Message: "successfully delete the secret",
 	})
 }
 
@@ -171,9 +171,9 @@ func GetHandler(c echo.Context) error {
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-				Code:    http.StatusBadRequest,
-				Message: "failed to get the secret",
+			return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+				Code:    err.Type.GetStatusCode(),
+				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
 		}
@@ -188,9 +188,9 @@ func GetHandler(c echo.Context) error {
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-				Code:    http.StatusBadRequest,
-				Message: "failed to get the secret",
+			return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+				Code:    err.Type.GetStatusCode(),
+				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
 		}
@@ -221,9 +221,9 @@ func KeyBackupHandler(c echo.Context) error {
 	//	Call the service function.
 	response, err := BackupKey(ctx, payload.OrgID)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to set the secret",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to generate key backup"),
 			Error:   err.Message,
 		})
 	}
@@ -255,9 +255,9 @@ func KeyRestoreHandler(c echo.Context) error {
 		Backup: payload.Backup,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to set the secret",
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to restore the key"),
 			Error:   err.Message,
 		})
 	}

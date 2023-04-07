@@ -12,6 +12,8 @@ import (
 //	Create a new workspace
 func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, *errors.Error) {
 
+	errorMessage := "Failed to create project"
+
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
 		insert_projects(objects: {name: $name, org_id: $org_id}) {
@@ -33,13 +35,13 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_projects"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
@@ -47,6 +49,8 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 //	Get a workspace by ID
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, *errors.Error) {
+
+	errorMessage := "Failed to fetch project"
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -67,13 +71,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Pro
 
 	returning, err := json.Marshal(response["projects_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -81,6 +85,8 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Pro
 
 //	List projects
 func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, *errors.Error) {
+
+	errorMessage := "Failed to list projects"
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -100,13 +106,13 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	returning, err := json.Marshal(response["projects"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -114,6 +120,8 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 //	Update a workspace by ID
 func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, *errors.Error) {
+
+	errorMessage := "Failed to update the project"
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -134,13 +142,13 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_projects_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil

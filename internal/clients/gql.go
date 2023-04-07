@@ -88,7 +88,8 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 		//	If it's a JWTExpired error,
 		//	refresh the JWT and re-call the request.
-		if apiError.IsType(errors.ErrorTypeJWTExpired) {
+		switch apiError.Type {
+		case errors.ErrorTypeJWTExpired:
 
 			c.log.Debug("Request failed due to expired token. Refreshing access token to try again.")
 
@@ -126,7 +127,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 			return c.Do(ctx, req, &resp)
 
-		} else {
+		default:
 			return apiError
 		}
 	}

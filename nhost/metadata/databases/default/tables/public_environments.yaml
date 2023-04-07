@@ -43,22 +43,16 @@ insert_permissions:
               user_id:
                 _eq: X-Hasura-User-Id
           - project:
-              project_level_permissions:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        environments_manage: true
-          - project:
               organisation:
-                org_level_permissions:
+                org_has_user:
                   _and:
                     - user_id:
                         _eq: X-Hasura-User-Id
-                    - permissions:
-                        _contains:
-                          projects_manage: true
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              create: true
       set:
         user_id: x-hasura-User-Id
       columns:
@@ -76,35 +70,26 @@ select_permissions:
         - user_id
       filter:
         _or:
-          - user_id:
-              _eq: X-Hasura-User-Id
-          - project:
-              user_id:
-                _eq: X-Hasura-User-Id
           - project:
               organisation:
                 user_id:
                   _eq: X-Hasura-User-Id
-          - env_level_permissions:
+          - project:
               user_id:
                 _eq: X-Hasura-User-Id
           - project:
-              project_level_permissions:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        environments_manage: true
-          - project:
               organisation:
-                org_level_permissions:
+                org_has_user:
                   _and:
                     - user_id:
                         _eq: X-Hasura-User-Id
-                    - permissions:
-                        _contains:
-                          projects_manage: true
+                    - role:
+                        permissions:
+                          _contains:
+                            projects:
+                              read: true
+          - user_id:
+              _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -121,22 +106,18 @@ update_permissions:
               user_id:
                 _eq: X-Hasura-User-Id
           - project:
-              project_level_permissions:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        environments_manage: true
-          - project:
               organisation:
-                org_level_permissions:
+                org_has_user:
                   _and:
                     - user_id:
                         _eq: X-Hasura-User-Id
-                    - permissions:
-                        _contains:
-                          projects_manage: true
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              update: true
+          - user_id:
+              _eq: X-Hasura-User-Id
       check: null
 delete_permissions:
   - role: user
@@ -151,19 +132,15 @@ delete_permissions:
               user_id:
                 _eq: X-Hasura-User-Id
           - project:
-              project_level_permissions:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        environments_manage: true
-          - project:
               organisation:
-                org_level_permissions:
+                org_has_user:
                   _and:
                     - user_id:
                         _eq: X-Hasura-User-Id
-                    - permissions:
-                        _contains:
-                          projects_manage: true
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              delete: true
+          - user_id:
+              _eq: X-Hasura-User-Id
