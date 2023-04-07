@@ -28,7 +28,7 @@ jobs:
         uses: samuelmeuli/action-snapcraft@v2
 
       - 
-        name: Create Snap Cache Directories
+        name: Create snap cache directories
         run: |
           mkdir -p $HOME/.cache/snapcraft/download
           mkdir -p $HOME/.cache/snapcraft/stage-packages
