@@ -116,8 +116,8 @@ var deleteCmd = &cobra.Command{
 
 		var response commons.APIResponse
 		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to complete the request")
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
 		}
 
 		if response.Error != "" {

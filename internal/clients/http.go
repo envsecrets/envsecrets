@@ -112,7 +112,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
-	if resp.StatusCode == 401 {
+	if resp.StatusCode == http.StatusUnauthorized {
 
 		c.log.Debug("Request failed due to expired token. Refreshing access token to try again.")
 
@@ -152,6 +152,8 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		return c.Run(ctx, req, response)
+	} else if resp.StatusCode == http.StatusForbidden {
+		errors.New(nil, "You do not have permissions to perform this action", errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
 	}
 
 	if response != nil {

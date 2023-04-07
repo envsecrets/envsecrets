@@ -106,6 +106,7 @@ func Parse(err error) *Error {
 
 	if strings.Contains(response.Message, "permission has failed") {
 		response.Type = ErrorTypePermissionDenied
+		response.Message = response.GenerateMessage("Permission Denied")
 	}
 
 	if len(payload) > 2 {

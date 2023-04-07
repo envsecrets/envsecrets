@@ -72,8 +72,7 @@ var getCmd = &cobra.Command{
 
 		secretPayload, err := export(&key)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the secrets")
+			log.Fatal(err)
 		}
 
 		log.Debug("Fetched secret version ", secretPayload["version"])

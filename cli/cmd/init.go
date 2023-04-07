@@ -107,9 +107,8 @@ var initCmd = &cobra.Command{
 			//	Check whether user has access to at least 1 organisation.
 			orgs, er := organisations.List(commons.DefaultContext, commons.GQLClient)
 			if er != nil {
-				log.Debug(er)
-				log.Fatal("Failed to fetch list of organisations")
-
+				log.Debug(er.Error)
+				log.Fatal(er.Message)
 			}
 
 			var orgsStringList []string
@@ -145,9 +144,8 @@ var initCmd = &cobra.Command{
 					Name: result,
 				})
 				if er != nil {
-					log.Debug(er)
-					log.Fatal("Failed to create new organisation")
-
+					log.Debug(er.Error)
+					log.Fatal(er.Message)
 				}
 
 				organisation.ID = item.ID
@@ -162,8 +160,8 @@ var initCmd = &cobra.Command{
 				OrgID: organisation.ID,
 			})
 			if er != nil {
-				log.Debug(er)
-				log.Fatal(er.GenerateMessage("Failed to fetch list of projects"))
+				log.Debug(er.Error)
+				log.Fatal(er.Message)
 			}
 
 			var projectsStringList []string
@@ -200,8 +198,8 @@ var initCmd = &cobra.Command{
 					Name:  result,
 				})
 				if er != nil {
-					log.Debug(er)
-					log.Fatal(er.GenerateMessage("Failed to create new project"))
+					log.Debug(er.Error)
+					log.Fatal(er.Message)
 				}
 
 				project.ID = item.ID
@@ -220,8 +218,8 @@ var initCmd = &cobra.Command{
 				ProjectID: project.ID,
 			})
 			if er != nil {
-				log.Debug(er)
-				log.Fatal(er.GenerateMessage("Failed to fetch list of environments"))
+				log.Debug(er.Error)
+				log.Fatal(er.Message)
 			}
 
 			var environmentsStringList []string
@@ -258,8 +256,8 @@ var initCmd = &cobra.Command{
 					Name:      result,
 				})
 				if er != nil {
-					log.Debug(er)
-					log.Fatal("Failed to create new environment")
+					log.Debug(er.Error)
+					log.Fatal(er.Message)
 				}
 
 				environment.ID = item.ID

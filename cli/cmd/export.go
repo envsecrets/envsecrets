@@ -72,8 +72,7 @@ var exportCmd = &cobra.Command{
 
 		secretPayload, err := export(nil)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch all the secret values")
+			log.Fatal(err)
 		}
 
 		log.Debug("Fetched secret version ", secretPayload["version"])
@@ -140,11 +139,12 @@ func export(key *string) (map[string]interface{}, error) {
 
 	var response commons.APIResponse
 	if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-		return nil, err.Error
+		return nil, errors.New(err.Message)
 	}
 
 	if response.Error != "" {
-		return nil, errors.New(response.Error)
+		log.Debug(response.Error)
+		return nil, errors.New(response.Message)
 	}
 
 	return response.Data.(map[string]interface{}), nil

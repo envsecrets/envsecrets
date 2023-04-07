@@ -36,7 +36,7 @@ func AcceptHandler(c echo.Context) error {
 	//	Fetch the invite
 	invite, err := service.Get(ctx, client, id)
 	if err != nil {
-		return c.String(http.StatusBadRequest, "Invite not found")
+		return c.String(err.Type.GetStatusCode(), "Invite not found")
 	}
 
 	//	Validate the key for this invite.
@@ -61,9 +61,9 @@ func AcceptHandler(c echo.Context) error {
 		RoleID: invite.RoleID,
 		UserID: user.ID,
 	}); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: err.Message,
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to accept invite"),
 			Error:   err.Error.Error(),
 		})
 	}
@@ -72,9 +72,9 @@ func AcceptHandler(c echo.Context) error {
 	if _, err := service.Update(ctx, client, id, &commons.UpdateOptions{
 		Accepted: true,
 	}); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: err.Message,
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to accept invite"),
 			Error:   err.Error.Error(),
 		})
 	}

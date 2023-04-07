@@ -13,6 +13,8 @@ import (
 //	Create a new organisation
 func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
 
+	errorMessage := "Failed to create organisation"
+
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
 		insert_organisations(objects: {name: $name}) {
@@ -33,13 +35,13 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
@@ -47,6 +49,8 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 //	Create a new organisation
 func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
+
+	errorMessage := "Failed to create organisation"
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $user_id: uuid!) {
@@ -69,13 +73,13 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 
 	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
@@ -83,6 +87,8 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 
 //	Get a organisation by ID
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, *errors.Error) {
+
+	errorMessage := "Failed to fetch the organisation"
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -102,13 +108,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Org
 
 	returning, err := json.Marshal(response["organisations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -116,6 +122,8 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Org
 
 //	Get a organisation by ID
 func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, *errors.Error) {
+
+	errorMessage := "Failed to fetch the organisation"
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -135,13 +143,13 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 
 	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp[0], nil
@@ -149,6 +157,8 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 
 //	List organisations
 func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, *errors.Error) {
+
+	errorMessage := "Failed to list organisations"
 
 	req := graphql.NewRequest(`
 	query MyQuery {
@@ -166,13 +176,13 @@ func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisatio
 
 	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal organisation into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal organisation into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
@@ -180,6 +190,8 @@ func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisatio
 
 //	Update a organisation by ID
 func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Organisation, *errors.Error) {
+
+	errorMessage := "Failed to update the organisation"
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -200,13 +212,13 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_organisations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
 	}
 
 	return &resp, nil
