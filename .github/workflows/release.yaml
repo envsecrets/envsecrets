@@ -23,8 +23,15 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Install Snapcraft
+      - 
+        name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
+
+      - 
+        name: Create Snap Cache Directories
+        run: |
+          mkdir -p $HOME/.cache/snapcraft/download
+          mkdir -p $HOME/.cache/snapcraft/stage-packages
 
       -
         name: Run GoReleaser
