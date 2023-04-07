@@ -11,6 +11,7 @@ type Environment struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
 	Name      string    `json:"name,omitempty" graphql:"name,omitempty"`
 	ProjectID string    `json:"project_id,omitempty" graphql:"project_id"`
+	UserID    string    `json:"user_id"`
 }
 
 func (w *Environment) Marshal() ([]byte, error) {
@@ -22,8 +23,9 @@ func (w *Environment) Unmarshal(data []byte) error {
 }
 
 type CreateOptions struct {
-	Name      string `json:"name" graphql:"name"`
-	ProjectID string `json:"project_id" graphql:"project_id"`
+	Name      string `json:"name"`
+	ProjectID string `json:"project_id"`
+	UserID    string `json:"user_id"`
 }
 
 type UpdateOptions struct {

@@ -40,8 +40,8 @@ func SetHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to set the secret",
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("failed to set the secret"),
 			Error:   err.Message,
 		})
 	}

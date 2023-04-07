@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/events"
 	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
@@ -19,6 +21,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/permissions"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
+	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
@@ -361,7 +364,7 @@ func UserInserted(c echo.Context) error {
 
 	//	Create a new `default` organisation for the new user.
 	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
-		Name:   "default",
+		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, "")[0]),
 		UserID: user.ID,
 	})
 	if err != nil {
@@ -490,9 +493,6 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 				Projects: permissionCommons.CRUD{
 					Read: true,
 				},
-				Environments: permissionCommons.CRUD{
-					Read: true,
-				},
 			},
 		},
 		{
@@ -506,7 +506,6 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 				},
 				Environments: permissionCommons.CRUD{
 					Create: true,
-					Read:   true,
 					Update: true,
 					Delete: true,
 				},
@@ -529,7 +528,6 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 				},
 				Environments: permissionCommons.CRUD{
 					Create: true,
-					Read:   true,
 					Update: true,
 					Delete: true,
 				},
@@ -598,6 +596,61 @@ func OrganisationDeleted(c echo.Context) error {
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
 		Message: "successfully deleted the transit key",
+	})
+}
+
+//	Called when a new row is inserted inside the `projects` table.
+func ProjectInserted(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusOK, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var row projects.Project
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
+		return c.JSON(http.StatusBadGateway, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	Create default environments for this new project.
+	envs := []string{"dev", "staging", "qa", "production"}
+	for _, item := range envs {
+		if _, err := environments.CreateWithUserID(ctx, client, &environments.CreateOptions{
+			Name:      item,
+			ProjectID: row.ID,
+			UserID:    row.UserID,
+		}); err != nil {
+			return c.JSON(http.StatusBadRequest, &APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: "failed to create environment: " + item,
+				Error:   err.Error.Error(),
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully default environments",
 	})
 }
 

@@ -216,7 +216,7 @@ NOTE: This command auto-capitalizes your keys.`,
 		}
 
 		if response.Error != "" {
-			log.Debug(err)
+			log.Debug(response.Error)
 			log.Fatal("Failed to set the secrets")
 		}
 

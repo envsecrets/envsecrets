@@ -86,7 +86,7 @@ select_permissions:
                     - role:
                         permissions:
                           _contains:
-                            environments:
+                            projects:
                               read: true
           - user_id:
               _eq: X-Hasura-User-Id

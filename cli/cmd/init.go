@@ -35,6 +35,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
@@ -162,7 +163,7 @@ var initCmd = &cobra.Command{
 			})
 			if er != nil {
 				log.Debug(er)
-				log.Fatal("Failed to fetch list of projects")
+				log.Fatal(er.GenerateMessage("Failed to fetch list of projects"))
 			}
 
 			var projectsStringList []string
@@ -191,58 +192,6 @@ var initCmd = &cobra.Command{
 					}
 				}
 
-				environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
-					ProjectID: project.ID,
-				})
-				if er != nil {
-					log.Debug(er)
-					log.Fatal("Failed to fetch list of environments")
-
-				}
-
-				var environmentsStringList []string
-				for _, item := range *environmentsList {
-					environmentsStringList = append(environmentsStringList, item.Name)
-				}
-
-				selection := promptui.SelectWithAdd{
-					Label:    "Choose Your Environment",
-					Items:    environmentsStringList,
-					AddLabel: "Create New Environment",
-					Validate: validate,
-				}
-
-				index, result, err := selection.Run()
-				if err != nil {
-					os.Exit(1)
-				}
-
-				if index > -1 {
-
-					for itemIndex, item := range *environmentsList {
-						if itemIndex == index {
-							environment = item
-							break
-						}
-					}
-
-				} else {
-
-					//	Create new item
-					item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
-						ProjectID: project.ID,
-						Name:      result,
-					})
-					if er != nil {
-						log.Debug(er.Error)
-						log.Fatal("Failed to create new environment")
-
-					}
-
-					environment.ID = item.ID
-					environment.Name = fmt.Sprint(item.Name)
-				}
-
 			} else {
 
 				//	Create new item
@@ -251,28 +200,70 @@ var initCmd = &cobra.Command{
 					Name:  result,
 				})
 				if er != nil {
-					log.Debug(er.Error)
-					log.Fatal("Failed to create new project")
-
+					log.Debug(er)
+					log.Fatal(er.GenerateMessage("Failed to create new project"))
 				}
 
 				project.ID = item.ID
 				project.Name = fmt.Sprint(item.Name)
 
-				//	Create a default `dev` environment for this project
-				//	Create new item
-				envItem, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
-					ProjectID: project.ID,
-					Name:      "dev",
-				})
-				if er != nil {
-					log.Debug(er.Error)
-					log.Fatal("Failed to create new environment")
+				//	Wait until default environments are not created.
+				log.Info("Creating your default environments. Wait for 5 seconds...")
+				time.Sleep(5 * time.Second)
+			}
+		}
 
+		//	Setup environment
+		if len(environmentID) == 0 {
+
+			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+				ProjectID: project.ID,
+			})
+			if er != nil {
+				log.Debug(er)
+				log.Fatal(er.GenerateMessage("Failed to fetch list of environments"))
+			}
+
+			var environmentsStringList []string
+			for _, item := range *environmentsList {
+				environmentsStringList = append(environmentsStringList, item.Name)
+			}
+
+			selection := promptui.SelectWithAdd{
+				Label:    "Choose Your Environment",
+				Items:    environmentsStringList,
+				AddLabel: "Create New Environment",
+				Validate: validate,
+			}
+
+			index, result, err := selection.Run()
+			if err != nil {
+				os.Exit(1)
+			}
+
+			if index > -1 {
+
+				for itemIndex, item := range *environmentsList {
+					if itemIndex == index {
+						environment = item
+						break
+					}
 				}
 
-				environment.ID = envItem.ID
-				environment.Name = fmt.Sprint(envItem.Name)
+			} else {
+
+				//	Create new item
+				item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
+					ProjectID: project.ID,
+					Name:      result,
+				})
+				if er != nil {
+					log.Debug(er)
+					log.Fatal("Failed to create new environment")
+				}
+
+				environment.ID = item.ID
+				environment.Name = fmt.Sprint(item.Name)
 			}
 		}
 

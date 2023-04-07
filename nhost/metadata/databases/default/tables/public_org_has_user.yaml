@@ -24,9 +24,11 @@ insert_permissions:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        permissions_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            create: true
       columns:
         - org_id
         - role_id
@@ -48,12 +50,14 @@ select_permissions:
                 _eq: X-Hasura-User-Id
           - user_id:
               _eq: X-Hasura-User-Id
-          - _and:
-              - user_id:
-                  _eq: X-Hasura-User-Id
-              - permissions:
-                  _contains:
-                    permissions_manage: true
+          - organisation:
+              _exists:
+                _table:
+                  name: org_has_user
+                  schema: public
+                _where:
+                  user_id:
+                    _eq: X-Hasura-User-Id
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -70,9 +74,11 @@ update_permissions:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        permissions_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            update: true
       check: null
 delete_permissions:
   - role: user

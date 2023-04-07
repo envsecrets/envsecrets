@@ -99,6 +99,13 @@ array_relationships:
         table:
           name: org_has_user
           schema: public
+  - name: organisations
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: organisations
+          schema: public
   - name: refreshTokens
     using:
       foreign_key_constraint_on:
@@ -139,19 +146,21 @@ select_permissions:
         _or:
           - id:
               _eq: X-Hasura-User-Id
-          - org_has_users:
-              organisation:
-                _exists:
-                  _table:
-                    name: org_has_user
-                    schema: public
-                  _where:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-          - org_has_users:
-              organisation:
+          - organisations:
+              org_has_user:
                 user_id:
                   _eq: X-Hasura-User-Id
+          - _exists:
+              _table:
+                name: org_has_user
+                schema: public
+              _where:
+                _or:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - organisation:
+                      user_id:
+                        _eq: X-Hasura-User-Id
       allow_aggregations: true
 event_triggers:
   - name: user_new

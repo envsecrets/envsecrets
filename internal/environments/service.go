@@ -20,11 +20,49 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 			name
 		  }
 		}
-	  }	  
+	  }			
 	`)
 
 	req.Var("name", options.Name)
 	req.Var("project_id", options.ProjectID)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
+	if err != nil {
+		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []Environment
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &resp[0], nil
+}
+
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, *errors.Error) {
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($name: String!, $project_id: uuid!, $user_id: uuid) {
+		insert_environments(objects: {name: $name, project_id: $project_id, user_id: $user_id}) {
+		  returning {
+			id
+			name
+		  }
+		}
+	  }			
+	`)
+
+	req.Var("name", options.Name)
+	req.Var("project_id", options.ProjectID)
+	if options.UserID != "" {
+		req.Var("user_id", options.UserID)
+	}
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
