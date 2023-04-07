@@ -364,7 +364,7 @@ func UserInserted(c echo.Context) error {
 
 	//	Create a new `default` organisation for the new user.
 	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
-		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, "")[0]),
+		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, " ")[0]),
 		UserID: user.ID,
 	})
 	if err != nil {
