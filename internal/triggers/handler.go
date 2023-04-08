@@ -514,6 +514,12 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 		{
 			Name: "admin",
 			Permissions: permissionCommons.Permissions{
+				Integrations: permissionCommons.CRUD{
+					Create: true,
+					Read:   true,
+					Update: true,
+					Delete: true,
+				},
 				Permissions: permissionCommons.CRUD{
 					Create: true,
 					Read:   true,

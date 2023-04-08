@@ -20,6 +20,9 @@ type Permissions struct {
 
 	//	Environments and their secrets.
 	Environments CRUD `json:"environments,omitempty"`
+
+	//	Add/Delete Integrations.
+	Integrations CRUD `json:"integrations,omitempty"`
 }
 
 func (p *Permissions) Marshal() ([]byte, error) {

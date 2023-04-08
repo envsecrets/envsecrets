@@ -17,5 +17,6 @@
 - "!include public_projects.yaml"
 - "!include public_roles.yaml"
 - "!include public_secrets.yaml"
+- "!include public_subscriptions.yaml"
 - "!include storage_buckets.yaml"
 - "!include storage_files.yaml"

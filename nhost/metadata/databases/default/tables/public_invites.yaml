@@ -15,20 +15,24 @@ insert_permissions:
   - role: user
     permission:
       check:
-        _or:
-          - organisation:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - organisation:
-              org_has_user:
-                _and:
-                  - user_id:
-                      _eq: X-Hasura-User-Id
-                  - role:
-                      permissions:
-                        _contains:
+        _and:
+          - _or:
+              - organisation:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - organisation:
+                  org_has_user:
+                    _and:
+                      - user_id:
+                          _eq: X-Hasura-User-Id
+                      - role:
                           permissions:
-                            create: true
+                            _contains:
+                              permissions:
+                                create: true
+          - organisation:
+              invite_limit:
+                _gt: 0
       set:
         user_id: x-hasura-User-Id
       columns:

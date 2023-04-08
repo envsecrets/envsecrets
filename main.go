@@ -7,10 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/invites"
+	"github.com/envsecrets/envsecrets/internal/payments"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/envsecrets/envsecrets/internal/triggers"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
 	echojwt "github.com/labstack/echo-jwt"
 	"github.com/labstack/echo/v4"
@@ -47,11 +50,15 @@ func main() {
 		"integrations",
 		"healthz",
 		"invites",
+		"/payments/server/webhook",
 	}
 
 	e.Use(echojwt.WithConfig(echojwt.Config{
 		SigningKey:    []byte(JWT_SIGNING_KEY.Key),
 		SigningMethod: JWT_SIGNING_KEY.Type,
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(auth.Claims)
+		},
 
 		//	Define function to skip certain routes from JWT auth
 		Skipper: func(c echo.Context) bool {
@@ -78,6 +85,9 @@ func main() {
 
 	//	Invites group
 	invites.AddRoutes(v1Group)
+
+	//	Payments group
+	payments.AddRoutes(v1Group)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))

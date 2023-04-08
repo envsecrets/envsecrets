@@ -1,0 +1,22 @@
+table:
+  name: subscriptions
+  schema: public
+object_relationships:
+  - name: organisation
+    using:
+      foreign_key_constraint_on: org_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - status
+        - subscription_id
+        - updated_at
+        - created_at
+        - id
+        - org_id
+      filter:
+        organisation:
+          user_id:
+            _eq: X-Hasura-User-Id
+      allow_aggregations: true

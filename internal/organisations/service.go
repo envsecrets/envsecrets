@@ -224,6 +224,36 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 	return &resp, nil
 }
 
+func UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) *errors.Error {
+
+	errorMessage := "Failed to update the invite limit"
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($id: uuid!, $limit: Int!) {
+		update_organisations(where: {id: {_eq: $id}}, _inc: {invite_limit: $limit}) {
+			affected_rows
+		  }
+	  }			
+	`)
+
+	req.Var("id", options.ID)
+	req.Var("limit", options.IncrementLimitBy)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["update_organisations"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
+}
+
 //	Delete a organisation by ID
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil

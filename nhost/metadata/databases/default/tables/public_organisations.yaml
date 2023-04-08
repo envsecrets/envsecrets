@@ -41,6 +41,13 @@ array_relationships:
         table:
           name: roles
           schema: public
+  - name: subscriptions
+    using:
+      foreign_key_constraint_on:
+        column: org_id
+        table:
+          name: subscriptions
+          schema: public
 insert_permissions:
   - role: user
     permission:
@@ -55,10 +62,11 @@ select_permissions:
   - role: user
     permission:
       columns:
-        - name
         - created_at
-        - updated_at
         - id
+        - invite_limit
+        - name
+        - updated_at
         - user_id
       filter:
         _or:
