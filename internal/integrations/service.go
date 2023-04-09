@@ -16,7 +16,7 @@ import (
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, *errors.Error)
 	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (interface{}, *errors.Error)
-	Setup(context.ServiceContext, commons.IntegrationType, url.Values) *errors.Error
+	Setup(context.ServiceContext, commons.IntegrationType, url.Values) (*commons.Integration, *errors.Error)
 	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
 }
 
@@ -44,12 +44,12 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	return nil, nil
 }
 
-func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationType commons.IntegrationType, params url.Values) *errors.Error {
+func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationType commons.IntegrationType, params url.Values) (*commons.Integration, *errors.Error) {
 
 	//	Extract the Organisation ID and Authorization token from State.
 	payload := strings.Split(params.Get("state"), "/")
 	if len(payload) != 2 {
-		return errors.New(nil, "invalid callback state", errors.ErrorTypeBadRequest, errors.ErrorSourceGithub)
+		return nil, errors.New(nil, "invalid callback state", errors.ErrorTypeBadRequest, errors.ErrorSourceGithub)
 	}
 	orgID := payload[0]
 	token := payload[1]
@@ -86,7 +86,7 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, integrationT
 		})
 	}
 
-	return nil
+	return nil, errors.New(nil, "invalid integration type", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 }
 
 func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationType commons.IntegrationType, options *commons.SyncOptions) *errors.Error {

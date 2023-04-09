@@ -20,9 +20,20 @@ insert_permissions:
   - role: user
     permission:
       check:
-        organisation:
-          user_id:
-            _eq: X-Hasura-User-Id
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          integrations:
+                            create: true
       set:
         user_id: x-hasura-User-Id
       columns:
@@ -43,14 +54,36 @@ select_permissions:
         - updated_at
         - user_id
       filter:
-        organisation:
-          user_id:
-            _eq: X-Hasura-User-Id
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          integrations:
+                            read: true
       allow_aggregations: true
 delete_permissions:
   - role: user
     permission:
       filter:
-        organisation:
-          user_id:
-            _eq: X-Hasura-User-Id
+        _or:
+          - organisation:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - organisation:
+              org_has_user:
+                _and:
+                  - user_id:
+                      _eq: X-Hasura-User-Id
+                  - role:
+                      permissions:
+                        _contains:
+                          integrations:
+                            delete: true

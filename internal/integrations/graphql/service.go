@@ -10,12 +10,14 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) *errors.Error {
+func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) (*commons.Integration, *errors.Error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!, $installation_id: String!, $type: String!, $credentials: jsonb) {
 		insert_integrations(objects: {org_id: $org_id, installation_id: $installation_id, type: $type, credentials: $credentials}) {
-		  affected_rows
+		  returning {
+			id
+		  }
 		}
 	  }						
 	`)
@@ -30,17 +32,23 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {
-		return err
+		return nil, err
 	}
 
 	returned := response["insert_integrations"].(map[string]interface{})
 
-	affectedRows := returned["affected_rows"].(float64)
-	if affectedRows == 0 {
-		return errors.New(nil, "failed to insert integration", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	returning, err := json.Marshal(returned["returning"].([]interface{}))
+	if err != nil {
+		return nil, errors.New(err, "failed to marhshal integration into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}
 
-	return nil
+	//	Unmarshal the response from "returning"
+	var resp []commons.Integration
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, "failed to unmarhshal integration into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	return &resp[0], nil
 }
 
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, *errors.Error) {

@@ -2,6 +2,7 @@ package integrations
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -28,13 +29,14 @@ func SetupHandler(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Run the service handler.
-	if err := service.Setup(ctx, serviceType, c.QueryParams()); err != nil {
+	integration, err := service.Setup(ctx, serviceType, c.QueryParams())
+	if err != nil {
 		log.Error(err)
 		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed&integration_type="+integration_type)
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=successful&integration_type="+integration_type)
+	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/%s?setup_action=install&setup_status=successful&integration_type=%s", os.Getenv("FE_URL"), integration.ID, integration_type))
 }
 
 func ListEntitiesHandler(c echo.Context) error {

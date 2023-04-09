@@ -16,18 +16,14 @@ import (
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
-func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *SetupOptions) *errors.Error {
+func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
 
 	//	Create a new record in Hasura.
-	if err := graphql.Insert(ctx, client, &commons.AddIntegrationOptions{
+	return graphql.Insert(ctx, client, &commons.AddIntegrationOptions{
 		OrgID:          options.OrgID,
 		InstallationID: options.InstallationID,
 		Type:           commons.Github,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (interface{}, *errors.Error) {

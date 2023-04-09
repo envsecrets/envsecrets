@@ -93,6 +93,8 @@ delete_permissions:
                 _and:
                   - user_id:
                       _eq: X-Hasura-User-Id
-                  - permissions:
-                      _contains:
-                        permissions_manage: true
+                  - role:
+                      permissions:
+                        _contains:
+                          permissions:
+                            delete: true
