@@ -24,6 +24,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -60,19 +61,6 @@ func SecretInserted(c echo.Context) error {
 			clients.XHasuraAdminSecretHeader,
 		},
 	})
-
-	//	Cleanup old secrets. Only keep latest 10 secrets.
-	cleanupUntilVersion := row.Version - 10
-	if cleanupUntilVersion > 10 {
-		if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
-			EnvID:   row.EnvID,
-			Version: cleanupUntilVersion,
-		}); err != nil {
-			log.Println("Failed to cleanup older secret rows: ", err)
-
-			//	Don't exit.
-		}
-	}
 
 	//	--- Flow ---
 	//	1. Get the events linked to this new secret row.
@@ -178,6 +166,92 @@ func SecretInserted(c echo.Context) error {
 	return c.JSON(http.StatusOK, &APIResponse{
 		Code:    http.StatusOK,
 		Message: "successfully synced secrets",
+	})
+}
+
+//	Called when a new row is inserted inside the `secrets` table.
+func SecretDeleteLegacy(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var row secretCommons.Secret
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
+		return c.JSON(http.StatusBadRequest, &APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	Get the organisation ID.
+	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to get the organisation to which this environment is associated"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Get subscriptions for this organisation
+	orgSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to get the subscriptions for this organisation"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	var active bool
+	for _, item := range *orgSubscriptions {
+		if item.Status == subscriptions.StatusActive {
+			active = true
+			break
+		}
+	}
+
+	//	If no subscription is active,
+	//	only keep the latest 5 version active.
+	if !active {
+
+		cleanupUntilVersion := row.Version - 5
+		if cleanupUntilVersion > 0 {
+			if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
+				EnvID:   row.EnvID,
+				Version: cleanupUntilVersion,
+			}); err != nil {
+				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
+					Code:    err.Type.GetStatusCode(),
+					Message: err.GenerateMessage("Failed to delete older versions of this secret"),
+					Error:   err.Error.Error(),
+				})
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, &APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully deleted legacy secrets",
 	})
 }
 

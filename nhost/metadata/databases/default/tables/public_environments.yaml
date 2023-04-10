@@ -34,25 +34,31 @@ insert_permissions:
   - role: user
     permission:
       check:
-        _or:
+        _and:
           - project:
               organisation:
-                user_id:
-                  _eq: X-Hasura-User-Id
-          - project:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - project:
-              organisation:
-                org_has_user:
-                  _and:
-                    - user_id:
-                        _eq: X-Hasura-User-Id
-                    - role:
-                        permissions:
-                          _contains:
-                            environments:
-                              create: true
+                subscriptions:
+                  status:
+                    _eq: active
+          - _or:
+              - project:
+                  organisation:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - project:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - project:
+                  organisation:
+                    org_has_user:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            permissions:
+                              _contains:
+                                environments:
+                                  create: true
       set:
         user_id: x-hasura-User-Id
       columns:

@@ -1,0 +1,9 @@
+input EnvironmentCreateInput {
+  name: String!
+  project_id: String!
+}
+
+type EnvironmentCreateOutput {
+  id: String!
+}
+

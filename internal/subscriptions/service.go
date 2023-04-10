@@ -126,8 +126,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!) {
 		subscriptions(where: {org_id: {_eq: $org_id}}) {
-		  id
-		  name
+		  status
 		}
 	  }	  
 	`)

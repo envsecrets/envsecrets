@@ -1,6 +1,8 @@
 actions: []
 custom_types:
   enums: []
-  input_objects: []
-  objects: []
+  input_objects:
+    - name: EnvironmentCreateInput
+  objects:
+    - name: EnvironmentCreateOutput
   scalars: []

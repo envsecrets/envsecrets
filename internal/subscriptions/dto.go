@@ -11,7 +11,7 @@ type Subscription struct {
 	UpdatedAt      time.Time `json:"updated_at,omitempty"`
 	OrgID          string    `json:"org_id,omitempty"`
 	SubscriptionID string    `json:"subscription_id"`
-	Status         string    `json:"status"`
+	Status         Status    `json:"status"`
 }
 
 func (w *Subscription) Marshal() ([]byte, error) {
@@ -32,5 +32,6 @@ type UpdateOptions struct {
 }
 
 type ListOptions struct {
-	OrgID string `json:"org_id"`
+	OrgID  string `json:"org_id"`
+	Status string `json:"status"`
 }

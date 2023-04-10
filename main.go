@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/internal/actions"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/invites"
@@ -76,6 +77,9 @@ func main() {
 
 	//	Hasura triggers group
 	triggers.AddRoutes(v1Group)
+
+	//	Hasura actions group
+	actions.AddRoutes(v1Group)
 
 	//	Secrets group
 	secrets.AddRoutes(v1Group)
