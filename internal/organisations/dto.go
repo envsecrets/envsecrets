@@ -30,3 +30,8 @@ type CreateOptions struct {
 type UpdateOptions struct {
 	Name string `json:"name"`
 }
+
+type UpdateInviteLimitOptions struct {
+	ID               string
+	IncrementLimitBy int
+}

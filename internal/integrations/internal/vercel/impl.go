@@ -20,7 +20,7 @@ import (
 //	---	Flow ---
 //	1. Exchange the `code` received from Vercel for an access token: https://api.vercel.com/v2/oauth/access_token
 //	2. Save the `access_token` and `installation_id` in Hasura.
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) *errors.Error {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
 
 	//	Initialize a new HTTP client for Vercel.
 	httpClient := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -41,12 +41,12 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 
 	req, err := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
-		return errors.New(err, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+		return nil, errors.New(err, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
 	var response CodeExchangeResponse
 	if err := httpClient.Run(ctx, req, &response); err != nil {
-		return err
+		return nil, err
 	}
 
 	//	Create a new record in Hasura.

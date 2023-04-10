@@ -7,6 +7,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/invites/commons"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/permissions"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
@@ -75,6 +76,18 @@ func AcceptHandler(c echo.Context) error {
 		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
 			Code:    err.Type.GetStatusCode(),
 			Message: err.GenerateMessage("Failed to accept invite"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Reduce the invite limit in organisation by 1.
+	if err := organisations.UpdateInviteLimit(ctx, client, &organisations.UpdateInviteLimitOptions{
+		ID:               invite.OrgID,
+		IncrementLimitBy: -1,
+	}); err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to decrement org's invite limit"),
 			Error:   err.Error.Error(),
 		})
 	}

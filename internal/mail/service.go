@@ -82,9 +82,9 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
-			Name:     receiver.Name,
+			Name:     receiver.DisplayName,
 			Intros: []string{
-				fmt.Sprintf("You have been invited by %s to join the organisation: %s", sender.Name, organisation.Name),
+				fmt.Sprintf("You have been invited by %s to join the organisation: %s", sender.DisplayName, organisation.Name),
 			},
 			Actions: []hermes.Action{
 				{
@@ -148,7 +148,7 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
-			Name:     user.Name,
+			Name:     user.DisplayName,
 			Intros: []string{
 				"Congratulations on creating your new organisation: " + options.OrgName,
 				"We've generated a fresh encryption key for you. All the secrets you save/generate in this organisation will be encrypted with this new key.",

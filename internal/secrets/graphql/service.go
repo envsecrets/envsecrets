@@ -316,7 +316,7 @@ func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *com
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, "failed to cleanup secrets", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New(nil, "Failed to cleanup secrets", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
 	}
 
 	return nil

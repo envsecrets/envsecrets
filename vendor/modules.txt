@@ -85,6 +85,8 @@ github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.2.0
 ## explicit; go 1.15
 github.com/mitchellh/copystructure
+# github.com/mitchellh/mapstructure v1.5.0
+## explicit; go 1.14
 # github.com/mitchellh/reflectwalk v1.0.2
 ## explicit
 github.com/mitchellh/reflectwalk
@@ -112,6 +114,12 @@ github.com/spf13/pflag
 # github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf
 ## explicit
 github.com/ssor/bom
+# github.com/stripe/stripe-go/v74 v74.15.0
+## explicit; go 1.13
+github.com/stripe/stripe-go/v74
+github.com/stripe/stripe-go/v74/checkout/session
+github.com/stripe/stripe-go/v74/form
+github.com/stripe/stripe-go/v74/webhook
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool

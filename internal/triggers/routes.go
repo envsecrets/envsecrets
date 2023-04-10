@@ -16,6 +16,7 @@ func AddRoutes(sg *echo.Group) {
 	secrets := triggers.Group("/secrets")
 
 	secrets.POST("/new", SecretInserted)
+	secrets.POST("/delete-legacy", SecretDeleteLegacy)
 
 	//	events group
 	events := triggers.Group("/events")
