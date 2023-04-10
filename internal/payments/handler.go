@@ -91,8 +91,8 @@ func CreateCheckoutSession(c echo.Context) error {
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/access/members"),
-		CancelURL:  stripe.String(os.Getenv("FE_URL") + "/access/members"),
+		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/settings/members"),
+		CancelURL:  stripe.String(os.Getenv("FE_URL") + "/settings/billing"),
 	}
 
 	stripe.Key = os.Getenv("STRIPE_KEY")
