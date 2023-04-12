@@ -41,11 +41,15 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/spf13/cobra"
 )
 
 var version int
 var exportfile string
+
+var XTokenHeader string
+var XOrgIDHeader string
 
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
@@ -125,20 +129,51 @@ func export(key *string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	//	Set the query params.
+	//	Initialize the query params.
 	query := req.URL.Query()
-	query.Set("org_id", projectConfig.Organisation)
-	query.Set("env_id", projectConfig.Environment)
 	if key != nil {
 		query.Set("key", *key)
 	}
 	if secretVersion != nil {
 		query.Set("version", fmt.Sprint(*secretVersion))
 	}
+
+	//	Initialize the HTTP Client
+	client := commons.HTTPClient
+
+	//	If the environment secret is passed,
+	//	create a new HTTP client and attach it in the header.
+	if XTokenHeader != "" {
+
+		//	Validate the mandatory `x-org-id` header.
+		if XOrgIDHeader == "" {
+			return nil, errors.New("Passing the --org-id flag is mandatory with environment token")
+		}
+
+		client = clients.NewHTTPClient(&clients.HTTPConfig{
+			BaseURL: commons.API + "/v1",
+			Logger:  commons.Logger,
+			CustomHeaders: []clients.CustomHeader{
+				{
+					Key:   string(clients.TokenHeader),
+					Value: XTokenHeader,
+				},
+				{
+					Key:   string(clients.OrgIDHeader),
+					Value: XOrgIDHeader,
+				},
+			},
+		})
+
+	} else {
+		query.Set("org_id", projectConfig.Organisation)
+		query.Set("env_id", projectConfig.Environment)
+	}
+
 	req.URL.RawQuery = query.Encode()
 
 	var response commons.APIResponse
-	if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+	if err := client.Run(commons.DefaultContext, req, &response); err != nil {
 		return nil, errors.New(err.Message)
 	}
 
@@ -163,4 +198,6 @@ func init() {
 	// is called directly, e.g.:
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
+	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	exportCmd.Flags().StringVar(&XOrgIDHeader, "org-id", "", "Organisation ID; mandatory with environment token")
 }

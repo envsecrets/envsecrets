@@ -215,4 +215,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
+	runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	runCmd.Flags().StringVar(&XOrgIDHeader, "org-id", "", "Organisation ID; mandatory with environment token")
 }
