@@ -23,8 +23,12 @@ const (
 	ErrorTypeBadRequest      ErrorType = "BadRequest"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 
-	ErrorTypeDoesNotExist                ErrorType = "DoesNotExist"
-	ErrorTypeInvalidKey                  ErrorType = "InvalidKey"
+	ErrorTypeDoesNotExist ErrorType = "DoesNotExist"
+	ErrorTypeInvalidKey   ErrorType = "InvalidKey"
+	ErrorTypeKeyNotFound  ErrorType = "KeyNotFound"
+
+	ErrorTypeInvalidToken ErrorType = "InvalidToken"
+
 	ErrorTypeInvalidAccountConfiguration ErrorType = "InvalidAccountConfiguration"
 
 	ErrorTypeEmailFailed ErrorType = "EmailFailed"
@@ -45,7 +49,10 @@ var ResponseCodeMap = map[ErrorType]int{
 
 	ErrorTypeDoesNotExist:                http.StatusNotFound,
 	ErrorTypeInvalidKey:                  http.StatusBadRequest,
+	ErrorTypeKeyNotFound:                 http.StatusNotFound,
 	ErrorTypeInvalidAccountConfiguration: http.StatusBadRequest,
+
+	ErrorTypeInvalidToken: http.StatusBadRequest,
 
 	ErrorTypeEmailFailed: http.StatusInternalServerError,
 }

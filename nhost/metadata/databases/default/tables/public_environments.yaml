@@ -30,6 +30,13 @@ array_relationships:
         table:
           name: secrets
           schema: public
+  - name: tokens
+    using:
+      foreign_key_constraint_on:
+        column: env_id
+        table:
+          name: tokens
+          schema: public
 insert_permissions:
   - role: user
     permission:

@@ -16,6 +16,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/mail"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
@@ -96,12 +98,8 @@ func SecretInserted(c echo.Context) error {
 			//	we will need to decode it first.
 			if payload.Type == secretCommons.Ciphertext {
 				secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
-					Data: secretCommons.Data{
-						Key:     key,
-						Payload: payload,
-					},
+					Value:       payload.Value,
 					KeyLocation: organisation.ID,
-					EnvID:       row.EnvID,
 				})
 				if err != nil {
 					return c.JSON(err.Type.GetStatusCode(), &APIResponse{
@@ -336,12 +334,8 @@ func EventInserted(c echo.Context) error {
 		if payload.Type == secretCommons.Ciphertext {
 
 			secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
-				Data: secretCommons.Data{
-					Key:     key,
-					Payload: payload,
-				},
+				Value:       payload.Value,
 				KeyLocation: organisation.ID,
-				EnvID:       row.EnvID,
 			})
 			if err != nil {
 				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
@@ -483,7 +477,7 @@ func OrganisationCreateKey(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.GenerateKey(ctx, row.ID, secretCommons.GenerateKeyOptions{
+	if err := keys.GenerateKey(ctx, row.ID, keyCommons.GenerateKeyOptions{
 		Exportable:           true,
 		AllowPlaintextBackup: true,
 	}); err != nil {
@@ -495,7 +489,7 @@ func OrganisationCreateKey(c echo.Context) error {
 	}
 
 	//	Export the key.
-	key, err := secrets.BackupKey(ctx, row.ID)
+	key, err := keys.BackupKey(ctx, row.ID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &APIResponse{
 			Code:    http.StatusInternalServerError,
@@ -665,7 +659,7 @@ func OrganisationDeleted(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Generate new transit for this organisation in vault.
-	if err := secrets.DeleteKey(ctx, organisation.ID); err != nil {
+	if err := keys.DeleteKey(ctx, organisation.ID); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
 			Code:    err.Type.GetStatusCode(),
 			Message: err.GenerateMessage("Failed to delete the transit key"),

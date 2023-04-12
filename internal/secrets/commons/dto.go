@@ -74,22 +74,6 @@ func (p *Path) Location() string {
 	return fmt.Sprintf("%s/%s/%s", p.Organisation, p.Project, p.Environment)
 }
 
-type GenerateKeyOptions struct {
-
-	//	Whether the key can be exported in the future.
-	Exportable bool `json:"exportable,omitempty"`
-
-	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
-	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
-
-	//	Key Type. We are using "aes256-gcm96" as the default one.
-	Type string `json:"type,omitempty" default:"aes256-gcm96"`
-}
-
-func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
-	return json.Marshal(o)
-}
-
 type VaultResponse struct {
 	Errors        []interface{} `json:"errors"`
 	RequestID     string        `json:"request_id,omitempty"`
@@ -155,14 +139,13 @@ func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
 }
 
 type DecryptSecretOptions struct {
-	Data        Data   `json:"data"`
-	KeyLocation string `json:"key_location"`
-	EnvID       string `json:"env_id"`
+	Value       interface{} `json:"value"`
+	KeyLocation string      `json:"key_location"`
 }
 
 func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
 	return map[string]interface{}{
-		"ciphertext": g.Data.Payload.Value,
+		"ciphertext": g.Value,
 	}
 }
 
@@ -211,52 +194,6 @@ type MergeResponse struct {
 	Version *int `json:"version,omitempty"`
 }
 
-type KeyRestoreRequestOptions struct {
-	OrgID  string `json:"org_id"`
-	Backup string `json:"backup"`
-}
-
-type KeyRestoreOptions struct {
-	Backup string `json:"backup"`
-}
-
-func (r *KeyRestoreOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-type VaultKeyExportResponse struct {
-	Data struct {
-		Name string                 `json:"name"`
-		Keys map[string]interface{} `json:"keys"`
-	} `json:"data"`
-}
-
-type KeyBackupRequestOptions struct {
-	OrgID string `query:"org_id"`
-}
-
-type KeyConfigUpdateOptions struct {
-
-	//	Specifies if the key is allowed to be deleted.
-	DeletionAllowed bool `json:"deletion_allowed,omitempty"`
-
-	//	Whether the key can be exported in the future.
-	Exportable bool `json:"exportable,omitempty"`
-
-	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
-	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
-}
-
-func (r *KeyConfigUpdateOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-type KeyBackupResponse struct {
-	Data struct {
-		Backup string `json:"backup"`
-	} `json:"data"`
-}
-
 type ListRequestOptions struct {
 	Path    Path `json:"path"`
 	Version *int `json:"version,omitempty"`
@@ -264,11 +201,4 @@ type ListRequestOptions struct {
 
 func (r *ListRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
-}
-
-type APIResponse struct {
-	Code    int         `json:"code"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Message string      `json:"message,omitempty"`
 }

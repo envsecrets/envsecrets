@@ -1,0 +1,111 @@
+table:
+  name: tokens
+  schema: public
+object_relationships:
+  - name: environment
+    using:
+      foreign_key_constraint_on: env_id
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        _or:
+          - environment:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  org_has_user:
+                    _and:
+                      - user_id:
+                          _eq: X-Hasura-User-Id
+                      - role:
+                          permissions:
+                            _contains:
+                              environments:
+                                update: true
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - env_id
+        - expiry
+        - id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - expiry
+        - created_at
+        - updated_at
+        - env_id
+        - id
+        - user_id
+      filter:
+        _or:
+          - environment:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  org_has_user:
+                    _and:
+                      - user_id:
+                          _eq: X-Hasura-User-Id
+                      - role:
+                          permissions:
+                            _contains:
+                              projects:
+                                read: true
+      allow_aggregations: true
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        _or:
+          - environment:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+          - environment:
+              project:
+                organisation:
+                  org_has_user:
+                    _and:
+                      - user_id:
+                          _eq: X-Hasura-User-Id
+                      - role:
+                          permissions:
+                            _contains:
+                              environments:
+                                update: true
