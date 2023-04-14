@@ -31,110 +31,40 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"fmt"
-	"net/mail"
-	"os"
-
 	"github.com/envsecrets/envsecrets/config"
+	accountConfig "github.com/envsecrets/envsecrets/config/account"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
-var (
-	email    string
-	password string
-)
-
-// loginCmd represents the login command
-var loginCmd = &cobra.Command{
-	Use:   "login",
-	Short: "Authenticate your envsecrets cloud account",
-	Args:  cobra.NoArgs,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-
-		var err error
-
-		if len(email) == 0 {
-
-			fmt.Println("Enter your envsecrets cloud account e-mail address and password.")
-			fmt.Println("You can change your password from the header by logging in at https://app.envsecrets.com")
-
-			//	Take email input
-			validate := func(input string) error {
-				_, err := mail.ParseAddress(input)
-				return err
-			}
-
-			emailPrompt := promptui.Prompt{
-				Label:    "Email",
-				Validate: validate,
-			}
-
-			email, err = emailPrompt.Run()
-			if err != nil {
-				os.Exit(1)
-			}
-		}
-
-		if len(password) == 0 {
-
-			//	Take password input
-			passwordPrompt := promptui.Prompt{
-				Label: "Password",
-				Mask:  '*',
-			}
-
-			password, err = passwordPrompt.Run()
-			if err != nil {
-				os.Exit(1)
-			}
-		}
-
-		return nil
-	},
+// logoutCmd represents the logout command
+var logoutCmd = &cobra.Command{
+	Use:   "logout",
+	Short: "Logout of this CLI",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Prepare body
-		payload := map[string]interface{}{
-			"email":    email,
-			"password": password,
-		}
-
-		response, err := auth.Login(payload)
-		if err != nil {
+		if err := config.GetService().Delete(configCommons.AccountConfig); err != nil {
 			log.Debug(err)
-			log.Fatal("Authentication failed")
-
-		}
-
-		//	Save the account config
-		if err := config.GetService().Save(configCommons.Account{
-			AccessToken:  response.Session.AccessToken,
-			RefreshToken: response.Session.RefreshToken,
-			User:         response.Session.User,
-		}, configCommons.AccountConfig); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to save account configuration locally")
+			log.Error("Failed to log you out")
+			log.Info("Please manually delete the file: ", accountConfig.ACCOUNT_CONFIG_LOC)
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("You are logged in!")
+		log.Warn("You have been logged out")
+		log.Info("Use `envsecrets login` to login again")
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(logoutCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// loginCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// logoutCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	loginCmd.Flags().StringVarP(&email, "email", "e", "", "Your envsecrets account email")
-	loginCmd.Flags().StringVarP(&password, "password", "p", "", "Your envsecrets account password")
+	// logoutCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

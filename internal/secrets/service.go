@@ -96,20 +96,25 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		options.Version = &resp.Version
 	}
 
-	//	Only if the saved value was of type `ciphertext`,
-	//	we have to descrypt the value.
-	if data.Payload.Type == commons.Ciphertext {
+	//	If the keypath has not been specified,
+	//	skip the decryption step.
+	if options.KeyPath != "" {
 
-		//	Decrypt the value from Vault.
-		response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
-			Value:       data.Payload.Value,
-			KeyLocation: options.KeyPath,
-		})
-		if err != nil {
-			return nil, err
+		//	Only if the saved value was of type `ciphertext`,
+		//	we have to descrypt the value.
+		if data.Payload.Type == commons.Ciphertext {
+
+			//	Decrypt the value from Vault.
+			response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
+				Value:       data.Payload.Value,
+				KeyLocation: options.KeyPath,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			data.Payload.Value = response.Data.Plaintext
 		}
-
-		data.Payload.Value = response.Data.Plaintext
 	}
 
 	return &commons.GetResponse{
@@ -145,23 +150,28 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		data = *resp
 	}
 
-	//	Only if the saved value was of type `ciphertext`,
-	//	we have to descrypt the value.
-	for key, item := range data.Data {
-		if item.Type == commons.Ciphertext {
+	//	If the keypath has not been specified,
+	//	skip the decryption step.
+	if options.KeyPath != "" {
 
-			//	Decrypt the value from Vault.
-			response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
-				Value:       item.Value,
-				KeyLocation: options.KeyPath,
-			})
-			if err != nil {
-				return nil, err
-			}
+		//	Only if the saved value was of type `ciphertext`,
+		//	we have to descrypt the value.
+		for key, item := range data.Data {
+			if item.Type == commons.Ciphertext {
 
-			data.Data[key] = commons.Payload{
-				Value: response.Data.Plaintext,
-				Type:  item.Type,
+				//	Decrypt the value from Vault.
+				response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
+					Value:       item.Value,
+					KeyLocation: options.KeyPath,
+				})
+				if err != nil {
+					return nil, err
+				}
+
+				data.Data[key] = commons.Payload{
+					Value: response.Data.Plaintext,
+					Type:  item.Type,
+				}
 			}
 		}
 	}
@@ -217,7 +227,6 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 
 	//	Fetch all key-value pairs of the source environment.
 	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
-		//	KeyPath: options.KeyPath,
 		EnvID:   options.SourceEnvID,
 		Version: options.SourceVersion,
 	})
@@ -227,7 +236,6 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 
 	//	Fetch all key-value pairs of the target environment.
 	targetVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
-		//	KeyPath: options.KeyPath,
 		EnvID: options.TargetEnvID,
 	})
 	if err != nil {
@@ -247,8 +255,7 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 	}
 
 	//	Set the updated pairs in Hasura.
-	return Set(ctx, client, &commons.SetSecretOptions{
-		//	KeyPath: options.KeyPath,
+	return graphql.Set(ctx, client, &commons.SetSecretOptions{
 		EnvID: options.TargetEnvID,
 		Data:  targetVariables.Data,
 	})
