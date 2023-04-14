@@ -132,7 +132,7 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
 			if err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to base64 decode the value for %s", key)
+				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
