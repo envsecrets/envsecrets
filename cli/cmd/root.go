@@ -59,7 +59,7 @@ DM me on Twitter for help: @MrinalWahal
 
 Upgrade the CLI:
 
-	MacOS => brew up && brew upgrade envsecrets
+	MacOS => brew upgrade envsecrets/tap/envsecrets
 	Linux => snap refresh envsecrets
 `,
 	Version: commons.VERSION,
