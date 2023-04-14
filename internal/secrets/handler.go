@@ -16,7 +16,7 @@ func SetHandler(c echo.Context) error {
 	var payload commons.SetRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -35,7 +35,7 @@ func SetHandler(c echo.Context) error {
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
 			Error:   err.Message,
 		})
@@ -50,14 +50,14 @@ func SetHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to set the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully set the secret",
 		Data:    secret,
 	})
@@ -69,7 +69,7 @@ func MergeHandler(c echo.Context) error {
 	var payload commons.MergeRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -92,14 +92,14 @@ func MergeHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to merge the secrets"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully merged the secrets",
 		Data:    secret,
 	})
@@ -111,7 +111,7 @@ func DeleteHandler(c echo.Context) error {
 	var payload commons.DeleteRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -132,14 +132,14 @@ func DeleteHandler(c echo.Context) error {
 		Key:   payload.Key,
 	}); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to delete the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully delete the secret",
 	})
 }
@@ -150,7 +150,7 @@ func GetHandler(c echo.Context) error {
 	var payload commons.GetRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -185,7 +185,7 @@ func GetHandler(c echo.Context) error {
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
 			Error:   err.Message,
 		})
@@ -206,7 +206,7 @@ func GetHandler(c echo.Context) error {
 		})
 		if err != nil {
 			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Code:    err.Type.GetStatusCode(),
+
 				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
@@ -223,7 +223,7 @@ func GetHandler(c echo.Context) error {
 		})
 		if err != nil {
 			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Code:    err.Type.GetStatusCode(),
+
 				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
@@ -231,7 +231,7 @@ func GetHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully got the secret",
 		Data:    response,
 	})
@@ -243,7 +243,7 @@ func ListHandler(c echo.Context) error {
 	var payload commons.ListRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -278,14 +278,14 @@ func ListHandler(c echo.Context) error {
 	response, err := List(ctx, client, &payload)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to list the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully got the secret",
 		Data:    response,
 	})

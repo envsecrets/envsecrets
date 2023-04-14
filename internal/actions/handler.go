@@ -17,8 +17,8 @@ func EnvironmentCreate(c echo.Context) error {
 	var payload HasuraActionPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
 			Message: "failed to parse the body",
+			Error:   err.Error(),
 		})
 	}
 
@@ -26,7 +26,6 @@ func EnvironmentCreate(c echo.Context) error {
 	var options environments.CreateOptions
 	if err := MapToStruct(payload.Input.Args, &options); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -49,7 +48,6 @@ func EnvironmentCreate(c echo.Context) error {
 	project, err := projects.Get(ctx, client, options.ProjectID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
 			Message: err.GenerateMessage("Failed to fetch the project details"),
 			Error:   err.Message,
 		})
@@ -58,7 +56,6 @@ func EnvironmentCreate(c echo.Context) error {
 	activeSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: project.OrgID})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
 			Message: err.GenerateMessage("Failed to fetch the subscription details"),
 			Error:   err.Message,
 		})
@@ -82,7 +79,7 @@ func EnvironmentCreate(c echo.Context) error {
 	environment, err := environments.Create(ctx, client, &options)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to create the environment"),
 			Error:   err.Message,
 		})

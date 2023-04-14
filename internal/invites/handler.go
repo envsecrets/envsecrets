@@ -62,8 +62,8 @@ func AcceptHandler(c echo.Context) error {
 		RoleID: invite.RoleID,
 		UserID: user.ID,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to accept invite"),
 			Error:   err.Error.Error(),
 		})
@@ -73,8 +73,8 @@ func AcceptHandler(c echo.Context) error {
 	if _, err := service.Update(ctx, client, id, &commons.UpdateOptions{
 		Accepted: true,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to accept invite"),
 			Error:   err.Error.Error(),
 		})
@@ -85,8 +85,8 @@ func AcceptHandler(c echo.Context) error {
 		ID:               invite.OrgID,
 		IncrementLimitBy: -1,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to decrement org's invite limit"),
 			Error:   err.Error.Error(),
 		})

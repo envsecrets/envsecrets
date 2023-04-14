@@ -46,6 +46,7 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 				},
 			},
 		})
+
 	} else {
 
 		//	Set the environment ID in query.
@@ -54,7 +55,7 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 
 	req.URL.RawQuery = query.Encode()
 
-	var response commons.APIResponse
+	var response clients.APIResponse
 	if err := client.Run(commons.DefaultContext, req, &response); err != nil {
 		return nil, err
 	}

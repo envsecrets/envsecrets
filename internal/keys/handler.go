@@ -15,7 +15,7 @@ func KeyBackupHandler(c echo.Context) error {
 	var payload commons.KeyBackupRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -28,14 +28,14 @@ func KeyBackupHandler(c echo.Context) error {
 	response, err := BackupKey(ctx, payload.OrgID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to generate key backup"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully generated key plaintext backup",
 		Data:    response.Data,
 	})
@@ -47,7 +47,7 @@ func KeyRestoreHandler(c echo.Context) error {
 	var payload commons.KeyRestoreRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -62,14 +62,14 @@ func KeyRestoreHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to restore the key"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully restored key from plaintext backup",
 	})
 }

@@ -16,7 +16,7 @@ func CreateHandler(c echo.Context) error {
 	var payload commons.CreateRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -34,7 +34,7 @@ func CreateHandler(c echo.Context) error {
 	expiry, er := time.ParseDuration(payload.Expiry)
 	if er != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "Failed to parse expiry duration",
 			Error:   er.Error(),
 		})
@@ -47,7 +47,7 @@ func CreateHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to create the token"),
 			Error:   err.Error.Error(),
 		})
@@ -65,14 +65,14 @@ func CreateHandler(c echo.Context) error {
 	token, err = Get(ctx, client, token.ID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+
 			Message: err.GenerateMessage("Failed to create the token"),
 			Error:   err.Error.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully generated token",
 		Data: map[string]interface{}{
 			"token": token.Hash,

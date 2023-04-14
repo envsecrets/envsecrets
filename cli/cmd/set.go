@@ -48,6 +48,7 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -208,7 +209,7 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		var response commons.APIResponse
+		var response clients.APIResponse
 		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)

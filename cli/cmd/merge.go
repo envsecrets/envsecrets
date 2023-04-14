@@ -39,6 +39,7 @@ import (
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
@@ -167,7 +168,7 @@ containing original/unedited values.`,
 		//	Set content-type header
 		req.Header.Set("content-type", "application/json")
 
-		var response commons.APIResponse
+		var response clients.APIResponse
 		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)

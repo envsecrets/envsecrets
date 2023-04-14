@@ -20,10 +20,3 @@ type Event struct {
 	EntityDetails map[string]interface{}          `json:"entity_details,omitempty" graphql:"entity_details,omitempty"`
 	Integration   integrationsCommons.Integration `json:"integration,omitempty" graphql:"integration,omitempty"`
 }
-
-type APIResponse struct {
-	Code    int         `json:"code"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Message string      `json:"message,omitempty"`
-}

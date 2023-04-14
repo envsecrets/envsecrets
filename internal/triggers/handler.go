@@ -37,8 +37,8 @@ func SecretInserted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -46,8 +46,8 @@ func SecretInserted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -70,8 +70,8 @@ func SecretInserted(c echo.Context) error {
 
 	events, err := events.GetBySecret(ctx, client, row.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: "failed to get events associated with this secret",
 			Error:   err.Error.Error(),
 		})
@@ -84,8 +84,8 @@ func SecretInserted(c echo.Context) error {
 		//	Get the organisation to which these secrets belong to.
 		organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: err.GenerateMessage("Failed to get organisation to which these secrets are associated"),
 				Error:   err.Error.Error(),
 			})
@@ -102,8 +102,8 @@ func SecretInserted(c echo.Context) error {
 					KeyLocation: organisation.ID,
 				})
 				if err != nil {
-					return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-						Code:    err.Type.GetStatusCode(),
+					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 						Message: err.GenerateMessage("Failed to decrypt value of secret: " + key),
 						Error:   err.Error.Error(),
 					})
@@ -112,8 +112,8 @@ func SecretInserted(c echo.Context) error {
 				//	Base64 decode the secret value
 				b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
 				if er != nil {
-					return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-						Code:    err.Type.GetStatusCode(),
+					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 						Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
 						Error:   er.Error(),
 					})
@@ -126,8 +126,8 @@ func SecretInserted(c echo.Context) error {
 				//	Base64 decode the secret value
 				b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
 				if er != nil {
-					return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-						Code:    err.Type.GetStatusCode(),
+					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 						Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
 						Error:   er.Error(),
 					})
@@ -161,8 +161,8 @@ func SecretInserted(c echo.Context) error {
 	}
 	wg.Wait()
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully synced secrets",
 	})
 }
@@ -173,8 +173,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -182,8 +182,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -203,8 +203,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	Get the organisation ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to get the organisation to which this environment is associated"),
 			Error:   err.Error.Error(),
 		})
@@ -213,8 +213,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	Get subscriptions for this organisation
 	orgSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to get the subscriptions for this organisation"),
 			Error:   err.Error.Error(),
 		})
@@ -238,8 +238,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 				EnvID:   row.EnvID,
 				Version: cleanupUntilVersion,
 			}); err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-					Code:    err.Type.GetStatusCode(),
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 					Message: err.GenerateMessage("Failed to delete older versions of this secret"),
 					Error:   err.Error.Error(),
 				})
@@ -247,8 +247,8 @@ func SecretDeleteLegacy(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully deleted legacy secrets",
 	})
 }
@@ -259,8 +259,8 @@ func EventInserted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -268,8 +268,8 @@ func EventInserted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row eventCommons.Event
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -295,8 +295,8 @@ func EventInserted(c echo.Context) error {
 	//	Get the organisation to which this event's environment belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to get the organisation to which this event is associated"),
 			Error:   err.Error.Error(),
 		})
@@ -305,8 +305,8 @@ func EventInserted(c echo.Context) error {
 	//	Get the integration to which this event belong to.
 	integration, err := integrations.GetService().Get(ctx, client, row.IntegrationID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to get integration to which this event is associated"),
 			Error:   err.Error.Error(),
 		})
@@ -317,8 +317,8 @@ func EventInserted(c echo.Context) error {
 		EnvID:   row.EnvID,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to get secrets associated with this event"),
 			Error:   err.Error.Error(),
 		})
@@ -338,8 +338,8 @@ func EventInserted(c echo.Context) error {
 				KeyLocation: organisation.ID,
 			})
 			if err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-					Code:    err.Type.GetStatusCode(),
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 					Message: err.GenerateMessage("Failed to decrypt value of secret: " + key),
 					Error:   err.Error.Error(),
 				})
@@ -348,8 +348,8 @@ func EventInserted(c echo.Context) error {
 			//	Base64 decode the secret value
 			b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
 			if er != nil {
-				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-					Code:    err.Type.GetStatusCode(),
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 					Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
 					Error:   er.Error(),
 				})
@@ -362,8 +362,8 @@ func EventInserted(c echo.Context) error {
 			//	Base64 decode the secret value
 			b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
 			if er != nil {
-				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-					Code:    err.Type.GetStatusCode(),
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 					Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
 					Error:   er.Error(),
 				})
@@ -384,15 +384,15 @@ func EventInserted(c echo.Context) error {
 		Data:           data,
 		Credentials:    integration.Credentials,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)),
 			Error:   err.Error.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully synced secrets",
 	})
 }
@@ -403,8 +403,8 @@ func UserInserted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -412,8 +412,8 @@ func UserInserted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var user userCommons.User
 	if err := MapToStruct(payload.Event.Data.New, &user); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -436,8 +436,8 @@ func UserInserted(c echo.Context) error {
 		UserID: user.ID,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to create default organisation"),
 			Error:   err.Message,
 		})
@@ -445,8 +445,8 @@ func UserInserted(c echo.Context) error {
 
 	//	TODO: Shoot a welcome email to the user
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully generated the transit key",
 	})
 }
@@ -457,8 +457,8 @@ func OrganisationCreateKey(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -466,8 +466,8 @@ func OrganisationCreateKey(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row organisations.Organisation
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -481,8 +481,7 @@ func OrganisationCreateKey(c echo.Context) error {
 		Exportable:           true,
 		AllowPlaintextBackup: true,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &APIResponse{
-			Code:    http.StatusInternalServerError,
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: err.GenerateMessage("Failed to generate transit key"),
 			Error:   err.Message,
 		})
@@ -491,8 +490,7 @@ func OrganisationCreateKey(c echo.Context) error {
 	//	Export the key.
 	key, err := keys.BackupKey(ctx, row.ID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &APIResponse{
-			Code:    http.StatusInternalServerError,
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: err.GenerateMessage("Failed to export transit key"),
 			Error:   err.Message,
 		})
@@ -507,15 +505,14 @@ func OrganisationCreateKey(c echo.Context) error {
 		UserID:  row.UserID,
 		OrgName: row.Name,
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &APIResponse{
-			Code:    http.StatusInternalServerError,
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: err.GenerateMessage("Failed to email the transit key"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully generated the transit key",
 	})
 }
@@ -526,8 +523,8 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -535,8 +532,8 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row organisations.Organisation
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -619,16 +616,16 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 		item.OrgID = row.ID
 
 		if err := service.Insert(permissionCommons.RoleLevelPermission, ctx, client, item); err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: err.GenerateMessage(fmt.Sprintf("Failed to create role %s", item.Name)),
 				Error:   err.Message,
 			})
 		}
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully generated the transit key and created roles",
 	})
 }
@@ -639,8 +636,8 @@ func OrganisationDeleted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -648,8 +645,8 @@ func OrganisationDeleted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var organisation organisations.Organisation
 	if err := MapToStruct(payload.Event.Data.Old, &organisation); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -660,15 +657,15 @@ func OrganisationDeleted(c echo.Context) error {
 
 	//	Generate new transit for this organisation in vault.
 	if err := keys.DeleteKey(ctx, organisation.ID); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to delete the transit key"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully deleted the transit key",
 	})
 }
@@ -679,8 +676,8 @@ func ProjectInserted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -688,8 +685,8 @@ func ProjectInserted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row projects.Project
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -714,16 +711,16 @@ func ProjectInserted(c echo.Context) error {
 			ProjectID: row.ID,
 			UserID:    row.UserID,
 		}); err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: err.GenerateMessage("Failed to create the environment: " + item),
 				Error:   err.Error.Error(),
 			})
 		}
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully default environments",
 	})
 }
@@ -734,8 +731,8 @@ func InviteInserted(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -743,8 +740,8 @@ func InviteInserted(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var row inviteCommons.Invite
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -764,15 +761,15 @@ func InviteInserted(c echo.Context) error {
 		OrgID:         row.OrgID,
 		SenderID:      row.UserID,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.Message,
 			Error:   err.Error.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully sent invitation email to " + row.Email,
 	})
 }
@@ -783,8 +780,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusOK, &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(http.StatusOK, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -792,8 +789,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 	//	Unmarshal the data interface to our required entity.
 	var project permissionCommons.ProjectPermissions
 	if err := MapToStruct(payload.Event.Data.New, &project); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
@@ -801,8 +798,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 
 	incomingPermissions, err := project.GetPermissions()
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: "failed to unmarshal incoming permissions",
 			Error:   err.Error(),
 		})
@@ -844,8 +841,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 			ProjectID: project.ProjectID,
 		})
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: "failed to fetch projects for project",
 				Error:   err.Message,
 			})
@@ -861,8 +858,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 					EnvID:       item.ID,
 					UserID:      project.UserID,
 					Permissions: permissions}); err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-					Code:    err.Type.GetStatusCode(),
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 					Message: "failed to insert permissions for environment: " + item.ID,
 					Error:   err.Message,
 				})
@@ -870,8 +867,8 @@ func ProjectLevelPermissions(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusOK, &APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully inserted environment level permissions",
 	})
 }
@@ -882,14 +879,14 @@ func EnvironmentLevelPermissions(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusOK, &APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(http.StatusOK, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 		})
 	}
 
-	return c.JSON(err.Type.GetStatusCode(), &APIResponse{
-		Code:    err.Type.GetStatusCode(),
+	return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 		Message: "un-built event endpoint",
 	})
 }
