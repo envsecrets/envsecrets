@@ -71,7 +71,7 @@ func ValidateHash(password, hash string) bool {
 	return err == nil
 }
 
-func MapToStruct(source any, target interface{}) error {
+func MapToStruct(source interface{}, target interface{}) error {
 	if source == nil {
 		return errors.New("source is nil")
 	}
