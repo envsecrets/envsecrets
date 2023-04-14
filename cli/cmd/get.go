@@ -36,9 +36,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/internal"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -48,10 +49,10 @@ var getCmd = &cobra.Command{
 	Short: "Fetch decrypted value corresponding to your secret key",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
+		//	If the user has passed a token,
+		//	avoid using email+password to authenticate them against the API.
+		if XTokenHeader != "" {
+			return
 		}
 
 		//	Ensure the project configuration is initialized and available.
@@ -61,6 +62,12 @@ var getCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		//	If the account configuration doesn't exist,
+		//	log-in the user first.
+		if !config.GetService().Exists(configCommons.AccountConfig) {
+			loginCmd.PreRunE(cmd, args)
+			loginCmd.Run(cmd, args)
+		}
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -70,30 +77,55 @@ var getCmd = &cobra.Command{
 		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
-		secretPayload, err := export(&key)
-		if err != nil {
-			log.Fatal(err)
+		options := internal.GetValuesOptions{
+			Key: &key,
 		}
 
-		log.Debug("Fetched secret version ", secretPayload["version"])
+		if version > -1 {
+			options.Version = &version
+		}
 
-		for key, item := range secretPayload["data"].(map[string]interface{}) {
-			payload := item.(map[string]interface{})
+		if XTokenHeader == "" {
+
+			//	Load the project config
+			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+			if err != nil {
+				log.Debug(err)
+				log.Error("Can't read project configuration")
+				log.Info("Initialize your current directory with `envsecrets init`")
+				os.Exit(1)
+			}
+
+			projectConfig := projectConfigPayload.(*configCommons.Project)
+			options.EnvID = projectConfig.Environment
+
+		} else {
+			options.Token = XTokenHeader
+		}
+
+		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
+
+		for key, item := range secrets.Data {
 
 			//	If the value is empty/nil,
 			//	then it either doesn't exist or wasn't fetched.
-			if payload["value"] == nil {
+			if item.Value == nil {
 				log.Fatalf("Value for key '%s' not found", key)
 			}
 
 			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
+			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
 			if err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to base64 decode secret value")
+				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			fmt.Println(string(value))
+			fmt.Printf("%s", string(value))
+			fmt.Println()
 		}
 	},
 }
@@ -110,4 +142,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
+	getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

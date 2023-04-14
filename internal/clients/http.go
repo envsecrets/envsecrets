@@ -100,21 +100,38 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 	if req.Body != nil {
 		body, err = req.GetBody()
 		if err != nil {
-			return errors.New(err, "failed to create copy of request body", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+			return errors.New(err, "Failed to send HTTP request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 		}
 	}
 
 	//	Make the request
 	resp, err := c.Do(req)
 	if err != nil {
-		return errors.New(err, "failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
+		return errors.New(err, "Failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
 	}
 
 	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
 	if resp.StatusCode == http.StatusUnauthorized {
 
-		c.log.Debug("Request failed due to expired token. Refreshing access token to try again.")
+		defer resp.Body.Close()
+
+		result, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+		}
+
+		var errResponse APIResponse
+		if err := json.Unmarshal(result, &errResponse); err != nil {
+			return errors.New(err, "failed to unmarshal response body in provided interface", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+
+		//	Only attempt the request again if the client has a JWT Authorization header attached.
+		if c.Authorization == "" {
+			return errors.New(nil, errResponse.Message, errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
+		}
+
+		c.log.Debug("Refreshing access token to try again")
 
 		//	Fetch account configuration
 		accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)

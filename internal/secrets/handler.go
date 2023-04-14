@@ -5,7 +5,7 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -15,8 +15,8 @@ func SetHandler(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload commons.SetRequestOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -31,23 +31,33 @@ func SetHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
+	//	Fetch the organisation using environment ID.
+	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
+			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
+			Error:   err.Message,
+		})
+	}
+
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
-		KeyPath:    payload.OrgID,
+		KeyPath:    organisation.ID,
 		EnvID:      payload.EnvID,
 		Data:       payload.Data,
 		KeyVersion: payload.KeyVersion,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to set the secret"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully set the secret",
 		Data:    secret,
 	})
@@ -58,8 +68,8 @@ func MergeHandler(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload commons.MergeRequestOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -76,21 +86,20 @@ func MergeHandler(c echo.Context) error {
 
 	//	Call the service function.
 	secret, err := Merge(ctx, client, &commons.MergeSecretOptions{
-		KeyPath:       payload.OrgID,
 		SourceEnvID:   payload.SourceEnvID,
 		TargetEnvID:   payload.TargetEnvID,
 		SourceVersion: payload.SourceVersion,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to merge the secrets"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully merged the secrets",
 		Data:    secret,
 	})
@@ -101,8 +110,8 @@ func DeleteHandler(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload commons.DeleteRequestOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -122,15 +131,15 @@ func DeleteHandler(c echo.Context) error {
 		EnvID: payload.EnvID,
 		Key:   payload.Key,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("Failed to delete the secret"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully delete the secret",
 	})
 }
@@ -140,8 +149,8 @@ func GetHandler(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload commons.GetRequestOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -152,12 +161,37 @@ func GetHandler(c echo.Context) error {
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type:          clients.HasuraClientType,
-		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+		Type: clients.HasuraClientType,
 	})
 
+	//	If the user has passed an authorization header,
+	//	use that in GraphQL client.
+	//	Else if they are authenticating using a token,
+	//	it is safe to use the admin token.
+	if c.Request().Header.Get(echo.HeaderAuthorization) != "" {
+		client.Authorization = c.Request().Header.Get(echo.HeaderAuthorization)
+	} else if c.Request().Header.Get(string(clients.TokenHeader)) != "" {
+		client.Headers = append(client.Headers, clients.XHasuraAdminSecretHeader)
+	} else {
+		return echo.ErrUnauthorized
+	}
+
+	//	Override the env_id set by token middleware.
+	if c.Get("env_id") != nil {
+		payload.EnvID = c.Get("env_id").(string)
+	}
+
+	//	Fetch the organisation using environment ID.
+	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
+			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
+			Error:   err.Message,
+		})
+	}
+
 	var response *commons.GetResponse
-	var err *errors.Error
 
 	//	If there is a specific key,
 	//	pull the value only for that key.
@@ -166,13 +200,13 @@ func GetHandler(c echo.Context) error {
 		//	Call the service function.
 		response, err = Get(ctx, client, &commons.GetSecretOptions{
 			Key:     payload.Key,
-			KeyPath: payload.OrgID,
+			KeyPath: organisation.ID,
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
@@ -183,33 +217,33 @@ func GetHandler(c echo.Context) error {
 		//	Else, pull all values.
 		//	Call the service function.
 		response, err = GetAll(ctx, client, &commons.GetSecretOptions{
-			KeyPath: payload.OrgID,
+			KeyPath: organisation.ID,
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-				Code:    err.Type.GetStatusCode(),
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 				Message: err.GenerateMessage("Failed to get the secret"),
 				Error:   err.Message,
 			})
 		}
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully got the secret",
 		Data:    response,
 	})
 }
 
-func KeyBackupHandler(c echo.Context) error {
+func ListHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.KeyBackupRequestOptions
+	var payload commons.ListRequestOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -218,52 +252,41 @@ func KeyBackupHandler(c echo.Context) error {
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
+	//	Initialize new Hasura client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+	})
+
+	//	If the user has passed an authorization header,
+	//	use that in GraphQL client.
+	//	Else if they are authenticating using a token,
+	//	it is safe to use the admin token.
+	if c.Request().Header.Get(echo.HeaderAuthorization) != "" {
+		client.Authorization = c.Request().Header.Get(echo.HeaderAuthorization)
+	} else if c.Request().Header.Get(string(clients.TokenHeader)) != "" {
+		client.Headers = append(client.Headers, clients.XHasuraAdminSecretHeader)
+	} else {
+		return echo.ErrUnauthorized
+	}
+
+	//	Override the env_id set by token middleware.
+	if c.Get("env_id") != nil {
+		payload.EnvID = c.Get("env_id").(string)
+	}
+
 	//	Call the service function.
-	response, err := BackupKey(ctx, payload.OrgID)
+	response, err := List(ctx, client, &payload)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
-			Message: err.GenerateMessage("Failed to generate key backup"),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
+			Message: err.GenerateMessage("Failed to list the secret"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
-		Message: "successfully generated key plaintext backup",
-		Data:    response.Data,
-	})
-}
+	return c.JSON(http.StatusOK, &clients.APIResponse{
 
-func KeyRestoreHandler(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload commons.KeyRestoreRequestOptions
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &commons.APIResponse{
-			Code:    http.StatusBadRequest,
-			Message: "failed to parse the body",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Call the service function.
-	err := RestoreKey(ctx, payload.OrgID, commons.KeyRestoreOptions{
-		Backup: payload.Backup,
-	})
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
-			Message: err.GenerateMessage("Failed to restore the key"),
-			Error:   err.Message,
-		})
-	}
-
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
-		Message: "successfully restored key from plaintext backup",
+		Message: "successfully got the secret",
+		Data:    response,
 	})
 }

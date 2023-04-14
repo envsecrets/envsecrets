@@ -51,7 +51,8 @@ var (
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Authenticate your envsecrets cloud account",
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 
 		var err error
 
@@ -116,7 +117,6 @@ var loginCmd = &cobra.Command{
 		}, configCommons.AccountConfig); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to save account configuration locally")
-
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

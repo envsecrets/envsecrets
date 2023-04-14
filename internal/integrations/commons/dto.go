@@ -14,13 +14,6 @@ type OauthAuthResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-type APIResponse struct {
-	Code    int         `json:"code"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-	Message string      `json:"message,omitempty"`
-}
-
 type Integration struct {
 	ID             string                 `json:"id,omitempty" graphql:"id,omitempty"`
 	CreatedAt      time.Time              `json:"created_at,omitempty" graphql:"created_at,omitempty"`

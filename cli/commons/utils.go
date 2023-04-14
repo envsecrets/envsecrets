@@ -19,7 +19,7 @@ var DefaultContext = context.NewContext(&context.Config{Type: context.CLIContext
 
 var Logger = logrus.New()
 
-func init() {
+func Initialize() {
 
 	//	Fetch the account config
 	accountConfig, _ := config.GetService().Load(commons.AccountConfig)
@@ -41,4 +41,8 @@ func init() {
 		HTTPClient.Authorization = "Bearer " + config.AccessToken
 		GQLClient.Authorization = "Bearer " + config.AccessToken
 	}
+}
+
+func init() {
+	Initialize()
 }

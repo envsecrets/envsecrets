@@ -28,7 +28,7 @@ func CreateCheckoutSession(c echo.Context) error {
 	var payload commons.CreateCheckoutSessionOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "failed to parse the body",
 		})
 	}
@@ -51,7 +51,6 @@ func CreateCheckoutSession(c echo.Context) error {
 	user, err := users.Get(ctx, client, claims.Hasura.UserID)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, &clients.APIResponse{
-			Code:    http.StatusServiceUnavailable,
 			Message: "failed to fetch user for this token",
 			Error:   err.Error.Error(),
 		})
@@ -91,7 +90,7 @@ func CreateCheckoutSession(c echo.Context) error {
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/settings/members"),
+		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/settings/billing"),
 		CancelURL:  stripe.String(os.Getenv("FE_URL") + "/settings/billing"),
 	}
 
@@ -99,14 +98,14 @@ func CreateCheckoutSession(c echo.Context) error {
 	s, er := session.New(params)
 	if er != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Code:    http.StatusBadRequest,
+
 			Message: "Failed to create a checkout session",
 			Error:   er.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Code:    http.StatusOK,
+
 		Message: "successfully created checkout sessions",
 		Data: map[string]interface{}{
 			"url": s.URL,

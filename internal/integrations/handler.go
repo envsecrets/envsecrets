@@ -63,15 +63,15 @@ func ListEntitiesHandler(c echo.Context) error {
 	//	Run the service handler.
 	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID))
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &commons.APIResponse{
-			Code:    err.Type.GetStatusCode(),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+
 			Message: err.GenerateMessage("failed to fetch integration entities"),
 			Error:   err.Message,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &commons.APIResponse{
-		Code:    http.StatusOK,
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+
 		Message: "successfully fetched integration entities",
 		Data:    entities,
 	})

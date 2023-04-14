@@ -156,7 +156,6 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 			},
 			Outros: []string{
 				"Kindly find the key file attached with this email.",
-				"You can also manually export this key from your organisation's settings page.",
 			},
 		},
 	}
@@ -170,13 +169,13 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 	m := gomail.NewMessage()
 
 	// Set E-Mail sender
-	m.SetHeader("From", FROM)
+	m.SetHeader("From", "Mrinal Wahal")
 
 	// Set E-Mail receivers
 	m.SetHeader("To", user.Email)
 
 	// Set E-Mail subject
-	m.SetHeader("Subject", "Encryption Key For New Organisation")
+	m.SetHeader("Subject", "Encryption Key For Your Organisation")
 
 	// Set E-Mail body. You can set plain text or html with text/html
 	m.SetBody("text/html", body)

@@ -36,14 +36,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
 	"runtime"
 	"strings"
-	"syscall"
 
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/internal"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -55,10 +54,10 @@ var runCmd = &cobra.Command{
 envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
+		//	If the user has passed a token,
+		//	avoid using email+password to authenticate them against the API.
+		if XTokenHeader != "" {
+			return
 		}
 
 		//	Ensure the project configuration is initialized and available.
@@ -68,6 +67,12 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			os.Exit(1)
 		}
 
+		//	If the account configuration doesn't exist,
+		//	log-in the user first.
+		if !config.GetService().Exists(configCommons.AccountConfig) {
+			loginCmd.PreRunE(cmd, args)
+			loginCmd.Run(cmd, args)
+		}
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// The --command flag and args are mututally exclusive
@@ -89,28 +94,51 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var variables []string
+		options := internal.GetValuesOptions{}
 
-		//	`envsecrets run -- npm run dev`
-		secretPayload, err := export(nil)
-		if err != nil {
-			log.Fatal(err)
+		if version > -1 {
+			options.Version = &version
 		}
 
-		log.Debug("Injecting environment secrets version ", secretPayload["version"], " into your process!")
+		if XTokenHeader == "" {
 
-		for key, item := range secretPayload["data"].(map[string]interface{}) {
-			payload := item.(map[string]interface{})
-
-			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
+			//	Load the project config
+			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
 			if err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to base64 decode value for secrets: ", key)
+				log.Error("Can't read project configuration")
+				log.Info("Initialize your current directory with `envsecrets init`")
+				os.Exit(1)
+			}
+
+			projectConfig := projectConfigPayload.(*configCommons.Project)
+			options.EnvID = projectConfig.Environment
+
+		} else {
+			options.Token = XTokenHeader
+		}
+
+		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
+
+		var variables []string
+
+		for key, item := range secrets.Data {
+
+			//	Base64 decode the secret value
+			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
 			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
 		}
+
+		log.Info("Injecting secrets version ", *secrets.Version, " into your process")
 
 		//	Overwrite reserved keys
 		reservedKeys := []string{"PATH", "PS1", "HOME"}
@@ -145,62 +173,14 @@ envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		userCmd.Stdout = os.Stdout
 		userCmd.Stderr = os.Stderr
 
-		exitCode, err := execCommand(userCmd, false, nil)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("command execution failed or completed ungracefully")
+		exitCode, er := internal.ExecCommand(userCmd, false, nil)
+		if er != nil {
+			log.Debug(er)
+			log.Fatal("Command execution failed or completed ungracefully")
 		}
 
 		os.Exit(exitCode)
 	},
-}
-
-func execCommand(cmd *exec.Cmd, forwardSignals bool, onExit func()) (int, error) {
-	if onExit != nil {
-		// ensure the onExit handler is called, regardless of how/when we return
-		defer onExit()
-	}
-
-	// signal handling logic adapted from aws-vault https://github.com/99designs/aws-vault/
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan)
-
-	if err := cmd.Start(); err != nil {
-		return 1, err
-	}
-
-	// handle all signals
-	go func() {
-		for {
-			// When running with a TTY, user-generated signals (like SIGINT) are sent to the entire process group.
-			// If we forward the signal, the child process will end up receiving the signal twice.
-			if forwardSignals {
-				// forward to process
-				sig := <-sigChan
-				cmd.Process.Signal(sig) // #nosec G104
-			} else {
-				// ignore
-				<-sigChan
-			}
-		}
-	}()
-
-	if err := cmd.Wait(); err != nil {
-		// ignore errors
-		cmd.Process.Signal(os.Kill) // #nosec G104
-
-		if exitError, ok := err.(*exec.ExitError); ok {
-			return exitError.ExitCode(), exitError
-		}
-
-		return 2, err
-	}
-
-	waitStatus, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
-	if !ok {
-		return 2, fmt.Errorf("Unexpected ProcessState type, expected syscall.WaitStatus, got %T", waitStatus)
-	}
-	return waitStatus.ExitStatus(), nil
 }
 
 func init() {
@@ -215,4 +195,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
+	runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }
