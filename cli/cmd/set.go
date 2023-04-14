@@ -190,7 +190,6 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Send the secrets to vault
 		payload := secretsCommons.SetRequestOptions{
 			Data:  data,
-			OrgID: projectConfig.Organisation,
 			EnvID: projectConfig.Environment,
 		}
 

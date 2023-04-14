@@ -9,17 +9,20 @@ type Token struct {
 	UserID    string    `json:"user_id,omitempty"`
 	EnvID     string    `json:"env_id,omitempty"`
 	Expiry    time.Time `json:"expiry,omitempty"`
+	Hash      string    `json:"hash,omitempty"`
+	Name      string    `json:"name,omitempty"`
 }
 
 type CreateRequestOptions struct {
 	EnvID  string `json:"env_id"`
 	Expiry string `json:"expiry"`
+	Name   string `json:"name,omitempty"`
 }
 
 type CreateServiceOptions struct {
-	OrgID  string
 	EnvID  string
 	Expiry time.Duration
+	Name   string `json:"name,omitempty"`
 }
 
 type CreateOptions struct {
@@ -29,25 +32,15 @@ type CreateOptions struct {
 	IssuedAt      time.Time
 	NotBeforeTime time.Time
 	Expiry        time.Time
+	Name          string `json:"name,omitempty"`
 }
 
 type CreateGraphQLOptions struct {
-	ID     string    `json:"id"`
 	EnvID  string    `json:"env_id"`
 	Expiry time.Time `json:"expiry"`
-	Hash   string    `json:"hash"`
+	Name   string    `json:"name,omitempty"`
 }
 
 type GetGraphQLOptions struct {
 	Hash string `json:"hash"`
-}
-
-type DecryptServiceOptions struct {
-	OrgID string
-	Token string
-}
-
-type DecryptOptions struct {
-	Key   []byte
-	Token string
 }

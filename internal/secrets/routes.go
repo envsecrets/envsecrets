@@ -17,9 +17,16 @@ func AddRoutes(sg *echo.Group) {
 	group.POST("/merge", MergeHandler)
 	group.DELETE("", DeleteHandler)
 
-	group.GET("", GetHandler, middlewares.TokenHeader(), middlewares.JWTAuth(func(c echo.Context) bool {
+	//	Custom middlewares for GET routes
+	middlewares := []echo.MiddlewareFunc{
+		middlewares.TokenHeader(),
+		middlewares.JWTAuth(func(c echo.Context) bool {
 
-		//	Skip the middleware if it has an environment token.
-		return c.Request().Header.Get(string(clients.TokenHeader)) != ""
-	}))
+			//	Skip the middleware if it has an environment token.
+			return c.Request().Header.Get(string(clients.TokenHeader)) != ""
+		}),
+	}
+
+	group.GET("", ListHandler, middlewares...)
+	group.GET("/values", GetHandler, middlewares...)
 }

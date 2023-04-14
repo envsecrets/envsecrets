@@ -120,50 +120,6 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	}, nil
 }
 
-//	Pulls all secret key-value pairs from the source environment,
-//	and overwrites them in the target environment.
-//	It creates a new secret version.
-func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, *errors.Error) {
-
-	//	Fetch all key-value pairs of the source environment.
-	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
-		KeyPath: options.KeyPath,
-		EnvID:   options.SourceEnvID,
-		Version: options.SourceVersion,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	Fetch all key-value pairs of the target environment.
-	targetVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
-		KeyPath: options.KeyPath,
-		EnvID:   options.TargetEnvID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	If the target variables is nil,
-	//	then no pairs were fetched.
-	if targetVariables.Data == nil {
-		targetVariables.Data = make(map[string]commons.Payload)
-	}
-
-	//	Iterate through the target pairs,
-	//	and overwrite the matching ones from the source pairs.
-	for key, payload := range sourceVariables.Data {
-		targetVariables.Data[key] = payload
-	}
-
-	//	Set the updated pairs in Hasura.
-	return Set(ctx, client, &commons.SetSecretOptions{
-		KeyPath: options.KeyPath,
-		EnvID:   options.TargetEnvID,
-		Data:    targetVariables.Data,
-	})
-}
-
 func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
 	var data commons.GetResponse
@@ -211,6 +167,91 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	}
 
 	return &data, nil
+}
+
+//	Fetches only the keys of a secret row.
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (*commons.GetResponse, *errors.Error) {
+
+	var data commons.GetResponse
+
+	//	If the request has a specific version specified,
+	//	make the call for only that version
+	if options.Version != nil {
+
+		resp, err := graphql.GetByVersion(ctx, client, &commons.GetSecretOptions{
+			EnvID:   options.EnvID,
+			Version: options.Version,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		data = *resp
+
+	} else {
+
+		resp, err := graphql.Get(ctx, client, &commons.GetSecretOptions{
+			EnvID: options.EnvID,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		data = *resp
+	}
+
+	//	Remove the values from payload.
+	//	Only keep the type.
+	for key, item := range data.Data {
+		data.Data[key] = commons.Payload{
+			Type: item.Type,
+		}
+	}
+	return &data, nil
+}
+
+//	Pulls all secret key-value pairs from the source environment,
+//	and overwrites them in the target environment.
+//	It creates a new secret version.
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, *errors.Error) {
+
+	//	Fetch all key-value pairs of the source environment.
+	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
+		//	KeyPath: options.KeyPath,
+		EnvID:   options.SourceEnvID,
+		Version: options.SourceVersion,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//	Fetch all key-value pairs of the target environment.
+	targetVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
+		//	KeyPath: options.KeyPath,
+		EnvID: options.TargetEnvID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//	If the target variables is nil,
+	//	then no pairs were fetched.
+	if targetVariables.Data == nil {
+		targetVariables.Data = make(map[string]commons.Payload)
+	}
+
+	//	Iterate through the target pairs,
+	//	and overwrite the matching ones from the source pairs.
+	for key, payload := range sourceVariables.Data {
+		targetVariables.Data[key] = payload
+	}
+
+	//	Set the updated pairs in Hasura.
+	return Set(ctx, client, &commons.SetSecretOptions{
+		//	KeyPath: options.KeyPath,
+		EnvID: options.TargetEnvID,
+		Data:  targetVariables.Data,
+	})
 }
 
 func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) (*commons.VaultResponse, *errors.Error) {

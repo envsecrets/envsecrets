@@ -30,6 +30,7 @@ const (
 	ErrorTypeInvalidToken ErrorType = "InvalidToken"
 
 	ErrorTypeInvalidAccountConfiguration ErrorType = "InvalidAccountConfiguration"
+	ErrorTypeInvalidProjectConfiguration ErrorType = "InvalidProjectConfiguration"
 
 	ErrorTypeEmailFailed ErrorType = "EmailFailed"
 )
@@ -51,6 +52,7 @@ var ResponseCodeMap = map[ErrorType]int{
 	ErrorTypeInvalidKey:                  http.StatusBadRequest,
 	ErrorTypeKeyNotFound:                 http.StatusNotFound,
 	ErrorTypeInvalidAccountConfiguration: http.StatusBadRequest,
+	ErrorTypeInvalidProjectConfiguration: http.StatusBadRequest,
 
 	ErrorTypeInvalidToken: http.StatusBadRequest,
 

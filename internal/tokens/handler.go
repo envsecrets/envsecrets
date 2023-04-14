@@ -6,7 +6,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/tokens/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -25,7 +24,7 @@ func CreateHandler(c echo.Context) error {
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
-	//	Initialize Hasura client with admin privileges
+	//	Initialize Hasura client with user's token
 	client := clients.NewGQLClient(&clients.GQLConfig{
 		Type:          clients.HasuraClientType,
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
@@ -41,21 +40,29 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
-	//	Get the organisation for this environment.
-	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
+	token, err := Create(ctx, client, &commons.CreateServiceOptions{
+		EnvID:  payload.EnvID,
+		Expiry: expiry,
+		Name:   payload.Name,
+	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
 			Code:    err.Type.GetStatusCode(),
-			Message: err.GenerateMessage("Failed to get the organisation this environment is associated with"),
+			Message: err.GenerateMessage("Failed to create the token"),
 			Error:   err.Error.Error(),
 		})
 	}
 
-	token, err := Create(ctx, client, &commons.CreateServiceOptions{
-		OrgID:  organisation.ID,
-		EnvID:  payload.EnvID,
-		Expiry: expiry,
+	//	Re-Initialize a new Hasura client with admin privileges
+	client = clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
 	})
+
+	//	Get the token hash using the new admin client
+	token, err = Get(ctx, client, token.ID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
 			Code:    err.Type.GetStatusCode(),
@@ -68,7 +75,7 @@ func CreateHandler(c echo.Context) error {
 		Code:    http.StatusOK,
 		Message: "successfully generated token",
 		Data: map[string]interface{}{
-			"token": token,
+			"token": token.Hash,
 		},
 	})
 }

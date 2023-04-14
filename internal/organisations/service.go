@@ -129,7 +129,6 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	query MyQuery($env_id: uuid!) {
 		organisations(where: {projects: {environments: {id: {_eq: $env_id}}}}, limit: 1) {
 		  id
-		  name
 		}
 	  }	   
 	`)

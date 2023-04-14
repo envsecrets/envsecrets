@@ -42,16 +42,18 @@ insert_permissions:
       columns:
         - env_id
         - expiry
-        - id
+        - hash
+        - name
 select_permissions:
   - role: user
     permission:
       columns:
-        - expiry
         - created_at
-        - updated_at
         - env_id
+        - expiry
         - id
+        - name
+        - updated_at
         - user_id
       filter:
         _or:

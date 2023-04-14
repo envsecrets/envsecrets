@@ -4,13 +4,13 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/tokens"
-	"github.com/envsecrets/envsecrets/internal/tokens/commons"
 	"github.com/golang-jwt/jwt/v4"
 	echojwt "github.com/labstack/echo-jwt"
 	"github.com/labstack/echo/v4"
@@ -58,12 +58,6 @@ func TokenHeader() echo.MiddlewareFunc {
 		KeyLookup: "header:" + string(clients.TokenHeader),
 		Validator: func(key string, c echo.Context) (bool, error) {
 
-			//	This middleware also required `x-envsecrets-org-id` header.
-			orgID := c.Request().Header.Get(string(clients.OrgIDHeader))
-			if orgID == "" {
-				return false, errors.New("requires `x-envsecrets-org-id` header")
-			}
-
 			//	Initialize a new default context
 			ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
@@ -75,30 +69,24 @@ func TokenHeader() echo.MiddlewareFunc {
 				},
 			})
 
-			//	Verify and decrypt the token.
-			token, err := tokens.Decrypt(ctx, client, &commons.DecryptServiceOptions{
-				OrgID: orgID,
-				Token: key,
-			})
+			//	Verify the token.
+			token, err := tokens.GetByHash(ctx, client, key)
 			if err != nil {
 				return false, err.Error
 			}
 
-			//	Validate the token has not been revoked by the user manually
-			//	and it's record still exists in our database.
-			_, err = tokens.Get(ctx, client, token.Jti)
-			if err != nil {
-				return false, errors.New("token doesn't exist or has been revoked")
+			if token.EnvID == "" {
+				return false, errors.New("failed to the environment this token is associated with")
 			}
 
 			//	Set the environment ID in echo's context.
-			c.Set("env_id", token.Get("env_id"))
+			c.Set("env_id", token.EnvID)
 
-			//	Set the org ID in echo's context.
-			c.Set("org_id", orgID)
-
-			if validationErr := token.Validate(); validationErr != nil {
-				return false, validationErr
+			//	Parse the token expiry
+			now := time.Now()
+			expired := now.After(token.Expiry)
+			if expired {
+				return false, errors.New("token expired")
 			}
 
 			return true, nil

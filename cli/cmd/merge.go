@@ -144,7 +144,6 @@ containing original/unedited values.`,
 
 		//	Send the secrets to vault
 		payload := secretsCommons.MergeRequestOptions{
-			OrgID:       projectConfig.Organisation,
 			SourceEnvID: environmentID,
 			TargetEnvID: projectConfig.Environment,
 		}

@@ -32,16 +32,14 @@ package cmd
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/internal"
 	"github.com/envsecrets/envsecrets/config"
 	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/clients"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -49,18 +47,18 @@ var version int
 var exportfile string
 
 var XTokenHeader string
-var XOrgIDHeader string
 
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Prints decrypted list of your environment's (key-value) secret pairs",
+	Args:  cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
+		//	If the user has passed a token,
+		//	avoid using email+password to authenticate them against the API.
+		if XTokenHeader != "" {
+			return
 		}
 
 		//	Ensure the project configuration is initialized and available.
@@ -70,119 +68,79 @@ var exportCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-	},
-	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-
-		secretPayload, err := export(nil)
+		//	Load the user's email.
+		accountConfig, err := config.GetService().Load(configCommons.AccountConfig)
 		if err != nil {
-			log.Fatal(err)
-		}
+			loginCmd.PreRunE(cmd, args)
+			loginCmd.Run(cmd, args)
+		} else {
 
-		log.Debug("Fetched secret version ", secretPayload["version"])
+			accountData := accountConfig.(*configCommons.Account)
+			email = accountData.User.Email
 
-		if secretPayload["data"] != nil {
-
-			for key, item := range secretPayload["data"].(map[string]interface{}) {
-				payload := item.(map[string]interface{})
-
-				//	If the value is empty/nil,
-				//	then it either doesn't exist or wasn't fetched.
-				if payload["value"] == nil {
-					log.Fatal("Values not found for key: ", key)
-				}
-
-				//	Base64 decode the secret value
-				value, err := base64.StdEncoding.DecodeString(payload["value"].(string))
-				if err != nil {
-					log.Debugf("key: %s; value %v", key, payload["value"])
-					log.Debug(err)
-					log.Fatal("Failed to base64 decode the secret value")
-				}
-
-				fmt.Printf("%s=%v", key, string(value))
-				fmt.Println()
+			//	Log them in first.
+			//	Take password input
+			passwordPrompt := promptui.Prompt{
+				Label: "Password",
+				Mask:  '*',
 			}
 
+			password, err = passwordPrompt.Run()
+			if err != nil {
+				os.Exit(1)
+			}
+
+			loginCmd.Run(cmd, args)
+
+			//	Re-initialize the commons
+			commons.Initialize()
 		}
 	},
-}
+	Run: func(cmd *cobra.Command, args []string) {
 
-func export(key *string) (map[string]interface{}, error) {
+		options := internal.GetValuesOptions{}
 
-	var secretVersion *int
-
-	if version > -1 {
-		secretVersion = &version
-	}
-
-	//	Load the project config
-	projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	projectConfig := projectConfigPayload.(*configCommons.Project)
-
-	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Initialize the query params.
-	query := req.URL.Query()
-	if key != nil {
-		query.Set("key", *key)
-	}
-	if secretVersion != nil {
-		query.Set("version", fmt.Sprint(*secretVersion))
-	}
-
-	//	Initialize the HTTP Client
-	client := commons.HTTPClient
-
-	//	If the environment secret is passed,
-	//	create a new HTTP client and attach it in the header.
-	if XTokenHeader != "" {
-
-		//	Validate the mandatory `x-org-id` header.
-		if XOrgIDHeader == "" {
-			return nil, errors.New("Passing the --org-id flag is mandatory with environment token")
+		if version > -1 {
+			options.Version = &version
 		}
 
-		client = clients.NewHTTPClient(&clients.HTTPConfig{
-			BaseURL: commons.API + "/v1",
-			Logger:  commons.Logger,
-			CustomHeaders: []clients.CustomHeader{
-				{
-					Key:   string(clients.TokenHeader),
-					Value: XTokenHeader,
-				},
-				{
-					Key:   string(clients.OrgIDHeader),
-					Value: XOrgIDHeader,
-				},
-			},
-		})
+		if XTokenHeader == "" {
 
-	} else {
-		query.Set("org_id", projectConfig.Organisation)
-		query.Set("env_id", projectConfig.Environment)
-	}
+			//	Load the project config
+			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+			if err != nil {
+				log.Debug(err)
+				log.Error("Can't read project configuration")
+				log.Info("Initialize your current directory with `envsecrets init`")
+				os.Exit(1)
+			}
 
-	req.URL.RawQuery = query.Encode()
+			projectConfig := projectConfigPayload.(*configCommons.Project)
+			options.EnvID = projectConfig.Environment
 
-	var response commons.APIResponse
-	if err := client.Run(commons.DefaultContext, req, &response); err != nil {
-		return nil, errors.New(err.Message)
-	}
+		} else {
+			options.Token = XTokenHeader
+		}
 
-	if response.Error != "" {
-		log.Debug(response.Error)
-		return nil, errors.New(response.Message)
-	}
+		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
 
-	return response.Data.(map[string]interface{}), nil
+		for key, item := range secrets.Data {
+
+			//	Base64 decode the secret value
+			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to base64 decode the value for %s", key)
+			}
+
+			fmt.Printf("%s=%s", key, string(value))
+			fmt.Println()
+		}
+	},
 }
 
 func init() {
@@ -199,5 +157,4 @@ func init() {
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
 	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
-	exportCmd.Flags().StringVar(&XOrgIDHeader, "org-id", "", "Organisation ID; mandatory with environment token")
 }

@@ -59,14 +59,20 @@ var (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize your current directory for envsecrets",
-	PreRun: func(cmd *cobra.Command, args []string) {
+	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
+			loginCmd.PreRunE(cmd, args)
 			loginCmd.Run(cmd, args)
 		}
 
+		//	Re-initialize the commons
+		commons.Initialize()
+
+		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -278,7 +284,7 @@ var initCmd = &cobra.Command{
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("You can now set your first secret using `envsecrets set`")
+		log.Info("You can now set your secrets using `envsecrets set`")
 	},
 }
 

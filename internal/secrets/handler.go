@@ -5,7 +5,7 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -31,9 +31,19 @@ func SetHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
+	//	Fetch the organisation using environment ID.
+	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
+			Error:   err.Message,
+		})
+	}
+
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
-		KeyPath:    payload.OrgID,
+		KeyPath:    organisation.ID,
 		EnvID:      payload.EnvID,
 		Data:       payload.Data,
 		KeyVersion: payload.KeyVersion,
@@ -76,7 +86,6 @@ func MergeHandler(c echo.Context) error {
 
 	//	Call the service function.
 	secret, err := Merge(ctx, client, &commons.MergeSecretOptions{
-		KeyPath:       payload.OrgID,
 		SourceEnvID:   payload.SourceEnvID,
 		TargetEnvID:   payload.TargetEnvID,
 		SourceVersion: payload.SourceVersion,
@@ -147,23 +156,12 @@ func GetHandler(c echo.Context) error {
 		})
 	}
 
-	//	Override the env_id set by token middleware.
-	if c.Get("env_id") != nil {
-		payload.EnvID = c.Get("env_id").(string)
-	}
-
-	//	Override the key_path as org_id set by token middleware.
-	if c.Get("org_id") != nil {
-		payload.OrgID = c.Get("org_id").(string)
-	}
-
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type:          clients.HasuraClientType,
-		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+		Type: clients.HasuraClientType,
 	})
 
 	//	If the user has passed an authorization header,
@@ -172,12 +170,28 @@ func GetHandler(c echo.Context) error {
 	//	it is safe to use the admin token.
 	if c.Request().Header.Get(echo.HeaderAuthorization) != "" {
 		client.Authorization = c.Request().Header.Get(echo.HeaderAuthorization)
-	} else {
+	} else if c.Request().Header.Get(string(clients.TokenHeader)) != "" {
 		client.Headers = append(client.Headers, clients.XHasuraAdminSecretHeader)
+	} else {
+		return echo.ErrUnauthorized
+	}
+
+	//	Override the env_id set by token middleware.
+	if c.Get("env_id") != nil {
+		payload.EnvID = c.Get("env_id").(string)
+	}
+
+	//	Fetch the organisation using environment ID.
+	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
+			Error:   err.Message,
+		})
 	}
 
 	var response *commons.GetResponse
-	var err *errors.Error
 
 	//	If there is a specific key,
 	//	pull the value only for that key.
@@ -186,7 +200,7 @@ func GetHandler(c echo.Context) error {
 		//	Call the service function.
 		response, err = Get(ctx, client, &commons.GetSecretOptions{
 			Key:     payload.Key,
-			KeyPath: payload.OrgID,
+			KeyPath: organisation.ID,
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
 		})
@@ -203,7 +217,7 @@ func GetHandler(c echo.Context) error {
 		//	Else, pull all values.
 		//	Call the service function.
 		response, err = GetAll(ctx, client, &commons.GetSecretOptions{
-			KeyPath: payload.OrgID,
+			KeyPath: organisation.ID,
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
 		})
@@ -214,6 +228,60 @@ func GetHandler(c echo.Context) error {
 				Error:   err.Message,
 			})
 		}
+	}
+
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+		Code:    http.StatusOK,
+		Message: "successfully got the secret",
+		Data:    response,
+	})
+}
+
+func ListHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.ListRequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "failed to parse the body",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+
+	//	Initialize new Hasura client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+	})
+
+	//	If the user has passed an authorization header,
+	//	use that in GraphQL client.
+	//	Else if they are authenticating using a token,
+	//	it is safe to use the admin token.
+	if c.Request().Header.Get(echo.HeaderAuthorization) != "" {
+		client.Authorization = c.Request().Header.Get(echo.HeaderAuthorization)
+	} else if c.Request().Header.Get(string(clients.TokenHeader)) != "" {
+		client.Headers = append(client.Headers, clients.XHasuraAdminSecretHeader)
+	} else {
+		return echo.ErrUnauthorized
+	}
+
+	//	Override the env_id set by token middleware.
+	if c.Get("env_id") != nil {
+		payload.EnvID = c.Get("env_id").(string)
+	}
+
+	//	Call the service function.
+	response, err := List(ctx, client, &payload)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Code:    err.Type.GetStatusCode(),
+			Message: err.GenerateMessage("Failed to list the secret"),
+			Error:   err.Message,
+		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
