@@ -1,5 +1,6 @@
 builds:
   - 
+    id: envs
     binary: envs
     main: ./cli
     goos:
