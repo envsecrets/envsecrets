@@ -1,7 +1,6 @@
 builds:
   - 
-    id: envsecrets
-    binary: envsecrets
+    binary: envs
     main: ./cli
     goos:
       - darwin
@@ -40,7 +39,7 @@ snapcrafts:
   -
     # The name of the snap. This is optional.
     # Default is project name.
-    name: envsecrets
+    name: envs
 
     # Whether to publish the snap to the snapcraft store.
     # Remember you need to `snapcraft login` first.
@@ -68,7 +67,7 @@ snapcrafts:
 # To publish "brew" packages on MacOS.
 brews:
   -
-    name: envsecrets
+    name: envs
     homepage: "https://envsecrets.com"
     description: "CLI-first management of your environment secrets."
     download_strategy: CurlDownloadStrategy
