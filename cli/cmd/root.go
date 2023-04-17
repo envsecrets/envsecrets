@@ -46,8 +46,9 @@ var log = commons.Logger
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "envsecrets",
-	Short: "CLI-first manangement of your environment secrets and variables.",
+	Use:     "envs",
+	Aliases: []string{"ls"},
+	Short:   "CLI-first manangement of your environment secrets and variables.",
 	Long: `
 envsecrets provides a centralized cloud account with rotate-able keys
 to store the environment secrets and variables for all your projects in a single place
@@ -59,8 +60,8 @@ DM me on Twitter for help: @MrinalWahal
 
 Upgrade the CLI:
 
-	MacOS => brew upgrade envsecrets/tap/envsecrets
-	Linux => snap refresh envsecrets
+	MacOS => brew upgrade envsecrets/tap/envs
+	Linux => snap refresh envs
 `,
 	Version: commons.VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

@@ -63,7 +63,7 @@ var setCmd = &cobra.Command{
 	Short: "Set new key-value pairs as secrets in your current environment",
 	Long: `Set new key-value pairs as secrets in your current environment.
 
-You can also load your variables directly from files: envsecrets set --file .env
+You can also load your variables directly from files: envs set --file .env
 
 NOTE: This command auto-capitalizes your keys.`,
 	PreRun: func(cmd *cobra.Command, args []string) {

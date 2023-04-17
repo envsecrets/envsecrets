@@ -49,9 +49,9 @@ import (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run -- [command]",
-	Short: "Run a command with secrets injected into the current shell",
-	Example: `envsecrets run -- YOUR_COMMAND
-envsecrets run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
+	Short: "Run a command with secrets injected directly into your process",
+	Example: `envs run -- YOUR_COMMAND
+envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user has passed a token,
