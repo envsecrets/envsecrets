@@ -31,16 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
-	"net/http"
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/clients"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
@@ -60,7 +58,7 @@ var deleteCmd = &cobra.Command{
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -76,55 +74,22 @@ var deleteCmd = &cobra.Command{
 		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
-		var secretVersion *int
+		options := &secretsCommons.DeleteSecretOptions{
+			Key:   key,
+			EnvID: commons.ProjectConfig.Environment,
+		}
 
 		if version > -1 {
-			secretVersion = &version
+			options.Version = &version
 		}
 
-		//	Load the project configuration
-		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
-		if er != nil {
-			log.Debug(er)
-			log.Fatal("Failed to fetch project configuration")
-		}
-
-		projectConfig := projectConfigData.(*configCommons.Project)
-
-		//	Send the secrets to vault
-		payload := secretsCommons.DeleteRequestOptions{
-			EnvID:   projectConfig.Environment,
-			Key:     key,
-			Version: secretVersion,
-		}
-
-		reqBody, err := payload.Marshal()
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare request body")
-
-		}
-
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodDelete, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare request")
-
-		}
-
-		//	Set content-type header
-		req.Header.Set("content-type", "application/json")
-
-		var response clients.APIResponse
-		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+		if err := secrets.Delete(commons.DefaultContext, commons.GQLClient, options); err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
-
-		if response.Error != "" {
-			log.Debug(err)
-			log.Fatal("Failed to delete: ", key)
-		}
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		log.Info("Key deleted and new secret version created")
 	},
 }
 

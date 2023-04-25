@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/actions"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
@@ -49,6 +50,8 @@ func main() {
 		"invites",
 		"/secrets",
 		"/payments/server/webhook",
+		"/auth/signup",
+		"/auth/validate-password",
 	}
 
 	skipper := func(c echo.Context) bool {
@@ -61,11 +64,6 @@ func main() {
 	}
 	e.Use(middlewares.JWTAuth(skipper))
 
-	//	test group
-	test := e.Group("/test")
-	test.Use(middlewares.TokenHeader())
-	test.GET("", healthz)
-
 	//	API	Version 1 Group
 	v1Group := e.Group("/v1")
 
@@ -74,6 +72,9 @@ func main() {
 
 	//	Hasura actions group
 	actions.AddRoutes(v1Group)
+
+	//	Authentication group
+	auth.AddRoutes(v1Group)
 
 	//	Keys group
 	keys.AddRoutes(v1Group)

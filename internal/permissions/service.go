@@ -8,7 +8,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/permissions/environment"
 	"github.com/envsecrets/envsecrets/internal/permissions/organisation"
 	"github.com/envsecrets/envsecrets/internal/permissions/project"
-	"github.com/envsecrets/envsecrets/internal/permissions/roles"
 )
 
 type Service interface {
@@ -25,12 +24,6 @@ type DefaultPermissionService struct{}
 
 func (*DefaultPermissionService) Insert(permissionsType commons.PermissionLevel, ctx context.ServiceContext, client *clients.GQLClient, options interface{}) *errors.Error {
 	switch permissionsType {
-	case commons.RoleLevelPermission:
-		payload, ok := options.(commons.RoleInsertOptions)
-		if !ok {
-			return errors.New(nil, "failed type assertion to role level permissions", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
-		}
-		return roles.Insert(ctx, client, &payload)
 	case commons.OrgnisationLevelPermission:
 		payload, ok := options.(commons.OrganisationPermissionsInsertOptions)
 		if !ok {

@@ -3,9 +3,9 @@ package clients
 import (
 	"os"
 
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/cli/auth"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/sirupsen/logrus"

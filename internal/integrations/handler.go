@@ -10,7 +10,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 )
 
 func SetupHandler(c echo.Context) error {
@@ -31,7 +30,6 @@ func SetupHandler(c echo.Context) error {
 	//	Run the service handler.
 	integration, err := service.Setup(ctx, serviceType, c.QueryParams())
 	if err != nil {
-		log.Error(err)
 		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed&integration_type="+integration_type)
 	}
 
@@ -71,7 +69,6 @@ func ListEntitiesHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully fetched integration entities",
 		Data:    entities,
 	})

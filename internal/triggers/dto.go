@@ -1,6 +1,6 @@
 package triggers
 
-import "github.com/envsecrets/envsecrets/internal/auth"
+import "github.com/envsecrets/envsecrets/cli/auth"
 
 type HasuraEventPayload struct {
 	Event struct {

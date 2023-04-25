@@ -40,36 +40,6 @@ func (p *CRUD) Marshal() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-type Role struct {
-	ID        string    `json:"id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-
-	Name string `json:"name"`
-
-	OrgID        string                     `json:"org_id,omitempty"`
-	Organisation organisations.Organisation `json:"organisation,omitempty"`
-
-	Permissions string `json:"permissions,omitempty"`
-}
-
-//	Permissions structure will also have to be manually unmarshalled.
-//	Because Hasura sends stringified JSON.
-func (o *Role) GetPermissions() (*Permissions, error) {
-	var response Permissions
-	err := json.Unmarshal([]byte(o.Permissions), &response)
-	if err != nil {
-		return nil, err
-	}
-	return &response, nil
-}
-
-type RoleInsertOptions struct {
-	OrgID       string      `json:"org_id,omitempty"`
-	Name        string      `json:"name"`
-	Permissions Permissions `json:"permissions,omitempty"`
-}
-
 type OrgnisationPermissions struct {
 	ID        string    `json:"id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
@@ -81,6 +51,7 @@ type OrgnisationPermissions struct {
 	User   userCommons.User `json:"user,omitempty"`
 	UserID string           `json:"user_id,omitempty"`
 
+	Key         string `json:"key,omitempty"`
 	Permissions string `json:"permissions,omitempty"`
 }
 
@@ -99,6 +70,7 @@ type OrganisationPermissionsInsertOptions struct {
 	OrgID  string `json:"org_id,omitempty"`
 	UserID string `json:"user_id,omitempty"`
 	RoleID string `json:"role_id,omitempty"`
+	Key    string `json:"key,omitempty"`
 }
 
 type ProjectPermissions struct {

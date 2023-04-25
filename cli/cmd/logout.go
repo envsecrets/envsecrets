@@ -31,9 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"github.com/envsecrets/envsecrets/config"
-	accountConfig "github.com/envsecrets/envsecrets/config/account"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	accountConfig "github.com/envsecrets/envsecrets/cli/config/account"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -45,8 +45,8 @@ var logoutCmd = &cobra.Command{
 
 		if err := config.GetService().Delete(configCommons.AccountConfig); err != nil {
 			log.Debug(err)
-			log.Error("Failed to log you out")
-			log.Info("Please manually delete the file: ", accountConfig.ACCOUNT_CONFIG_LOC)
+			log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
+			log.Fatal("Failed to log you out")
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

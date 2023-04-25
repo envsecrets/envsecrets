@@ -99,7 +99,6 @@ func (r *SetRequestOptions) Marshal() ([]byte, error) {
 }
 
 type SetSecretOptions struct {
-	KeyPath    string             `json:"key_path"`
 	EnvID      string             `json:"env_id"`
 	Data       map[string]Payload `json:"data"`
 	KeyVersion *int               `json:"key_version,omitempty"`
@@ -128,7 +127,7 @@ type DeleteSecretOptions struct {
 }
 
 type DeleteRequestOptions struct {
-	EnvID   string `query:"env_id"`
+	EnvID   string `json:"env_id"`
 	Key     string `json:"key"`
 	Version *int   `json:"version"`
 }
@@ -138,14 +137,8 @@ func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
 }
 
 type DecryptSecretOptions struct {
-	Value       interface{} `json:"value"`
-	KeyLocation string      `json:"key_location"`
-}
-
-func (g *DecryptSecretOptions) GetVaultOptions() map[string]interface{} {
-	return map[string]interface{}{
-		"ciphertext": g.Value,
-	}
+	Data  map[string]Payload `json:"data"`
+	OrgID string             `json:"org"`
 }
 
 type GetRequestOptions struct {
@@ -160,7 +153,6 @@ func (r *GetRequestOptions) Marshal() ([]byte, error) {
 
 type GetSecretOptions struct {
 	Key     string `json:"key"`
-	KeyPath string `json:"key_path"`
 	EnvID   string `json:"env_id"`
 	Version *int   `json:"version,omitempty"`
 }
@@ -173,7 +165,7 @@ type GetResponse struct {
 type MergeRequestOptions struct {
 	SourceEnvID   string `json:"source_env_id"`
 	SourceVersion *int   `json:"source_version"`
-	TargetEnvID   string `query:"env_id"`
+	TargetEnvID   string `json:"env_id"`
 }
 
 func (r *MergeRequestOptions) Marshal() ([]byte, error) {

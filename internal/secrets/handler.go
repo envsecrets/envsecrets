@@ -5,12 +5,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
 
-func SetHandler(c echo.Context) error {
+/* func SetHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload commons.SetRequestOptions
@@ -23,7 +22,7 @@ func SetHandler(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -62,7 +61,7 @@ func SetHandler(c echo.Context) error {
 		Data:    secret,
 	})
 }
-
+*/
 func MergeHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -76,7 +75,7 @@ func MergeHandler(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -92,7 +91,6 @@ func MergeHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to merge the secrets"),
 			Error:   err.Message,
 		})
@@ -111,14 +109,13 @@ func DeleteHandler(c echo.Context) error {
 	var payload commons.DeleteRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -128,23 +125,22 @@ func DeleteHandler(c echo.Context) error {
 
 	//	Call the service function.
 	if err := Delete(ctx, client, &commons.DeleteSecretOptions{
-		EnvID: payload.EnvID,
-		Key:   payload.Key,
+		EnvID:   payload.EnvID,
+		Key:     payload.Key,
+		Version: payload.Version,
 	}); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to delete the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully delete the secret",
 	})
 }
 
-func GetHandler(c echo.Context) error {
+/* func GetHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload commons.GetRequestOptions
@@ -157,7 +153,7 @@ func GetHandler(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -236,7 +232,7 @@ func GetHandler(c echo.Context) error {
 		Data:    response,
 	})
 }
-
+*/
 func ListHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -250,7 +246,7 @@ func ListHandler(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize new Hasura client
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -278,14 +274,12 @@ func ListHandler(c echo.Context) error {
 	response, err := List(ctx, client, &payload)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to list the secret"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully got the secret",
 		Data:    response,
 	})

@@ -31,14 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/internal"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/secrets"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -64,7 +68,7 @@ var exportCmd = &cobra.Command{
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -98,47 +102,90 @@ var exportCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		options := internal.GetValuesOptions{}
-
-		if version > -1 {
-			options.Version = &version
-		}
-
-		if XTokenHeader == "" {
-
-			//	Load the project config
-			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-			if err != nil {
-				log.Debug(err)
-				log.Error("Can't read project configuration")
-				log.Info("Initialize your current directory with `envsecrets init`")
-				os.Exit(1)
-			}
-
-			projectConfig := projectConfigPayload.(*configCommons.Project)
-			options.EnvID = projectConfig.Environment
-
-		} else {
-			options.Token = XTokenHeader
-		}
-
-		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		decryptedOrgKey, err := keys.DecryptOrganisationKey(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
 
-		for key, item := range secrets.Data {
+		//	Get the values from Hasura.
+		getOptions := secretsCommons.GetSecretOptions{
+			EnvID: commons.ProjectConfig.Environment,
+		}
+
+		if version > -1 {
+			getOptions.Version = &version
+		}
+
+		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
+
+		//	Initialize a new buffer to store key-value lines
+		var buffer bytes.Buffer
+
+		for key, item := range secret.Data {
 
 			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
-			if err != nil {
-				log.Debug(err)
+			value, er := base64.StdEncoding.DecodeString(item.Value.(string))
+			if er != nil {
+				log.Debug(er)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			fmt.Printf("%s=%s", key, string(value))
-			fmt.Println()
+			//	Decrypt the value using org-key.
+			decrypted, err := keys.OpenSymmetrically(value, decryptedOrgKey)
+			if err != nil {
+				log.Debug(err.Error)
+				log.Fatal(err.Message)
+			}
+
+			buffer.WriteString(fmt.Sprintf("%s=%s", key, string(decrypted)))
+			buffer.WriteString("\n")
+		}
+
+		if exportfile != "" {
+
+			f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to open file: ", exportfile)
+			}
+
+			defer f.Close()
+
+			switch filepath.Ext(file) {
+			default:
+				if _, err := f.WriteString(buffer.String()); err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to export values to file")
+				}
+
+			case ".csv":
+				log.Error("This file format is not yet supported")
+				log.Info("Use `--help` for more information")
+				os.Exit(1)
+
+			case ".json":
+
+				/* 				var mapping map[string]interface{}
+				   				for key, value := range mapping {
+
+				   					//	Base64 encode the secret value
+				   					value = base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
+
+				   					data[key] = secretsCommons.Payload{
+				   						Value: value,
+				   						Type:  secretsCommons.Ciphertext,
+				   					}
+				   				}
+				*/
+			case ".yaml":
+			}
+		} else {
+			fmt.Println(buffer.String())
 		}
 	},
 }

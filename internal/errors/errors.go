@@ -11,6 +11,9 @@ import (
 type ErrorType string
 
 const (
+	ErrorTypeBase64Encode ErrorType = "Base64Encode"
+	ErrorTypeBase64Decode ErrorType = "Base64Decode"
+
 	ErrorTypeJSONMarshal      ErrorType = "JSONMarshal"
 	ErrorTypeJSONUnmarshal    ErrorType = "JSONUnmarshal"
 	ErrorTypeJWTExpired       ErrorType = "JWTExpired"

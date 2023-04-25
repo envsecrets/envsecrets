@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/envsecrets/envsecrets/cli/auth"
 	globalCommons "github.com/envsecrets/envsecrets/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/tokens"

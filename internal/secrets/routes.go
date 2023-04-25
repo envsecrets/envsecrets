@@ -13,7 +13,7 @@ func AddRoutes(sg *echo.Group) {
 		return c.Request().Method == echo.GET
 	}))
 
-	group.POST("", SetHandler)
+	//group.POST("", SetHandler)
 	group.POST("/merge", MergeHandler)
 	group.DELETE("", DeleteHandler)
 
@@ -28,5 +28,5 @@ func AddRoutes(sg *echo.Group) {
 	}
 
 	group.GET("", ListHandler, middlewares...)
-	group.GET("/values", GetHandler, middlewares...)
+	//group.GET("/values", GetHandler, middlewares...)
 }

@@ -11,6 +11,7 @@
 - "!include public_events.yaml"
 - "!include public_integrations.yaml"
 - "!include public_invites.yaml"
+- "!include public_keys.yaml"
 - "!include public_org_has_user.yaml"
 - "!include public_organisations.yaml"
 - "!include public_project_level_permissions.yaml"
