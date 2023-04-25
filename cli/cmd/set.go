@@ -178,19 +178,23 @@ NOTE: This command auto-capitalizes your keys.`,
 			data[key] = *payload
 		}
 
-		decryptedOrgKey, err := keys.DecryptOrganisationKey(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+		var orgKey [32]byte
+		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
+		copy(orgKey[:], decryptedOrgKey)
 
 		//	Encrypt the secrets
 		for key, payload := range data {
 			if encrypt {
-				encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), decryptedOrgKey)
+				encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), orgKey)
 				payload.Value = base64.StdEncoding.EncodeToString(encrypted)
-				data[key] = payload
+			} else {
+				payload.Value = base64.StdEncoding.EncodeToString([]byte(payload.Value.(string)))
 			}
+			data[key] = payload
 		}
 
 		//	Upload the values to Hasura.

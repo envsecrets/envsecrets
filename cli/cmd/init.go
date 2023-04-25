@@ -295,7 +295,7 @@ var initCmd = &cobra.Command{
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("You can now set your secrets using `envsecrets set`")
+		log.Info("You can now set your secrets using `envs set`")
 	},
 }
 

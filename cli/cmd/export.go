@@ -102,11 +102,13 @@ var exportCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		decryptedOrgKey, err := keys.DecryptOrganisationKey(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+		var orgKey [32]byte
+		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
+		copy(orgKey[:], decryptedOrgKey)
 
 		//	Get the values from Hasura.
 		getOptions := secretsCommons.GetSecretOptions{
@@ -129,20 +131,27 @@ var exportCmd = &cobra.Command{
 		for key, item := range secret.Data {
 
 			//	Base64 decode the secret value
-			value, er := base64.StdEncoding.DecodeString(item.Value.(string))
+			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
 			if er != nil {
 				log.Debug(er)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(value, decryptedOrgKey)
-			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+			if item.Type == secretsCommons.Ciphertext {
+
+				//	Decrypt the value using org-key.
+				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
+				if err != nil {
+					log.Debug(err.Error)
+					log.Fatal(err.Message)
+				}
+
+				item.Value = string(decrypted)
+			} else {
+				item.Value = string(decoded)
 			}
 
-			buffer.WriteString(fmt.Sprintf("%s=%s", key, string(decrypted)))
+			buffer.WriteString(fmt.Sprintf("%s=%s", key, item.Value))
 			buffer.WriteString("\n")
 		}
 

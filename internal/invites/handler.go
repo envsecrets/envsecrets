@@ -64,25 +64,23 @@ func AcceptHandler(c echo.Context) error {
 	}
 
 	//	Decrypt the copy with server's private key (in env vars).
-	var serverPublicKey, serverPrivateKey [32]byte
-	serverPrivateKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
+	serverPrivateKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
 	if er != nil {
 		return c.String(http.StatusUnauthorized, "Failed to base64 decode server's private key.")
 	}
-	copy(serverPrivateKey[:], serverPrivateKeyBytes)
-	serverPublicKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	serverPublicKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
 	if er != nil {
 		return c.String(http.StatusUnauthorized, "Failed to base64 decode server's private key.")
 	}
-	copy(serverPublicKey[:], serverPublicKeyBytes)
 
-	result, err := keys.OpenAsymmetricallyAnonymous(serverOrgKey, serverPublicKey, serverPrivateKey)
+	result, err := keys.DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverOrgKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: err.GenerateMessage("Failed to decrypt server's copy of org-key"),
 			Error:   err.Message,
 		})
 	}
+
 	//	Fetch the invitee's public key.
 	inviteePublicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, user.ID)
 	if err != nil {

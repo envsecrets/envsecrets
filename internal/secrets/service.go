@@ -209,24 +209,25 @@ func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *com
 	//	Decrypt the value of every secret.
 	for key, payload := range options.Data {
 
+		//	Base64 decode the secret value
+		decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
+		if er != nil {
+			return nil, errors.New(er, "Failed to base64 decode value for secret "+key, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		}
+
 		//	If the secret is of type `ciphertext`,
 		//	we will need to decode it first.
 		if payload.Type == commons.Ciphertext {
 
-			//	Base64 decode the secret value
-			b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
-			if er != nil {
-				return nil, errors.New(er, "Failed to base64 decode value for secret "+key, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
-			}
-
 			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(b64Decoded, orgKey)
+			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
 			if err != nil {
 				return nil, err
 			}
 
 			payload.Value = string(decrypted)
-
+		} else {
+			payload.Value = string(decoded)
 		}
 
 		options.Data[key] = payload
