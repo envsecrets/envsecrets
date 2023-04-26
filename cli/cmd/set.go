@@ -59,8 +59,8 @@ var file string
 // setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
-	Short: "Set new key-value pairs as secrets in your current environment",
-	Long: `Set new key-value pairs as secrets in your current environment.
+	Short: "Set new key-value pairs in your current environment's secret.",
+	Long: `Set new key-value pairs in your current environment's secret.
 
 You can also load your variables directly from files: envs set --file .env
 
@@ -227,7 +227,9 @@ func readPair(data string) (string, *secretsCommons.Payload, error) {
 	value := pair[1]
 
 	//	Auto-capitalize the key
-	key = strings.ToUpper(key)
+	if commons.ProjectConfig.AutoCapitalize {
+		key = strings.ToUpper(key)
+	}
 
 	//	Whether to encrypt the secret value or not.
 	typ := secretsCommons.Ciphertext

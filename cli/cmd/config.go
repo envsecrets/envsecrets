@@ -73,7 +73,6 @@ var configCmd = &cobra.Command{
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal("Failed to fetch organisation.")
-
 		}
 
 		//	Get the project name.

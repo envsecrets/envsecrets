@@ -77,7 +77,9 @@ var getCmd = &cobra.Command{
 		key := args[0]
 
 		//	Auto-capitalize the key
-		key = strings.ToUpper(key)
+		if commons.ProjectConfig.AutoCapitalize {
+			key = strings.ToUpper(key)
+		}
 
 		var orgKey [32]byte
 		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
@@ -145,5 +147,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
-	getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	//getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

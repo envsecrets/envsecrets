@@ -284,11 +284,12 @@ var initCmd = &cobra.Command{
 
 		//	Write selected entities to project config
 		if err := projectConfig.Save(&configCommons.Project{
-			Version:      1,
-			Organisation: organisation.ID,
-			Project:      project.ID,
-			Environment:  environment.ID,
-			OrgKey:       key,
+			Version:        1,
+			Organisation:   organisation.ID,
+			Project:        project.ID,
+			Environment:    environment.ID,
+			OrgKey:         key,
+			AutoCapitalize: true,
 		}); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to save new project configuration locally")

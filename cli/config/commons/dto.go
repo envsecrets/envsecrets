@@ -7,25 +7,27 @@ import (
 )
 
 type Account struct {
-	AccessToken  string           `json:"access_token,omitempty" yaml:"accessToken,omitempty"`
-	RefreshToken string           `json:"refresh_token,omitempty" yaml:"refreshToken,omitempty"`
-	User         userCommons.User `json:"user,omitempty" yaml:"user,omitempty"`
+	AccessToken  string           `json:"access_token" yaml:"accessToken"`
+	RefreshToken string           `json:"refresh_token" yaml:"refreshToken"`
+	User         userCommons.User `json:"user" yaml:"user"`
 }
 
 type ProjectStringified struct {
-	Version      int    `json:"version,omitempty" yaml:"version,omitempty"`
-	Organisation string `json:"organisation,omitempty" yaml:"organisation,omitempty"`
-	Project      string `json:"project,omitempty" yaml:"project,omitempty"`
-	Environment  string `json:"environment,omitempty" yaml:"environment,omitempty"`
-	OrgKey       string `json:"org_key,omitempty" yaml:"org_key,omitempty"`
+	Version        int    `json:"version" yaml:"version"`
+	Organisation   string `json:"organisation" yaml:"organisation"`
+	Project        string `json:"project" yaml:"project"`
+	Environment    string `json:"environment" yaml:"environment"`
+	OrgKey         string `json:"org_key" yaml:"org_key"`
+	AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
 }
 
 type Project struct {
-	Version      int    `json:"version,omitempty" yaml:"version,omitempty"`
-	Organisation string `json:"organisation,omitempty" yaml:"organisation,omitempty"`
-	Project      string `json:"project,omitempty" yaml:"project,omitempty"`
-	Environment  string `json:"environment,omitempty" yaml:"environment,omitempty"`
-	OrgKey       []byte `json:"org_key,omitempty" yaml:"org_key,omitempty"`
+	Version        int    `json:"version" yaml:"version"`
+	Organisation   string `json:"organisation" yaml:"organisation"`
+	Project        string `json:"project" yaml:"project"`
+	Environment    string `json:"environment" yaml:"environment"`
+	OrgKey         []byte `json:"org_key" yaml:"org_key"`
+	AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
 }
 
 func (p *ProjectStringified) Unstringify() (*Project, error) {
@@ -36,21 +38,23 @@ func (p *ProjectStringified) Unstringify() (*Project, error) {
 	}
 
 	return &Project{
-		Version:      p.Version,
-		Organisation: p.Organisation,
-		Project:      p.Project,
-		Environment:  p.Environment,
-		OrgKey:       key,
+		Version:        p.Version,
+		Organisation:   p.Organisation,
+		Project:        p.Project,
+		Environment:    p.Environment,
+		OrgKey:         key,
+		AutoCapitalize: p.AutoCapitalize,
 	}, nil
 }
 
 func (p *Project) Stringify() *ProjectStringified {
 	return &ProjectStringified{
-		Version:      p.Version,
-		Organisation: p.Organisation,
-		Project:      p.Project,
-		Environment:  p.Environment,
-		OrgKey:       base64.StdEncoding.EncodeToString(p.OrgKey),
+		Version:        p.Version,
+		Organisation:   p.Organisation,
+		Project:        p.Project,
+		Environment:    p.Environment,
+		OrgKey:         base64.StdEncoding.EncodeToString(p.OrgKey),
+		AutoCapitalize: p.AutoCapitalize,
 	}
 }
 
