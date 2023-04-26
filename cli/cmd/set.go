@@ -31,24 +31,23 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	internalErrors "errors"
 
+	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/clients"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -60,8 +59,8 @@ var file string
 // setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
-	Short: "Set new key-value pairs as secrets in your current environment",
-	Long: `Set new key-value pairs as secrets in your current environment.
+	Short: "Set new key-value pairs in your current environment's secret.",
+	Long: `Set new key-value pairs in your current environment's secret.
 
 You can also load your variables directly from files: envs set --file .env
 
@@ -77,7 +76,7 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -179,48 +178,36 @@ NOTE: This command auto-capitalizes your keys.`,
 			data[key] = *payload
 		}
 
-		//	Load the project configuration
-		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
-		if er != nil {
-			log.Debug(er)
-			log.Fatal("Failed to load project configuration")
+		var orgKey [32]byte
+		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
+		copy(orgKey[:], decryptedOrgKey)
+
+		//	Encrypt the secrets
+		for key, payload := range data {
+			if encrypt {
+				encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), orgKey)
+				payload.Value = base64.StdEncoding.EncodeToString(encrypted)
+			} else {
+				payload.Value = base64.StdEncoding.EncodeToString([]byte(payload.Value.(string)))
+			}
+			data[key] = payload
 		}
 
-		projectConfig := projectConfigData.(*configCommons.Project)
-
-		//	Send the secrets to vault
-		payload := secretsCommons.SetRequestOptions{
+		//	Upload the values to Hasura.
+		secret, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetSecretOptions{
+			EnvID: commons.ProjectConfig.Environment,
 			Data:  data,
-			EnvID: projectConfig.Environment,
-		}
-
-		reqBody, err := payload.Marshal()
+		})
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare request payload")
-		}
-
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets", bytes.NewBuffer(reqBody))
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare the request")
-		}
-
-		//	Set content-type header
-		req.Header.Set("content-type", "application/json")
-
-		var response clients.APIResponse
-		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
 
-		if response.Error != "" {
-			log.Debug(response.Error)
-			log.Fatal(response.Message)
-		}
-
-		log.Info("Secrets set! Created version ", response.Data.(map[string]interface{})["version"])
+		log.Info("Secrets set! Created version ", secret.Version)
 	},
 }
 
@@ -240,16 +227,15 @@ func readPair(data string) (string, *secretsCommons.Payload, error) {
 	value := pair[1]
 
 	//	Auto-capitalize the key
-	key = strings.ToUpper(key)
+	if commons.ProjectConfig.AutoCapitalize {
+		key = strings.ToUpper(key)
+	}
 
 	//	Whether to encrypt the secret value or not.
 	typ := secretsCommons.Ciphertext
 	if !encrypt {
 		typ = secretsCommons.Plaintext
 	}
-
-	//	Base64 encode the secret value
-	value = base64.StdEncoding.EncodeToString([]byte(value))
 
 	return key, &secretsCommons.Payload{
 		Value: value,

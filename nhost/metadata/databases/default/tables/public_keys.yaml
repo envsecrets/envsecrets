@@ -1,0 +1,41 @@
+table:
+  name: keys
+  schema: public
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - private_key
+        - protected_key
+        - public_key
+        - salt
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - created_at
+        - id
+        - private_key
+        - protected_key
+        - public_key
+        - salt
+        - updated_at
+        - user_id
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id

@@ -1,75 +1,60 @@
 package keys
 
 import (
+	"encoding/base64"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
+	"github.com/envsecrets/envsecrets/internal/keys/graphql"
 	"github.com/labstack/echo/v4"
 )
 
-func KeyBackupHandler(c echo.Context) error {
+func GetPublicKey(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.KeyBackupRequestOptions
+	var payload commons.GetPublicKeyOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
-			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
-	//	Call the service function.
-	response, err := BackupKey(ctx, payload.OrgID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
 
-			Message: err.GenerateMessage("Failed to generate key backup"),
-			Error:   err.Message,
-		})
+	var key []byte
+	if payload.Email != "" {
+		result, err := graphql.GetPublicKeyByUserEmail(ctx, client, payload.Email)
+		if err != nil {
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+				Message: err.GenerateMessage("Failed to get public key using user's UUID"),
+				Error:   err.Error.Error(),
+			})
+		}
+		key = result
+	} else if payload.UserID != "" {
+		result, err := graphql.GetPublicKeyByUserID(ctx, client, payload.UserID)
+		if err != nil {
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+				Message: err.GenerateMessage("Failed to get public key using user's UUID"),
+				Error:   err.Error.Error(),
+			})
+		}
+		key = result
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully generated key plaintext backup",
-		Data:    response.Data,
-	})
-}
-
-func KeyRestoreHandler(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload commons.KeyRestoreRequestOptions
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Call the service function.
-	err := RestoreKey(ctx, payload.OrgID, commons.KeyRestoreOptions{
-		Backup: payload.Backup,
-	})
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to restore the key"),
-			Error:   err.Message,
-		})
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully restored key from plaintext backup",
+		Message: "successfully fetched user's public key",
+		Data:    base64.StdEncoding.EncodeToString(key),
 	})
 }

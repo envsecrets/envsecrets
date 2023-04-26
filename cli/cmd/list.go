@@ -35,9 +35,10 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/internal"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +58,7 @@ var listCmd = &cobra.Command{
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -70,31 +71,15 @@ var listCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		options := internal.GetValuesOptions{}
+		var options secretsCommons.GetSecretOptions
 
 		if version > -1 {
 			options.Version = &version
 		}
 
-		if XTokenHeader == "" {
+		options.EnvID = commons.ProjectConfig.Environment
 
-			//	Load the project config
-			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-			if err != nil {
-				log.Debug(err)
-				log.Error("Can't read project configuration")
-				log.Info("Initialize your current directory with `envsecrets init`")
-				os.Exit(1)
-			}
-
-			projectConfig := projectConfigPayload.(*configCommons.Project)
-			options.EnvID = projectConfig.Environment
-
-		} else {
-			options.Token = XTokenHeader
-		}
-
-		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		secrets, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)

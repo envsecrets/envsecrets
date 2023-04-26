@@ -10,20 +10,9 @@ github.com/Masterminds/sprig
 # github.com/PuerkitoBio/goquery v1.8.1
 ## explicit; go 1.13
 github.com/PuerkitoBio/goquery
-# github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
-## explicit
-github.com/aead/chacha20/chacha
-# github.com/aead/chacha20poly1305 v0.0.0-20201124145622-1a5aba2a8b29
-## explicit
-github.com/aead/chacha20poly1305
-# github.com/aead/poly1305 v0.0.0-20180717145839-3fee0db0b635
-## explicit
-github.com/aead/poly1305
 # github.com/andybalholm/cascadia v1.3.1
 ## explicit; go 1.16
 github.com/andybalholm/cascadia
-# github.com/aokoli/goutils v1.1.1
-## explicit
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 ## explicit
 github.com/chzyer/readline
@@ -39,8 +28,6 @@ github.com/google/uuid
 # github.com/gorilla/css v1.0.0
 ## explicit
 github.com/gorilla/css/scanner
-# github.com/gorilla/mux v1.8.0
-## explicit; go 1.12
 # github.com/huandu/xstrings v1.4.0
 ## explicit; go 1.12
 github.com/huandu/xstrings
@@ -56,13 +43,6 @@ github.com/jaytaylor/html2text
 # github.com/joho/godotenv v1.5.1
 ## explicit; go 1.12
 github.com/joho/godotenv
-# github.com/kevinburke/nacl v0.0.0-20210405173606-cd9060f5f776
-## explicit
-github.com/kevinburke/nacl
-github.com/kevinburke/nacl/internal/subtle
-github.com/kevinburke/nacl/onetimeauth
-github.com/kevinburke/nacl/randombytes
-github.com/kevinburke/nacl/secretbox
 # github.com/labstack/echo-jwt v0.0.0-20221127215225-c84d41a71003
 ## explicit; go 1.17
 github.com/labstack/echo-jwt
@@ -101,14 +81,9 @@ github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.2.0
 ## explicit; go 1.15
 github.com/mitchellh/copystructure
-# github.com/mitchellh/mapstructure v1.5.0
-## explicit; go 1.14
 # github.com/mitchellh/reflectwalk v1.0.2
 ## explicit
 github.com/mitchellh/reflectwalk
-# github.com/o1egl/paseto v1.0.0
-## explicit
-github.com/o1egl/paseto
 # github.com/olekukonko/tablewriter v0.0.5
 ## explicit; go 1.12
 github.com/olekukonko/tablewriter
@@ -155,19 +130,17 @@ github.com/vanng822/go-premailer/premailer
 ## explicit; go 1.17
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
+golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
-golang.org/x/crypto/ed25519
-golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/pbkdf2
-golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 # golang.org/x/net v0.9.0

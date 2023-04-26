@@ -34,8 +34,8 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
@@ -51,7 +51,7 @@ var configCmd = &cobra.Command{
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -73,7 +73,6 @@ var configCmd = &cobra.Command{
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal("Failed to fetch organisation.")
-
 		}
 
 		//	Get the project name.

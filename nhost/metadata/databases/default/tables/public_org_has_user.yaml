@@ -39,6 +39,7 @@ select_permissions:
       columns:
         - created_at
         - id
+        - key
         - org_id
         - role_id
         - updated_at

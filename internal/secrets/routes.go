@@ -14,7 +14,6 @@ func AddRoutes(sg *echo.Group) {
 	}))
 
 	group.POST("", SetHandler)
-	group.POST("/merge", MergeHandler)
 	group.DELETE("", DeleteHandler)
 
 	//	Custom middlewares for GET routes

@@ -11,7 +11,8 @@ type Organisation struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	Name      string    `json:"name,omitempty"`
 	UserID    string    `json:"user_id,omitempty"`
-	//	User      users.User `json:"user,omitempty" graphql:"user"`
+
+	ServerKey string `json:"server_copy,omitempty"`
 }
 
 func (w *Organisation) Marshal() ([]byte, error) {
@@ -34,4 +35,9 @@ type UpdateOptions struct {
 type UpdateInviteLimitOptions struct {
 	ID               string
 	IncrementLimitBy int
+}
+
+type UpdateServerKeyCopyOptions struct {
+	OrgID string
+	Key   string
 }

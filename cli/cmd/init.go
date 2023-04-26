@@ -37,16 +37,17 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
-	projectConfig "github.com/envsecrets/envsecrets/config/project"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	projectConfig "github.com/envsecrets/envsecrets/cli/config/project"
 )
 
 var (
@@ -271,20 +272,31 @@ var initCmd = &cobra.Command{
 			}
 		}
 
+		//	Pull the user's copy of organisation key.
+		key, err := memberships.GetKey(commons.DefaultContext, commons.GQLClient, &memberships.GetKeyOptions{
+			OrgID:  organisation.ID,
+			UserID: commons.AccountConfig.User.ID,
+		})
+		if err != nil {
+			log.Debug(err.Error)
+			log.Debug(err.Message)
+		}
+
 		//	Write selected entities to project config
 		if err := projectConfig.Save(&configCommons.Project{
-			Version:      1,
-			Organisation: organisation.ID,
-			Project:      project.ID,
-			Environment:  environment.ID,
+			Version:        1,
+			Organisation:   organisation.ID,
+			Project:        project.ID,
+			Environment:    environment.ID,
+			OrgKey:         key,
+			AutoCapitalize: true,
 		}); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to save new project configuration locally")
-
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("You can now set your secrets using `envsecrets set`")
+		log.Info("You can now set your secrets using `envs set`")
 	},
 }
 

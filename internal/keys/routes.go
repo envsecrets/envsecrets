@@ -8,6 +8,5 @@ func AddRoutes(sg *echo.Group) {
 
 	group := sg.Group("/keys")
 
-	group.GET("/backup", KeyBackupHandler)
-	group.POST("/restore", KeyRestoreHandler)
+	group.GET("/public-key", nil)
 }

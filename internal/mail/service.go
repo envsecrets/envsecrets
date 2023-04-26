@@ -189,7 +189,12 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 
 	// This is only needed when SSL/TLS certificate is not valid on server.
 	// In production this should be set to false.
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	isDevEnvironment, er := strconv.ParseBool(os.Getenv("DEV"))
+	if er != nil {
+		return errors.New(er, "failed to parse environment", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	}
+
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: isDevEnvironment}
 
 	// Now send E-Mail
 	if err := d.DialAndSend(m); err != nil {

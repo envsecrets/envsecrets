@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/organisations"
@@ -34,7 +34,7 @@ func CreateCheckoutSession(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -131,7 +131,7 @@ func CheckoutWebhook(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{

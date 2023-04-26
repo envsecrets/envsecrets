@@ -1,12 +1,14 @@
 package organisations
 
 import (
+	"encoding/base64"
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/errors"
+	internalErrors "errors"
 
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
@@ -118,6 +120,46 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Org
 	}
 
 	return &resp, nil
+}
+
+//	Get an organisation's key copy of the server
+func GetServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, id string) ([]byte, *errors.Error) {
+
+	errorMessage := "Failed to fetch server's copy of org's key"
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		organisations_by_pk(id: $id) {
+			server_copy
+		}
+	  }	  
+	`)
+
+	req.Var("id", id)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["organisations_by_pk"])
+	if err != nil {
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp Organisation
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	//	Base64 decode the server's key copy
+	result, err := base64.StdEncoding.DecodeString(resp.ServerKey)
+	if err != nil {
+		return nil, errors.New(internalErrors.New(errorMessage), errorMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+
+	return result, nil
 }
 
 //	Get a organisation by ID
@@ -248,6 +290,36 @@ func UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, op
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
 		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
+}
+
+func UpdateServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateServerKeyCopyOptions) *errors.Error {
+
+	errorMessage := "Failed to update the invite limit"
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($id: uuid!, $key: String!) {
+		update_organisations(where: {id: {_eq: $id}}, _set: {server_copy: $key}) {
+		  affected_rows
+		}
+	  }				  
+	`)
+
+	req.Var("id", options.OrgID)
+	req.Var("key", options.Key)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["update_organisations"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(internalErrors.New(errorMessage), errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
 	}
 
 	return nil

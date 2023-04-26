@@ -40,9 +40,12 @@ import (
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/cli/internal"
-	"github.com/envsecrets/envsecrets/config"
-	configCommons "github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/secrets"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +66,7 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		//	Ensure the project configuration is initialized and available.
 		if !config.GetService().Exists(configCommons.ProjectConfig) {
 			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envsecrets init`")
+			log.Info("Initialize your current directory with `envs init`")
 			os.Exit(1)
 		}
 
@@ -94,51 +97,58 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		options := internal.GetValuesOptions{}
+		var orgKey [32]byte
+		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+		if err != nil {
+			log.Debug(err.Error)
+			log.Fatal(err.Message)
+		}
+		copy(orgKey[:], decryptedOrgKey)
+
+		//	Get the values from Hasura.
+		getOptions := secretsCommons.GetSecretOptions{
+			EnvID: commons.ProjectConfig.Environment,
+		}
 
 		if version > -1 {
-			options.Version = &version
+			getOptions.Version = &version
 		}
 
-		if XTokenHeader == "" {
-
-			//	Load the project config
-			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-			if err != nil {
-				log.Debug(err)
-				log.Error("Can't read project configuration")
-				log.Info("Initialize your current directory with `envsecrets init`")
-				os.Exit(1)
-			}
-
-			projectConfig := projectConfigPayload.(*configCommons.Project)
-			options.EnvID = projectConfig.Environment
-
-		} else {
-			options.Token = XTokenHeader
-		}
-
-		secrets, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
 
+		//	Initialize a new buffer to store key-value lines
 		var variables []string
-
-		for key, item := range secrets.Data {
+		for key, item := range secret.Data {
 
 			//	Base64 decode the secret value
-			value, err := base64.StdEncoding.DecodeString(item.Value.(string))
-			if err != nil {
-				log.Debug(err)
+			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
+			if er != nil {
+				log.Debug(er)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			variables = append(variables, fmt.Sprintf("%s=%s", key, string(value)))
+			if item.Type == secretsCommons.Ciphertext {
+
+				//	Decrypt the value using org-key.
+				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
+				if err != nil {
+					log.Debug(err.Error)
+					log.Fatal(err.Message)
+				}
+
+				item.Value = string(decrypted)
+			} else {
+				item.Value = string(decoded)
+			}
+
+			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
 		}
 
-		log.Info("Injecting secrets version ", *secrets.Version, " into your process")
+		log.Info("Injecting secrets version ", *secret.Version, " into your process")
 
 		//	Overwrite reserved keys
 		reservedKeys := []string{"PATH", "PS1", "HOME"}
@@ -195,5 +205,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
-	runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	//runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+	"os"
 	"sync"
 
+	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
@@ -17,18 +18,21 @@ import (
 	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
 	"github.com/envsecrets/envsecrets/internal/keys"
-	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/mail"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
+	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	"github.com/envsecrets/envsecrets/internal/permissions"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/envsecrets/envsecrets/internal/roles"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	KEY_BYTES = 32
 )
 
 //	Called when a new row is inserted inside the `secrets` table.
@@ -38,7 +42,6 @@ func SecretInserted(c echo.Context) error {
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -47,14 +50,13 @@ func SecretInserted(c echo.Context) error {
 	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -71,13 +73,12 @@ func SecretInserted(c echo.Context) error {
 	events, err := events.GetBySecret(ctx, client, row.ID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: "failed to get events associated with this secret",
 			Error:   err.Error.Error(),
 		})
 	}
 
-	data := make(map[string]secretCommons.Payload)
+	var decrypted map[string]secretCommons.Payload
 
 	if len(*events) > 0 {
 
@@ -85,58 +86,21 @@ func SecretInserted(c echo.Context) error {
 		organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 		if err != nil {
 			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 				Message: err.GenerateMessage("Failed to get organisation to which these secrets are associated"),
 				Error:   err.Error.Error(),
 			})
 		}
 
 		//	Decrypt the value of every secret.
-		for key, payload := range row.Data {
-
-			//	If the secret is of type `ciphertext`,
-			//	we will need to decode it first.
-			if payload.Type == secretCommons.Ciphertext {
-				secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
-					Value:       payload.Value,
-					KeyLocation: organisation.ID,
-				})
-				if err != nil {
-					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-						Message: err.GenerateMessage("Failed to decrypt value of secret: " + key),
-						Error:   err.Error.Error(),
-					})
-				}
-
-				//	Base64 decode the secret value
-				b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
-				if er != nil {
-					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-						Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
-						Error:   er.Error(),
-					})
-				}
-
-				payload.Value = string(b64Decoded)
-
-			} else if payload.Type == secretCommons.Plaintext {
-
-				//	Base64 decode the secret value
-				b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
-				if er != nil {
-					return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-						Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
-						Error:   er.Error(),
-					})
-				}
-
-				payload.Value = string(b64Decoded)
-			}
-
-			data[key] = payload
+		decrypted, err = secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+			OrgID: organisation.ID,
+			Data:  row.Data,
+		})
+		if err != nil {
+			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+				Message: err.GenerateMessage("Failed to  decrypt secrets"),
+				Error:   err.Error.Error(),
+			})
 		}
 	}
 
@@ -150,7 +114,7 @@ func SecretInserted(c echo.Context) error {
 			if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
 				InstallationID: event.Integration.InstallationID,
 				EntityDetails:  event.EntityDetails,
-				Data:           data,
+				Data:           decrypted,
 				Credentials:    event.Integration.Credentials,
 			}); err != nil {
 				log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)
@@ -162,7 +126,103 @@ func SecretInserted(c echo.Context) error {
 	wg.Wait()
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
+		Message: "successfully synced secrets",
+	})
+}
 
+//	Called when a new row is inserted inside the `events` table.
+func EventInserted(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload HasuraEventPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var row eventCommons.Event
+	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to unmarshal new data",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize Hasura client with admin privileges
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type: clients.HasuraClientType,
+		Headers: []clients.Header{
+			clients.XHasuraAdminSecretHeader,
+		},
+	})
+
+	//	--- Flow ---
+	//	1. Get the organisation linked to the environment of this event.
+	//	2. Get the integration linked to this event.
+	//	3. Fetch latest secrets linked to the environment of this event.
+	//	4. Call the appropriate integration service to sync the secrets.
+
+	//	Get the organisation to which this event's environment belong to.
+	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to get the organisation to which this event is associated"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Get the integration to which this event belong to.
+	integration, err := integrations.GetService().Get(ctx, client, row.IntegrationID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to get integration to which this event is associated"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
+		EnvID: row.EnvID,
+	})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to get secrets associated with this event"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Decrypt the value of every secret.
+	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+		OrgID: organisation.ID,
+		Data:  response.Data,
+	})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to  decrypt secrets"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Get the integration service
+	integrationService := integrations.GetService()
+
+	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
+		InstallationID: integration.InstallationID,
+		EntityDetails:  row.EntityDetails,
+		Data:           decrypted,
+		Credentials:    integration.Credentials,
+	}); err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully synced secrets",
 	})
 }
@@ -174,7 +234,6 @@ func SecretDeleteLegacy(c echo.Context) error {
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -183,14 +242,13 @@ func SecretDeleteLegacy(c echo.Context) error {
 	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -204,7 +262,6 @@ func SecretDeleteLegacy(c echo.Context) error {
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to get the organisation to which this environment is associated"),
 			Error:   err.Error.Error(),
 		})
@@ -214,7 +271,6 @@ func SecretDeleteLegacy(c echo.Context) error {
 	orgSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to get the subscriptions for this organisation"),
 			Error:   err.Error.Error(),
 		})
@@ -239,7 +295,6 @@ func SecretDeleteLegacy(c echo.Context) error {
 				Version: cleanupUntilVersion,
 			}); err != nil {
 				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 					Message: err.GenerateMessage("Failed to delete older versions of this secret"),
 					Error:   err.Error.Error(),
 				})
@@ -248,163 +303,17 @@ func SecretDeleteLegacy(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully deleted legacy secrets",
 	})
 }
 
-//	Called when a new row is inserted inside the `events` table.
-func EventInserted(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload HasuraEventPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-		})
-	}
-
-	//	Unmarshal the data interface to our required entity.
-	var row eventCommons.Event
-	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to unmarshal new data",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Initialize Hasura client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	--- Flow ---
-	//	1. Get the organisation linked to the environment of this event.
-	//	2. Get the integration linked to this event.
-	//	3. Fetch latest secrets linked to the environment of this event.
-	//	4. Call the appropriate integration service to sync the secrets.
-
-	//	Get the organisation to which this event's environment belong to.
-	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to get the organisation to which this event is associated"),
-			Error:   err.Error.Error(),
-		})
-	}
-
-	//	Get the integration to which this event belong to.
-	integration, err := integrations.GetService().Get(ctx, client, row.IntegrationID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to get integration to which this event is associated"),
-			Error:   err.Error.Error(),
-		})
-	}
-
-	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
-		KeyPath: organisation.ID,
-		EnvID:   row.EnvID,
-	})
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to get secrets associated with this event"),
-			Error:   err.Error.Error(),
-		})
-	}
-
-	data := make(map[string]secretCommons.Payload)
-
-	//	Decrypt the value of every secret.
-	for key, payload := range response.Data {
-
-		//	If the secret is of type `ciphertext`,
-		//	we will need to decrypt it first.
-		if payload.Type == secretCommons.Ciphertext {
-
-			secret, err := secrets.Decrypt(ctx, &secretCommons.DecryptSecretOptions{
-				Value:       payload.Value,
-				KeyLocation: organisation.ID,
-			})
-			if err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-					Message: err.GenerateMessage("Failed to decrypt value of secret: " + key),
-					Error:   err.Error.Error(),
-				})
-			}
-
-			//	Base64 decode the secret value
-			b64Decoded, er := base64.StdEncoding.DecodeString(secret.Data.Plaintext)
-			if er != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-					Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
-					Error:   er.Error(),
-				})
-			}
-
-			payload.Value = string(b64Decoded)
-
-		} else if payload.Type == secretCommons.Plaintext {
-
-			//	Base64 decode the secret value
-			b64Decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
-			if er != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-					Message: err.GenerateMessage("Failed to base 64 decode the decrypted value of secret: " + key),
-					Error:   er.Error(),
-				})
-			}
-
-			payload.Value = string(b64Decoded)
-		}
-
-		data[key] = payload
-	}
-
-	//	Get the integration service
-	integrationService := integrations.GetService()
-
-	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
-		InstallationID: integration.InstallationID,
-		EntityDetails:  row.EntityDetails,
-		Data:           data,
-		Credentials:    integration.Credentials,
-	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)),
-			Error:   err.Error.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully synced secrets",
-	})
-}
-
-//	Called when a new row is inserted inside the `users` table.
+/* //	Called when a new row is inserted inside the `users` table.
 func UserInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -413,14 +322,13 @@ func UserInserted(c echo.Context) error {
 	var user userCommons.User
 	if err := MapToStruct(payload.Event.Data.New, &user); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -437,7 +345,6 @@ func UserInserted(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to create default organisation"),
 			Error:   err.Message,
 		})
@@ -446,20 +353,19 @@ func UserInserted(c echo.Context) error {
 	//	TODO: Shoot a welcome email to the user
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully generated the transit key",
 	})
 }
-
+*/
 //	Called when a new row is inserted inside the `organisations` table.
-func OrganisationCreateKey(c echo.Context) error {
+func OrganisationCreated(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
+			Error:   err.Error(),
 		})
 	}
 
@@ -467,80 +373,13 @@ func OrganisationCreateKey(c echo.Context) error {
 	var row organisations.Organisation
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Generate new transit for this organisation in vault.
-	if err := keys.GenerateKey(ctx, row.ID, keyCommons.GenerateKeyOptions{
-		Exportable:           true,
-		AllowPlaintextBackup: true,
-	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to generate transit key"),
-			Error:   err.Message,
-		})
-	}
-
-	//	Export the key.
-	key, err := keys.BackupKey(ctx, row.ID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to export transit key"),
-			Error:   err.Message,
-		})
-	}
-
-	//	Get the mailer service.
-	service := mail.GetService()
-
-	//	Email the key to owner.
-	if err := service.SendKey(ctx, &commons.SendKeyOptions{
-		Key:     key.Data.Backup,
-		UserID:  row.UserID,
-		OrgName: row.Name,
-	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to email the transit key"),
-			Error:   err.Message,
-		})
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully generated the transit key",
-	})
-}
-
-//	Called when a new row is inserted inside the `organisations` table.
-func OrganisationCreateDefaultRoles(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload HasuraEventPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-		})
-	}
-
-	//	Unmarshal the data interface to our required entity.
-	var row organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to unmarshal new data",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -551,122 +390,153 @@ func OrganisationCreateDefaultRoles(c echo.Context) error {
 	})
 
 	//	Generate default roles for the organisation.
-	roles := []permissionCommons.RoleInsertOptions{
-		{
-			Name: "viewer",
-			Permissions: permissionCommons.Permissions{
-				Projects: permissionCommons.CRUD{
-					Read: true,
-				},
+	_, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: row.ID,
+		Name:  "viewer",
+		Permissions: permissionCommons.Permissions{
+			Projects: permissionCommons.CRUD{
+				Read: true,
 			},
 		},
-		{
-			Name: "editor",
-			Permissions: permissionCommons.Permissions{
-				Projects: permissionCommons.CRUD{
-					Create: true,
-					Read:   true,
-					Update: true,
-					Delete: true,
-				},
-				Environments: permissionCommons.CRUD{
-					Create: true,
-					Update: true,
-					Delete: true,
-				},
-			},
-		},
-		{
-			Name: "admin",
-			Permissions: permissionCommons.Permissions{
-				Integrations: permissionCommons.CRUD{
-					Create: true,
-					Read:   true,
-					Update: true,
-					Delete: true,
-				},
-				Permissions: permissionCommons.CRUD{
-					Create: true,
-					Read:   true,
-					Update: true,
-					Delete: true,
-				},
-				Projects: permissionCommons.CRUD{
-					Create: true,
-					Read:   true,
-					Update: true,
-					Delete: true,
-				},
-				Environments: permissionCommons.CRUD{
-					Create: true,
-					Update: true,
-					Delete: true,
-				},
-			},
-		},
-	}
-
-	//	Initialize the permissions service.
-	service := permissions.GetService()
-
-	//	Create the roles.
-	for _, item := range roles {
-
-		//	Set the organisation ID in Role
-		item.OrgID = row.ID
-
-		if err := service.Insert(permissionCommons.RoleLevelPermission, ctx, client, item); err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-				Message: err.GenerateMessage(fmt.Sprintf("Failed to create role %s", item.Name)),
-				Error:   err.Message,
-			})
-		}
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully generated the transit key and created roles",
 	})
-}
-
-//	Called when a row is deleted from the `organisations` table.
-func OrganisationDeleted(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload HasuraEventPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-		})
-	}
-
-	//	Unmarshal the data interface to our required entity.
-	var organisation organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.Old, &organisation); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
-			Message: "failed to unmarshal new data",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Generate new transit for this organisation in vault.
-	if err := keys.DeleteKey(ctx, organisation.ID); err != nil {
+	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "viewer")),
+			Error:   err.Message,
+		})
+	}
 
-			Message: err.GenerateMessage("Failed to delete the transit key"),
+	_, err = roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: row.ID,
+		Name:  "editor",
+		Permissions: permissionCommons.Permissions{
+			Projects: permissionCommons.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Environments: permissionCommons.CRUD{
+				Create: true,
+				Update: true,
+				Delete: true,
+			},
+		},
+	})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "editor")),
+			Error:   err.Message,
+		})
+	}
+
+	adminRole, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: row.ID,
+		Name:  "admin",
+		Permissions: permissionCommons.Permissions{
+			Integrations: permissionCommons.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Permissions: permissionCommons.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Projects: permissionCommons.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Environments: permissionCommons.CRUD{
+				Create: true,
+				Update: true,
+				Delete: true,
+			},
+		},
+	})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "admin")),
+			Error:   err.Message,
+		})
+	}
+
+	//	Generate a symmetric key for cryptographic operations in this organisation.
+	keyBytes, er := globalCommons.GenerateRandomBytes(KEY_BYTES)
+	if er != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: "Failed to generate symmetric key for this org",
+			Error:   er.Error(),
+		})
+	}
+
+	//	Encrypt the key using owner's public key
+	publicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, row.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to fetch owner's public key"),
+			Error:   err.Message,
+		})
+	}
+
+	var publicKey [32]byte
+	copy(publicKey[:], publicKeyBytes)
+	result, err := keys.SealAsymmetricallyAnonymous(keyBytes, publicKey)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to seal org's symmetric key with owner's public key"),
+			Error:   err.Message,
+		})
+	}
+
+	if err := memberships.CreateWithUserID(ctx, client, &memberships.CreateOptions{
+		UserID: row.UserID,
+		OrgID:  row.ID,
+		RoleID: adminRole.ID,
+		Key:    base64.StdEncoding.EncodeToString(result),
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to add the owner as an admin member"),
+			Error:   err.Message,
+		})
+	}
+
+	//	Add envsecrets as a bot
+	botPublicKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	if er != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: "Failed to base64 decode server's public key",
+			Error:   er.Error(),
+		})
+	}
+
+	var botPublicKey [32]byte
+	copy(botPublicKey[:], botPublicKeyBytes)
+	result, err = keys.SealAsymmetricallyAnonymous(keyBytes, botPublicKey)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to seal org's symmetric key with bot's public key"),
+			Error:   err.Message,
+		})
+	}
+
+	if err := organisations.UpdateServerKeyCopy(ctx, client, &organisations.UpdateServerKeyCopyOptions{
+		OrgID: row.ID,
+		Key:   base64.StdEncoding.EncodeToString(result),
+	}); err != nil {
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to set server's key copy"),
 			Error:   err.Message,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully deleted the transit key",
+		Message: "successfully generated symmetric key and created default roles",
 	})
 }
 
@@ -677,7 +547,6 @@ func ProjectInserted(c echo.Context) error {
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -686,14 +555,13 @@ func ProjectInserted(c echo.Context) error {
 	var row projects.Project
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -712,7 +580,6 @@ func ProjectInserted(c echo.Context) error {
 			UserID:    row.UserID,
 		}); err != nil {
 			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 				Message: err.GenerateMessage("Failed to create the environment: " + item),
 				Error:   err.Error.Error(),
 			})
@@ -720,8 +587,7 @@ func ProjectInserted(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully default environments",
+		Message: "successfully created default environments",
 	})
 }
 
@@ -732,7 +598,6 @@ func InviteInserted(c echo.Context) error {
 	var payload HasuraEventPayload
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -741,14 +606,13 @@ func InviteInserted(c echo.Context) error {
 	var row inviteCommons.Invite
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Get the mailer service.
 	service := mail.GetService()
@@ -762,132 +626,12 @@ func InviteInserted(c echo.Context) error {
 		SenderID:      row.UserID,
 	}); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.Message,
 			Error:   err.Error.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully sent invitation email to " + row.Email,
 	})
 }
-
-/* //	Called when a row is inserted/updated/deleted inside the `project_level_permissions` table.
-func ProjectLevelPermissions(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload HasuraEventPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusOK, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-		})
-	}
-
-	//	Unmarshal the data interface to our required entity.
-	var project permissionCommons.ProjectPermissions
-	if err := MapToStruct(payload.Event.Data.New, &project); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: "failed to unmarshal new data",
-			Error:   err.Error(),
-		})
-	}
-
-	incomingPermissions, err := project.GetPermissions()
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: "failed to unmarshal incoming permissions",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Fetch the permissions service
-	service := permissions.GetService()
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
-
-	//	Initialize Hasura client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	switch payload.Event.Op {
-	case string(Insert):
-
-		var permissions permissionCommons.Permissions
-
-		//	If the user has been given permission to "write secrets" in the project,
-		//	we have to give the user permission to write secrets in every environment of every project.
-		if incomingPermissions.SecretsWrite {
-			permissions.SecretsWrite = true
-		}
-
-		//	If the user has been given permission to "manage permissions" in the project,
-		//	we have to give the user permission to manage permissions in every environment of every project.
-		if incomingPermissions.PermissionsManage {
-			permissions.PermissionsManage = true
-		}
-
-		//	Fetch all projects of the organisation
-		environments, err := environments.List(ctx, client, &environments.ListOptions{
-			ProjectID: project.ProjectID,
-		})
-		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-				Message: "failed to fetch projects for project",
-				Error:   err.Message,
-			})
-		}
-
-		//	Insert permissions for every project
-		for _, item := range *environments {
-			if err := service.Insert(
-				permissionCommons.EnvironmentLevelPermission,
-				ctx,
-				client,
-				permissionCommons.EnvironmentPermissionsInsertOptions{
-					EnvID:       item.ID,
-					UserID:      project.UserID,
-					Permissions: permissions}); err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-					Message: "failed to insert permissions for environment: " + item.ID,
-					Error:   err.Message,
-				})
-			}
-		}
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-
-		Message: "successfully inserted environment level permissions",
-	})
-}
-
-//	Called when a row is inserted/updated/deleted inside the `env_level_permissions` table.
-func EnvironmentLevelPermissions(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload HasuraEventPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusOK, &clients.APIResponse{
-
-			Message: "failed to parse the body",
-		})
-	}
-
-	return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-		Message: "un-built event endpoint",
-	})
-}
-*/

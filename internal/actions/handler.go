@@ -32,7 +32,7 @@ func EnvironmentCreate(c echo.Context) error {
 	}
 
 	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext})
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{

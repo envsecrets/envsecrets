@@ -1,133 +1,90 @@
 package commons
 
 import (
-	"encoding/json"
+	"encoding/base64"
+	"time"
+
+	"github.com/envsecrets/envsecrets/internal/errors"
 )
 
-type GenerateKeyOptions struct {
+type Key struct {
+	ID        string    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	UserID    string    `json:"user_id,omitempty"`
 
-	//	Whether the key can be exported in the future.
-	Exportable bool `json:"exportable,omitempty"`
-
-	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
-	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
-
-	//	Key Type. We are using "aes256-gcm96" as the default one.
-	Type string `json:"type,omitempty" default:"aes256-gcm96"`
+	PublicKey    string `json:"public_key,omitempty"`
+	PrivateKey   string `json:"private_key,omitempty"`
+	ProtectedKey string `json:"protected_key,omitempty"`
+	Salt         string `json:"salt,omitempty"`
 }
 
-func (o *GenerateKeyOptions) Marshal() ([]byte, error) {
-	return json.Marshal(o)
+func (k *Key) DecodePayload() (*Payload, *errors.Error) {
+
+	salt, er := base64.StdEncoding.DecodeString(k.Salt)
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode salt", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+
+	protectedKey, er := base64.StdEncoding.DecodeString(k.ProtectedKey)
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode protection key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+
+	privateKey, er := base64.StdEncoding.DecodeString(k.PrivateKey)
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode private key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+
+	publicKey, er := base64.StdEncoding.DecodeString(k.PublicKey)
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode public key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+
+	return &Payload{
+		PublicKey:    publicKey,
+		PrivateKey:   privateKey,
+		ProtectedKey: protectedKey,
+		Salt:         salt,
+	}, nil
 }
 
-type VaultResponse struct {
-	Errors        []interface{} `json:"errors"`
-	RequestID     string        `json:"request_id,omitempty"`
-	LeaseID       string        `json:"lease_id,omitempty"`
-	Renewable     bool          `json:"renewable,omitempty"`
-	LeaseDuration int           `json:"lease_duration,omitempty"`
-	Data          struct {
-		Ciphertext string `json:"ciphertext,omitempty"`
-		Plaintext  string `json:"plaintext,omitempty"`
-		KeyVersion int    `json:"key_version,omitempty"`
-		Backup     string `json:"backup,omitempty"`
-	} `json:"data,omitempty"`
+type Payload struct {
+	PublicKey    []byte
+	PrivateKey   []byte
+	ProtectedKey []byte
+	Salt         []byte
 }
 
-type CleanupKeyOptions struct {
-	EnvID   string `json:"env_id"`
-	Version int    `json:"version"`
+func (p *Payload) Validate() *errors.Error {
+
+	return nil
 }
 
-type DeleteKeyOptions struct {
-	EnvID   string `json:"env_id"`
-	Key     string `json:"key"`
-	Version *int   `json:"version"`
+type CreateOptions struct {
+	PublicKey    string `json:"public_key"`
+	PrivateKey   string `json:"private_key"`
+	ProtectedKey string `json:"protected_key"`
+	Salt         string `json:"salt,omitempty"`
 }
 
-type DeleteRequestOptions struct {
-	EnvID   string `json:"env_id"`
-	Key     string `json:"key"`
-	Version *int   `json:"version"`
+type CreateWithUserIDOptions struct {
+	PublicKey    string `json:"public_key"`
+	PrivateKey   string `json:"private_key"`
+	ProtectedKey string `json:"protected_key"`
+	Salt         string `json:"salt,omitempty"`
+	UserID       string `json:"user_id,omitempty"`
 }
 
-func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
+type GetPublicKeyOptions struct {
+	Email  string `query:"email,omitempty"`
+	UserID string `query:"user_id,omitempty"`
 }
 
-type GetKeyOptions struct {
-	Key     string `json:"key"`
-	KeyPath string `json:"key_path"`
-	EnvID   string `json:"env_id"`
-	Version *int   `json:"version,omitempty"`
-}
-
-type MergeKeyOptions struct {
-	KeyPath       string `json:"key_path"`
-	SourceEnvID   string `json:"source_env_id"`
-	SourceVersion *int   `json:"source_version"`
-	TargetEnvID   string `json:"target_env_id"`
-}
-
-type MergeResponse struct {
-	Version *int `json:"version,omitempty"`
-}
-
-type KeyRestoreRequestOptions struct {
-	OrgID  string `json:"org_id"`
-	Backup string `json:"backup"`
-}
-
-type KeyExportOptions struct {
-	Type    string `json:"key_type"`
-	Version string `json:"version"`
-	Name    string `json:"name"`
-}
-
-type KeyRestoreOptions struct {
-	Backup string `json:"backup"`
-}
-
-func (r *KeyRestoreOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-type VaultKeyExportResponse struct {
-	Data struct {
-		Name string                 `json:"name"`
-		Keys map[string]interface{} `json:"keys"`
-	} `json:"data"`
-}
-
-type KeyBackupRequestOptions struct {
-	OrgID string `query:"org_id"`
-}
-
-type KeyConfigUpdateOptions struct {
-
-	//	Specifies if the key is allowed to be deleted.
-	DeletionAllowed bool `json:"deletion_allowed,omitempty"`
-
-	//	Whether the key can be exported in the future.
-	Exportable bool `json:"exportable,omitempty"`
-
-	//	If set, enables taking backup of named key in the plaintext format. Once set, this cannot be disabled.
-	AllowPlaintextBackup bool `json:"allow_plaintext_backup,omitempty"`
-}
-
-func (r *KeyConfigUpdateOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-type KeyBackupResponse struct {
-	Data struct {
-		Backup string `json:"backup"`
-	} `json:"data"`
-}
-
-type KeyExportResponse struct {
-	Data struct {
-		Name string                 `json:"name"`
-		Keys map[string]interface{} `json:"keys"`
-	} `json:"data"`
+type IssueKeyPairResponse struct {
+	PublicKey           []byte `json:"public_key"`
+	PrivateKey          []byte `json:"private_key"`
+	DecryptedPrivateKey []byte `json:"decrypted_private_key"`
+	ProtectedKey        []byte `json:"protected_key"`
+	Salt                []byte `json:"salt,omitempty"`
 }

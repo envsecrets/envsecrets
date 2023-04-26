@@ -135,6 +135,13 @@ array_relationships:
           name: user_providers
           schema: auth
 select_permissions:
+  - role: me
+    permission:
+      columns:
+        - password_hash
+      filter:
+        id:
+          _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:

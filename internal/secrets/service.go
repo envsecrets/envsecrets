@@ -1,54 +1,19 @@
 package secrets
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
+	"encoding/base64"
 	"os"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 )
 
 func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, *errors.Error) {
-
-	for key, payload := range options.Data {
-
-		//	If the secret type `ciphertext`,
-		//	encrypt it from vault before saving the value.
-		if payload.Type == commons.Ciphertext {
-
-			postBody, _ := json.Marshal(map[string]interface{}{
-				"plaintext":   payload.Value,
-				"key_version": options.KeyVersion,
-			})
-
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/encrypt/"+options.KeyPath, bytes.NewBuffer(postBody))
-			if err != nil {
-				return nil, errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-			}
-
-			client := clients.NewHTTPClient(&clients.HTTPConfig{
-				Type: clients.VaultClientType,
-			})
-
-			var response commons.VaultResponse
-			if err := client.Run(ctx, req, &response); err != nil {
-				return nil, err
-			}
-
-			//	Replace the secret value with ciphered version.
-			payload.Value = response.Data.Ciphertext
-
-			//	Update the map
-			options.Data[key] = payload
-		}
-	}
-
-	//	Insert the encrypted secret in Hasura.
 	return graphql.Set(ctx, client, options)
 }
 
@@ -96,27 +61,6 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		options.Version = &resp.Version
 	}
 
-	//	If the keypath has not been specified,
-	//	skip the decryption step.
-	if options.KeyPath != "" {
-
-		//	Only if the saved value was of type `ciphertext`,
-		//	we have to descrypt the value.
-		if data.Payload.Type == commons.Ciphertext {
-
-			//	Decrypt the value from Vault.
-			response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
-				Value:       data.Payload.Value,
-				KeyLocation: options.KeyPath,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			data.Payload.Value = response.Data.Plaintext
-		}
-	}
-
 	return &commons.GetResponse{
 		Data: map[string]commons.Payload{
 			data.Key: data.Payload,
@@ -148,32 +92,6 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		}
 
 		data = *resp
-	}
-
-	//	If the keypath has not been specified,
-	//	skip the decryption step.
-	if options.KeyPath != "" {
-
-		//	Only if the saved value was of type `ciphertext`,
-		//	we have to descrypt the value.
-		for key, item := range data.Data {
-			if item.Type == commons.Ciphertext {
-
-				//	Decrypt the value from Vault.
-				response, err := Decrypt(ctx, &commons.DecryptSecretOptions{
-					Value:       item.Value,
-					KeyLocation: options.KeyPath,
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				data.Data[key] = commons.Payload{
-					Value: response.Data.Plaintext,
-					Type:  item.Type,
-				}
-			}
-		}
 	}
 
 	return &data, nil
@@ -261,22 +179,58 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 	})
 }
 
-func Decrypt(ctx context.ServiceContext, options *commons.DecryptSecretOptions) (*commons.VaultResponse, *errors.Error) {
+func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (map[string]commons.Payload, *errors.Error) {
 
-	postBody, _ := json.Marshal(options.GetVaultOptions())
-	req, er := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/decrypt/"+options.KeyLocation, bytes.NewBuffer(postBody))
-	if er != nil {
-		return nil, errors.New(er, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	var response commons.VaultResponse
-	if err := client.Run(ctx, req, &response); err != nil {
+	//	Get the server's copy of org-key.
+	serverOrgKey, err := organisations.GetServerKeyCopy(ctx, client, options.OrgID)
+	if err != nil {
 		return nil, err
 	}
 
-	return &response, nil
+	//	Decrypt the copy with server's private key (in env vars).
+	var serverPublicKey, serverPrivateKey, orgKey [32]byte
+	serverPrivateKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode server's private key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+	copy(serverPrivateKey[:], serverPrivateKeyBytes)
+	serverPublicKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	if er != nil {
+		return nil, errors.New(er, "Failed to base64 decode server's public key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	}
+	copy(serverPublicKey[:], serverPublicKeyBytes)
+
+	orgKeyBytes, err := keys.OpenAsymmetricallyAnonymous(serverOrgKey, serverPublicKey, serverPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	copy(orgKey[:], orgKeyBytes)
+
+	//	Decrypt the value of every secret.
+	for key, payload := range options.Data {
+
+		//	Base64 decode the secret value
+		decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
+		if er != nil {
+			return nil, errors.New(er, "Failed to base64 decode value for secret "+key, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		}
+
+		//	If the secret is of type `ciphertext`,
+		//	we will need to decode it first.
+		if payload.Type == commons.Ciphertext {
+
+			//	Decrypt the value using org-key.
+			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
+			if err != nil {
+				return nil, err
+			}
+
+			payload.Value = string(decrypted)
+		} else {
+			payload.Value = string(decoded)
+		}
+
+		options.Data[key] = payload
+	}
+	return options.Data, nil
 }

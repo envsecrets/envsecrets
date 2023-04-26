@@ -1,8 +1,8 @@
 package commons
 
 import (
-	"github.com/envsecrets/envsecrets/config"
-	"github.com/envsecrets/envsecrets/config/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	"github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/sirupsen/logrus"
@@ -19,11 +19,24 @@ var DefaultContext = context.NewContext(&context.Config{Type: context.CLIContext
 
 var Logger = logrus.New()
 
+//	Initialize configs
+var AccountConfig *commons.Account
+var ProjectConfig *commons.Project
+var KeysConfig *commons.Keys
+
 func Initialize() {
 
 	//	Fetch the account config
 	accountConfig, _ := config.GetService().Load(commons.AccountConfig)
-	config := accountConfig.(*commons.Account)
+	AccountConfig = accountConfig.(*commons.Account)
+
+	//	Fetch the project config
+	projectConfig, _ := config.GetService().Load(commons.ProjectConfig)
+	ProjectConfig = projectConfig.(*commons.Project)
+
+	//	Fetch the keys config
+	keysConfig, _ := config.GetService().Load(commons.KeysConfig)
+	KeysConfig = keysConfig.(*commons.Keys)
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
@@ -37,9 +50,9 @@ func Initialize() {
 		Logger:  Logger,
 	})
 
-	if config != nil {
-		HTTPClient.Authorization = "Bearer " + config.AccessToken
-		GQLClient.Authorization = "Bearer " + config.AccessToken
+	if AccountConfig != nil {
+		HTTPClient.Authorization = "Bearer " + AccountConfig.AccessToken
+		GQLClient.Authorization = "Bearer " + AccountConfig.AccessToken
 	}
 }
 

@@ -1,145 +1,170 @@
 package keys
 
 import (
-	"bytes"
-	"fmt"
-	"net/http"
-	"os"
-
+	"crypto/rand"
+	"crypto/x509"
 	internalErrors "errors"
+	"io"
 
+	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
+	"github.com/envsecrets/envsecrets/internal/keys/graphql"
+	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/nacl/box"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
-//	This endpoint creates a new named encryption key of the specified type. The values set here cannot be changed after key creation.
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#create-key
-func GenerateKey(ctx context.ServiceContext, path string, options commons.GenerateKeyOptions) *errors.Error {
-
-	postBody, _ := options.Marshal()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, bytes.NewBuffer(postBody))
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	return client.Run(ctx, req, nil)
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) *errors.Error {
+	return graphql.Create(ctx, client, options)
 }
 
-//	This endpoint allows tuning configuration values for a given key. (These values are returned during a read operation on the named key.)
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#update-key-configuration
-func UpdateKeyConfiguration(ctx context.ServiceContext, path string, options commons.KeyConfigUpdateOptions) *errors.Error {
-
-	postBody, _ := options.Marshal()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path+"/config", bytes.NewBuffer(postBody))
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	return client.Run(ctx, req, nil)
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateWithUserIDOptions) *errors.Error {
+	return graphql.CreateWithUserID(ctx, client, options)
 }
 
-//	This endpoint restores the backup as a named key. This will restore the key configurations and all the versions of the named key along with HMAC keys. The input to this endpoint should be the output of /backup endpoint.
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#restore-key
-func RestoreKey(ctx context.ServiceContext, path string, options commons.KeyRestoreOptions) *errors.Error {
-
-	postBody, _ := options.Marshal()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, os.Getenv("VAULT_ADDRESS")+"/v1/transit/restore/"+path, bytes.NewBuffer(postBody))
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	var response commons.VaultResponse
-	if err := client.Run(ctx, req, &response); err != nil {
-		return err
-	}
-
-	if len(response.Errors) != 0 {
-		return errors.New(internalErrors.New(response.Errors[0].(string)), response.Errors[0].(string), errors.ErrorTypeBadResponse, errors.ErrorSourceVault)
-	}
-
-	return nil
+func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) (*commons.Key, *errors.Error) {
+	return graphql.GetByUserID(ctx, client, user_id)
 }
 
-//	This endpoint returns a plaintext backup of a named key. The backup contains all the configuration data and keys of all the versions along with the HMAC key. The response from this endpoint can be used with the /restore endpoint to restore the key.
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#backup-key
-func BackupKey(ctx context.ServiceContext, path string) (*commons.KeyBackupResponse, *errors.Error) {
+func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, *errors.Error) {
+	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, os.Getenv("VAULT_ADDRESS")+"/v1/transit/backup/"+path, nil)
-	if err != nil {
-		return nil, errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) []byte {
+
+	// You must use a different nonce for each message you encrypt with the
+	// same key. Since the nonce here is 192 bits long, a random value
+	// provides a sufficiently small probability of repeats.
+	var nonce [commons.NONCE_LEN]byte
+	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
 	}
 
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
+	return secretbox.Seal(nonce[:], message, &nonce, &key)
+}
 
-	var response commons.KeyBackupResponse
-	if err := client.Run(ctx, req, &response); err != nil {
+func OpenSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+
+	errMessage := "Failed to open the message from symmetric key"
+
+	// You must use a different nonce for each message you encrypt with the
+	// same key. Since the nonce here is 192 bits long, a random value
+	// provides a sufficiently small probability of repeats.
+	var nonce [commons.NONCE_LEN]byte
+	copy(nonce[:], message[:commons.NONCE_LEN])
+
+	result, ok := secretbox.Open(nil, message[commons.NONCE_LEN:], &nonce, &key)
+	if !ok {
+		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	return result, nil
+}
+
+func SealAsymmetricallyAnonymous(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+
+	// You must use a different nonce for each message you encrypt with the
+	// same key. Since the nonce here is 192 bits long, a random value
+	// provides a sufficiently small probability of repeats.
+	var nonce [commons.NONCE_LEN]byte
+	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
+	}
+
+	// This encrypts msg and appends the result to the nonce.
+	result, err := box.SealAnonymous(nonce[:], message, &key, rand.Reader)
+	if err != nil {
+		return nil, errors.New(err, "Failed to seal the message anonymously", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	return result, nil
+}
+
+func OpenAsymmetricallyAnonymous(message []byte, publicKey, privateKey [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+
+	errMessage := "Failed to open the message from asymmetric keys"
+	// The recipient can decrypt the message using their private key and the
+	// sender's public key. When you decrypt, you must use the same nonce you
+	// used to encrypt the message. One way to achieve this is to store the
+	// nonce alongside the encrypted message. Above, we stored the nonce in the
+	// first 24 bytes of the encrypted text.
+	var nonce [commons.NONCE_LEN]byte
+	copy(nonce[:], message[:commons.NONCE_LEN])
+	result, ok := box.OpenAnonymous(nil, message[commons.NONCE_LEN:], &publicKey, &privateKey)
+	if !ok {
+		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	return result, nil
+}
+
+func VerifyKeyPair(private, public []byte) (bool, error) {
+
+	key, err := x509.ParsePKCS1PrivateKey(private)
+	if err != nil {
+		return false, err
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(public)
+	if err != nil {
+		return false, err
+	}
+	return key.PublicKey.Equal(pubKey), nil
+}
+
+func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Error) {
+
+	publicKeyBytes, privateKeyBytes, er := box.GenerateKey(rand.Reader)
+	if er != nil {
+		return nil, errors.New(er, "Failed to generate public-private key pair", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	//	Generate a separate random symmetric key
+	protectionKeyBytes, er := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	if er != nil {
+		return nil, errors.New(er, "Failed to generate protection key", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	//	Encrypt the private key using protection key
+	var protectionKeyForSealing [32]byte
+	copy(protectionKeyForSealing[:], protectionKeyBytes)
+	encryptedPrivateKeyBytes := SealSymmetrically(privateKeyBytes[:], protectionKeyForSealing)
+
+	//	Generate random 32 byte salt
+	saltBytes, er := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	if er != nil {
+		return nil, errors.New(er, "Failed to generate salt for protection key", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	//	Safegaurd the protection key using Argon2i password based hashing.
+	passwordDerivedKey := argon2.Key([]byte(password), saltBytes, 3, commons.KEY_BYTES*1024, 4, commons.KEY_BYTES)
+
+	//	Encrypt the protection key using password derived key
+	var passwordDerivedKeyForSealing [32]byte
+	copy(passwordDerivedKeyForSealing[:], passwordDerivedKey)
+	encryptedProtectionKeyBytes := SealSymmetrically(protectionKeyBytes, passwordDerivedKeyForSealing)
+
+	return &commons.IssueKeyPairResponse{
+		PublicKey:           publicKeyBytes[:],
+		PrivateKey:          encryptedPrivateKeyBytes,
+		DecryptedPrivateKey: privateKeyBytes[:],
+		ProtectedKey:        encryptedProtectionKeyBytes,
+		Salt:                saltBytes,
+	}, nil
+}
+
+//	Decrypt the org's symmetric key with your local public-private key.
+func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, *errors.Error) {
+
+	var publicKey, privateKey [commons.KEY_BYTES]byte
+	copy(publicKey[:], public)
+	copy(privateKey[:], private)
+	result, err := OpenAsymmetricallyAnonymous(org_key, publicKey, privateKey)
+	if err != nil {
 		return nil, err
 	}
-
-	return &response, nil
-}
-
-//	This endpoint returns the named key. The keys object shows the value of the key for each version. If version is specified, the specific version will be returned. If latest is provided as the version, the current key will be provided. Depending on the type of key, different information may be returned. The key must be exportable to support this operation and the version must still be valid.
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#export-key
-func ExportKey(ctx context.ServiceContext, options *commons.KeyExportOptions) (*commons.KeyExportResponse, *errors.Error) {
-
-	//	Export the latest key if no version is specified.
-	if options.Version == "" {
-		options.Version = "latest"
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/v1/transit/export/%s/%s/%s", os.Getenv("VAULT_ADDRESS"), options.Type, options.Name, options.Version), nil)
-	if err != nil {
-		return nil, errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	var response commons.KeyExportResponse
-	if err := client.Run(ctx, req, &response); err != nil {
-		return nil, err
-	}
-
-	return &response, nil
-}
-
-//	This endpoint deletes a named encryption key. It will no longer be possible to decrypt any data encrypted with the named key. Because this is a potentially catastrophic operation, the deletion_allowed tunable must be set in the key's /config endpoint.
-//	Docs: https://developer.hashicorp.com/vault/api-docs/secret/transit#delete-key
-func DeleteKey(ctx context.ServiceContext, path string) *errors.Error {
-
-	//	First, update key configuration. And make the key delete-able.
-	if err := UpdateKeyConfiguration(ctx, path, commons.KeyConfigUpdateOptions{
-		DeletionAllowed: true,
-	}); err != nil {
-		return err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, os.Getenv("VAULT_ADDRESS")+"/v1/transit/keys/"+path, nil)
-	if err != nil {
-		return errors.New(err, "failed to create HTTP request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
-	}
-
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.VaultClientType,
-	})
-
-	return client.Run(ctx, req, nil)
+	return result, nil
 }
