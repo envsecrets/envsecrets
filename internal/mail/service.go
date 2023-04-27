@@ -252,7 +252,7 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 	m := gomail.NewMessage()
 
 	// Set E-Mail sender
-	m.SetHeader("From", "Mrinal Wahal")
+	m.SetHeader("From", FROM)
 
 	// Set E-Mail receivers
 	m.SetHeader("To", user.Email)
