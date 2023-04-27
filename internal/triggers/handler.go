@@ -36,7 +36,7 @@ const (
 	KEY_BYTES = 32
 )
 
-//	Called when a new row is inserted inside the `secrets` table.
+// Called when a new row is inserted inside the `secrets` table.
 func SecretInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -131,7 +131,7 @@ func SecretInserted(c echo.Context) error {
 	})
 }
 
-//	Called when a new row is inserted inside the `events` table.
+// Called when a new row is inserted inside the `events` table.
 func EventInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -228,7 +228,7 @@ func EventInserted(c echo.Context) error {
 	})
 }
 
-//	Called when a new row is inserted inside the `secrets` table.
+// Called when a new row is inserted inside the `secrets` table.
 func SecretDeleteLegacy(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -308,7 +308,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	})
 }
 
-//	Called when a new row is inserted inside the `users` table.
+// Called when a new row is inserted inside the `users` table.
 func UserInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -353,11 +353,11 @@ func UserInserted(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Message: "successfully generated the transit key",
+		Message: "trigger completed successfully",
 	})
 }
 
-//	Called when a new row is inserted inside the `organisations` table.
+// Called when a new row is inserted inside the `organisations` table.
 func OrganisationCreated(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -540,7 +540,7 @@ func OrganisationCreated(c echo.Context) error {
 	})
 }
 
-//	Called when a new row is inserted inside the `projects` table.
+// Called when a new row is inserted inside the `projects` table.
 func ProjectInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -591,7 +591,7 @@ func ProjectInserted(c echo.Context) error {
 	})
 }
 
-//	Called when a new row is inserted inside the `invites` table.
+// Called when a new row is inserted inside the `invites` table.
 func InviteInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload

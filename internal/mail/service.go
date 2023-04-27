@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -84,9 +85,13 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
-			Name:     receiver.DisplayName,
+			Name:     strings.Split(receiver.DisplayName, " ")[0],
 			Intros: []string{
-				fmt.Sprintf("You have been invited by %s to join the organisation: %s", sender.DisplayName, organisation.Name),
+				"You have been invited to join a new organisation on envsecrets.",
+			},
+			Dictionary: []hermes.Entry{
+				{Key: "Organisation", Value: organisation.Name},
+				{Key: "Invited By", Value: sender.DisplayName},
 			},
 			Actions: []hermes.Action{
 				{
@@ -98,6 +103,7 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 					},
 				},
 			},
+			Signature: "Mrinal Wahal",
 		},
 	}
 
@@ -159,6 +165,7 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 			Outros: []string{
 				"Kindly find the key file attached with this email.",
 			},
+			Signature: "Mrinal Wahal",
 		},
 	}
 
@@ -217,14 +224,15 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
-			Name:     user.Name,
+			Name:     strings.Split(user.Name, " ")[0],
 			Intros: []string{
-				"Welcome to envsecrets!",
-				"We're glad to have you here.",
+				"I’m excited to have you here.",
+				"Let me quickly get you up and running with your envsecrets account.",
+				"In 5 minutes, you’ll be set with your secrets and ready to synchronise them continuously and safely.",
 			},
 			Actions: []hermes.Action{
 				{
-					Instructions: "Getting up to speed with envsecrets takes just 5 minutes.",
+					Instructions: "Use the quickstart guide below to begin.",
 					Button: hermes.Button{
 						Color: "#222", // Optional action button color
 						Text:  "Quickstart Guide",
@@ -232,7 +240,7 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 					},
 				},
 				{
-					Instructions: "For any help, please don't hesitate to reach out to our community chat.",
+					Instructions: "If you have any queries, I will be right here 👇🏼",
 					Button: hermes.Button{
 						Color: "#222", // Optional action button color
 						Text:  "Community Server",
@@ -240,6 +248,7 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 					},
 				},
 			},
+			Signature: "Mrinal Wahal",
 		},
 	}
 
