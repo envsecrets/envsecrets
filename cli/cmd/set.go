@@ -208,6 +208,12 @@ NOTE: This command auto-capitalizes your keys.`,
 		}
 
 		log.Info("Secrets set! Created version ", secret.Version)
+
+		//	Update the Contingency file
+		if err := config.GetService().Save(configCommons.Contingency(data), configCommons.ContingencyConfig); err != nil {
+			log.Debug(err)
+			log.Warn("Failed to save secrets in Contingency file")
+		}
 	},
 }
 

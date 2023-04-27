@@ -12,10 +12,22 @@ insert_permissions:
   - role: user
     permission:
       check:
-        integration:
-          organisation:
-            user_id:
-              _eq: X-Hasura-User-Id
+        _or:
+          - integration:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - integration:
+              organisation:
+                org_has_user:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              update: true
       columns:
         - entity_details
         - env_id
@@ -31,10 +43,22 @@ select_permissions:
         - integration_id
         - updated_at
       filter:
-        integration:
-          organisation:
-            user_id:
-              _eq: X-Hasura-User-Id
+        _or:
+          - integration:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - integration:
+              organisation:
+                org_has_user:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              read: true
       allow_aggregations: true
 update_permissions:
   - role: user
@@ -42,19 +66,43 @@ update_permissions:
       columns:
         - entity_details
       filter:
-        integration:
-          organisation:
-            user_id:
-              _eq: X-Hasura-User-Id
+        _or:
+          - integration:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - integration:
+              organisation:
+                org_has_user:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              update: true
       check: null
 delete_permissions:
   - role: user
     permission:
       filter:
-        integration:
-          organisation:
-            user_id:
-              _eq: X-Hasura-User-Id
+        _or:
+          - integration:
+              organisation:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - integration:
+              organisation:
+                org_has_user:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              update: true
 event_triggers:
   - name: event_created
     definition:

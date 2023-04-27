@@ -24,6 +24,7 @@ const (
 	ErrorTypeInvalidResponse ErrorType = "InvalidResponse"
 	ErrorTypeBadResponse     ErrorType = "BadResponse"
 	ErrorTypeBadRequest      ErrorType = "BadRequest"
+	ErrorTypeBadGateway      ErrorType = "BadGateway"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 
 	ErrorTypeDoesNotExist ErrorType = "DoesNotExist"
@@ -49,6 +50,7 @@ var ResponseCodeMap = map[ErrorType]int{
 	ErrorTypeInvalidResponse: http.StatusInternalServerError,
 	ErrorTypeBadResponse:     http.StatusInternalServerError,
 	ErrorTypeBadRequest:      http.StatusBadRequest,
+	ErrorTypeBadGateway:      http.StatusBadGateway,
 	ErrorTypeRequestFailed:   http.StatusBadRequest,
 
 	ErrorTypeDoesNotExist:                http.StatusNotFound,

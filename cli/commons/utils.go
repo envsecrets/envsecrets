@@ -5,6 +5,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,20 +24,41 @@ var Logger = logrus.New()
 var AccountConfig *commons.Account
 var ProjectConfig *commons.Project
 var KeysConfig *commons.Keys
+var ContingencyConfig *commons.Contingency
 
 func Initialize() {
 
 	//	Fetch the account config
-	accountConfig, _ := config.GetService().Load(commons.AccountConfig)
-	AccountConfig = accountConfig.(*commons.Account)
+	accountConfig, err := config.GetService().Load(commons.AccountConfig)
+	if err != nil {
+		log.Debug(err)
+	} else {
+		AccountConfig = accountConfig.(*commons.Account)
+	}
 
 	//	Fetch the project config
-	projectConfig, _ := config.GetService().Load(commons.ProjectConfig)
-	ProjectConfig = projectConfig.(*commons.Project)
+	projectConfig, err := config.GetService().Load(commons.ProjectConfig)
+	if err != nil {
+		log.Debug(err)
+	} else {
+		ProjectConfig = projectConfig.(*commons.Project)
+	}
 
 	//	Fetch the keys config
-	keysConfig, _ := config.GetService().Load(commons.KeysConfig)
-	KeysConfig = keysConfig.(*commons.Keys)
+	keysConfig, err := config.GetService().Load(commons.KeysConfig)
+	if err != nil {
+		log.Debug(err)
+	} else {
+		KeysConfig = keysConfig.(*commons.Keys)
+	}
+
+	//	Fetch the Contingency config
+	ContingencyConfig, err := config.GetService().Load(commons.ContingencyConfig)
+	if err != nil {
+		log.Debug(err)
+	} else {
+		ContingencyConfig = ContingencyConfig.(*commons.Contingency)
+	}
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{

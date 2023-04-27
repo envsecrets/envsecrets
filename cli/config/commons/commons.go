@@ -15,9 +15,10 @@ var (
 type ConfigType string
 
 const (
-	ProjectConfig ConfigType = "ProjectConfig"
-	AccountConfig ConfigType = "AccountConfig"
-	KeysConfig    ConfigType = "KeysConfig"
+	ProjectConfig     ConfigType = "ProjectConfig"
+	AccountConfig     ConfigType = "AccountConfig"
+	KeysConfig        ConfigType = "KeysConfig"
+	ContingencyConfig ConfigType = "ContingencyConfig"
 
 	CONFIG_FOLDER_NAME = ".envs"
 )

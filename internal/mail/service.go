@@ -13,6 +13,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/users"
+	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/matcornic/hermes/v2"
 
 	gomail "gopkg.in/mail.v2"
@@ -30,6 +31,7 @@ var (
 type Service interface {
 	Invite(context.ServiceContext, *commons.InvitationOptions) *errors.Error
 	SendKey(context.ServiceContext, *commons.SendKeyOptions) *errors.Error
+	SendWelcomeEmail(context.ServiceContext, *userCommons.User) *errors.Error
 }
 
 type DefaultMailService struct{}
@@ -183,6 +185,83 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 	//	Attach the key.
 	b := bytes.NewBufferString(options.Key)
 	m.AttachReader("key.txt", b)
+
+	// Settings for SMTP server
+	d := gomail.NewDialer(HOST, PORT, FROM, PASSWORD)
+
+	// This is only needed when SSL/TLS certificate is not valid on server.
+	// In production this should be set to false.
+	isDevEnvironment, er := strconv.ParseBool(os.Getenv("DEV"))
+	if er != nil {
+		return errors.New(er, "failed to parse environment", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	}
+
+	d.TLSConfig = &tls.Config{InsecureSkipVerify: isDevEnvironment}
+
+	// Now send E-Mail
+	if err := d.DialAndSend(m); err != nil {
+		return errors.New(err, "failed to send invitation email", errors.ErrorTypeEmailFailed, errors.ErrorSourceMailer)
+	}
+
+	return nil
+}
+
+func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *userCommons.User) *errors.Error {
+
+	//	Initialize commons variables
+	FROM = os.Getenv("SMTP_USERNAME")
+	PASSWORD = os.Getenv("SMTP_PASSWORD")
+	HOST = os.Getenv("SMTP_HOST")
+	PORT, _ = strconv.Atoi(os.Getenv("SMTP_PORT"))
+
+	email := hermes.Email{
+		Body: hermes.Body{
+			Greeting: "Hey",
+			Name:     user.Name,
+			Intros: []string{
+				"Welcome to envsecrets!",
+				"We're glad to have you here.",
+			},
+			Actions: []hermes.Action{
+				{
+					Instructions: "Getting up to speed with envsecrets takes just 5 minutes.",
+					Button: hermes.Button{
+						Color: "#222", // Optional action button color
+						Text:  "Quickstart Guide",
+						Link:  "https://docs.envsecrets.com/platform/quickstart",
+					},
+				},
+				{
+					Instructions: "For any help, please don't hesitate to reach out to our community chat.",
+					Button: hermes.Button{
+						Color: "#222", // Optional action button color
+						Text:  "Community Server",
+						Link:  "https://discord.gg/zDF5MBfcqQ",
+					},
+				},
+			},
+		},
+	}
+
+	// Generate an HTML email with the provided contents (for modern clients)
+	body, er := commons.Hermes.GenerateHTML(email)
+	if er != nil {
+		return errors.New(er, "failed to generate html for email", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	}
+
+	m := gomail.NewMessage()
+
+	// Set E-Mail sender
+	m.SetHeader("From", "Mrinal Wahal")
+
+	// Set E-Mail receivers
+	m.SetHeader("To", user.Email)
+
+	// Set E-Mail subject
+	m.SetHeader("Subject", "Welcome to envsecrets!")
+
+	// Set E-Mail body. You can set plain text or html with text/html
+	m.SetBody("text/html", body)
 
 	// Settings for SMTP server
 	d := gomail.NewDialer(HOST, PORT, FROM, PASSWORD)

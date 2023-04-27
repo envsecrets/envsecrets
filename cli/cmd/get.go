@@ -99,38 +99,56 @@ var getCmd = &cobra.Command{
 			getOptions.Version = &version
 		}
 
-		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		var result secretsCommons.Payload
+		list, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
+
 			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err.Message)
+
+			//	Read the value from Contingency file.
+			if commons.ContingencyConfig != nil {
+				log.Warn("Searching value in contingency file")
+				temp := *commons.ContingencyConfig
+				result = temp[key]
+			}
+
+		} else {
+			result = list.Data[key]
 		}
 
-		item := secret.Data[key]
-		if item.Value != nil {
+		if result.Value == nil {
+			log.Fatal("Value not found")
+		}
 
-			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
-			if er != nil {
-				log.Debug(er)
-				log.Fatal("Failed to base64 decode the value for ", key)
+		//	Base64 decode the secret value
+		decoded, er := base64.StdEncoding.DecodeString(result.Value.(string))
+		if er != nil {
+			log.Debug(er)
+			log.Fatal("Failed to base64 decode the value for ", key)
+		}
+
+		if result.Type == secretsCommons.Ciphertext {
+
+			//	Decrypt the value using org-key.
+			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
+			if err != nil {
+				log.Debug(err.Error)
+				log.Fatal(err.Message)
 			}
 
-			if item.Type == secretsCommons.Ciphertext {
+			result.Value = string(decrypted)
+		} else {
+			result.Value = string(decoded)
+		}
 
-				//	Decrypt the value using org-key.
-				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-				if err != nil {
-					log.Debug(err.Error)
-					log.Fatal(err.Message)
-				}
+		fmt.Printf("%v", result.Value)
+		fmt.Println()
 
-				item.Value = string(decrypted)
-			} else {
-				item.Value = string(decoded)
-			}
-
-			fmt.Printf("%v", item.Value)
-			fmt.Println()
+		//	Update the Contingency file
+		if err := config.GetService().Save(configCommons.Contingency(list.Data), configCommons.ContingencyConfig); err != nil {
+			log.Debug(err)
+			log.Warn("Failed to save secrets in Contingency file")
 		}
 	},
 }

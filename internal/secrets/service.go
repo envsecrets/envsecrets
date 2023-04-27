@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"os"
 
+	internalErrors "errors"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
@@ -34,10 +36,10 @@ func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *com
 
 func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
 
-	//	Inittialize our secret data
-	data := commons.Data{
-		Key: options.Key,
-	}
+	errMessage := "Failed to fetch value"
+
+	//	Inittialize our payload
+	var payload commons.Payload
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
@@ -48,7 +50,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 			return nil, err
 		}
 
-		data.Payload = resp.Data[data.Key]
+		payload = resp.Data[options.Key]
 
 	} else {
 
@@ -57,16 +59,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 			return nil, err
 		}
 
-		data.Payload = resp.Data[data.Key]
+		payload = resp.Data[options.Key]
 		options.Version = &resp.Version
 	}
 
-	return &commons.GetResponse{
-		Data: map[string]commons.Payload{
-			data.Key: data.Payload,
-		},
-		Version: options.Version,
-	}, nil
+	if payload.Value != nil {
+		return &commons.GetResponse{
+			Data: map[string]commons.Payload{
+				options.Key: payload,
+			},
+			Version: options.Version,
+		}, nil
+	}
+
+	return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
 }
 
 func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
