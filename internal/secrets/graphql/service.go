@@ -197,8 +197,12 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		version += *latestEntry.Version
 	}
 
-	for key, payload := range latestEntry.Data {
-		options.Data[key] = payload
+	if latestEntry.Data == nil {
+		latestEntry.Data = make(map[string]commons.Payload)
+	}
+
+	for key, payload := range options.Data {
+		latestEntry.Data[key] = payload
 	}
 
 	req := graphql.NewRequest(`
@@ -214,7 +218,7 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	//	Set the variables for our GQL query.
 	req.Var("env_id", options.EnvID)
 	req.Var("version", version)
-	req.Var("data", options.Data)
+	req.Var("data", latestEntry.Data)
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {

@@ -12,7 +12,7 @@ var (
 		//	Theme: new(Default),
 		Product: hermes.Product{
 			// Appears in header & footer of e-mails
-			Name:        "envsecrets",
+			Name:        "envsecrets.com",
 			Link:        "https://envsecrets.com",
 			TroubleText: "If the {ACTION}-button is not working for you, just copy and paste the URL below into your web browser.",
 			Copyright:   "GSTIN: 09AFVPW6899R2ZD",
