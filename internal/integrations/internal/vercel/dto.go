@@ -37,13 +37,25 @@ type RepositoryActionsSecretsPublicKeyResponse struct {
 }
 
 type ListProjectsResponse struct {
-	Projects []interface{} `json:"projects"`
+	Projects []Project `json:"projects"`
 }
 
 type Project struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	AccountID string `json:"accountId"`
+	ID                string       `json:"id,omitempty"`
+	Name              string       `json:"name,omitempty"`
+	Username          string       `json:"username,omitempty"`
+	AccountID         string       `json:"accountId,omitempty"`
+	LatestDeployments []Deployment `json:"latestDeployments,omitempty"`
+}
+
+type Deployment struct {
+	Creator Creator `json:"creator"`
+}
+
+type Creator struct {
+	UID      string `json:"uid"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
 }
 
 type VercelResponse struct {

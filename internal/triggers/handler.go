@@ -28,6 +28,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
+	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/labstack/echo/v4"
 )
 
@@ -307,7 +308,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	})
 }
 
-/* //	Called when a new row is inserted inside the `users` table.
+//	Called when a new row is inserted inside the `users` table.
 func UserInserted(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -330,33 +331,32 @@ func UserInserted(c echo.Context) error {
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
-	//	Initialize Hasura client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
+	/* 	//	Create a new `default` organisation for the new user.
+	   	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
+	   		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, " ")[0]),
+	   		UserID: user.ID,
+	   	})
+	   	if err != nil {
+	   		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+	   			Message: err.GenerateMessage("Failed to create default organisation"),
+	   			Error:   err.Message,
+	   		})
+	   	}
+	*/
 
-	//	Create a new `default` organisation for the new user.
-	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
-		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, " ")[0]),
-		UserID: user.ID,
-	})
-	if err != nil {
+	//	Shoot a welcome email to the user
+	if err := mail.GetService().SendWelcomeEmail(ctx, &user); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to create default organisation"),
+			Message: err.GenerateMessage("Failed to send welcome email"),
 			Error:   err.Message,
 		})
 	}
-
-	//	TODO: Shoot a welcome email to the user
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully generated the transit key",
 	})
 }
-*/
+
 //	Called when a new row is inserted inside the `organisations` table.
 func OrganisationCreated(c echo.Context) error {
 

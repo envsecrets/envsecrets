@@ -1,1 +1,1 @@
-Verify your email
+Verify your envsecrets account

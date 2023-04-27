@@ -24,8 +24,8 @@ func AddRoutes(sg *echo.Group) {
 	events.POST("/new", EventInserted)
 
 	//	users group
-	//users := triggers.Group("/users")
-	//users.POST("/new", UserInserted)
+	users := triggers.Group("/users")
+	users.POST("/new", UserInserted)
 
 	//	invites group
 	invites := triggers.Group("/invites")

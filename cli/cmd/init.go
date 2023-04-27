@@ -39,10 +39,13 @@ import (
 
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
+	"github.com/envsecrets/envsecrets/internal/secrets"
+	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
@@ -294,6 +297,21 @@ var initCmd = &cobra.Command{
 			log.Debug(err)
 			log.Fatal("Failed to save new project configuration locally")
 		}
+
+		//	Pull environment secrets and populate the contingency file
+		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &secretsCommons.GetSecretOptions{
+			EnvID: environment.ID,
+		})
+		if err != nil {
+			log.Debug(err.Error)
+			log.Warn(err.Message)
+		}
+
+		if err := config.GetService().Save(configCommons.Contingency(secret.Data), configCommons.ContingencyConfig); err != nil {
+			log.Debug(err)
+			log.Error("Failed to save secrets in Contingency file")
+		}
+
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		log.Info("You can now set your secrets using `envs set`")

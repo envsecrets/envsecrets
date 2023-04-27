@@ -51,7 +51,7 @@ var logoutCmd = &cobra.Command{
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		log.Warn("You have been logged out")
-		log.Info("Use `envsecrets login` to login again")
+		log.Info("Use `envs login` to login again")
 	},
 }
 

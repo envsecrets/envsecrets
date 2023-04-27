@@ -17,9 +17,9 @@ import (
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
-//	---	Flow ---
-//	1. Exchange the `code` received from Vercel for an access token: https://api.vercel.com/v2/oauth/access_token
-//	2. Save the `access_token` and `installation_id` in Hasura.
+// ---	Flow ---
+// 1. Exchange the `code` received from Vercel for an access token: https://api.vercel.com/v2/oauth/access_token
+// 2. Save the `access_token` and `installation_id` in Hasura.
 func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
 
 	//	Initialize a new HTTP client for Vercel.
@@ -88,6 +88,15 @@ func ListEntities(ctx context.ServiceContext, integration *commons.Integration) 
 	er := client.Run(ctx, req, &response)
 	if er != nil {
 		return nil, er
+	}
+
+	for index, project := range response.Projects {
+
+		if len(project.LatestDeployments) > 0 {
+			project.Username = project.LatestDeployments[0].Creator.Username
+			project.LatestDeployments = nil
+		}
+		response.Projects[index] = project
 	}
 
 	return &response.Projects, nil
@@ -171,8 +180,8 @@ func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Erro
 	return nil
 }
 
-//	Creates a new Secret on Vercel.
-//	Docs: https://vercel.com/docs/rest-api/endpoints#create-a-new-secret
+// Creates a new Secret on Vercel.
+// Docs: https://vercel.com/docs/rest-api/endpoints#create-a-new-secret
 func CreateSecret(ctx context.ServiceContext, client *clients.HTTPClient, name string, value interface{}, teamID *string) (*VercelSecret, *errors.Error) {
 
 	//	Prepare the request body
