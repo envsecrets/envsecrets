@@ -17,6 +17,6 @@ cli/.envs
 variables.sh
 api
 cli/build.sh
-cli/cli
+cli/bin
 secret.json
 cli/test*
