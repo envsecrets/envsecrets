@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
@@ -69,18 +70,24 @@ func TokenHeader() echo.MiddlewareFunc {
 				},
 			})
 
+			//	Decode the token
+			payload, er := hex.DecodeString(key)
+			if er != nil {
+				return false, er
+			}
+
+			//	Generate token's hash.
+			hash := globalCommons.SHA256Hash(payload)
+
 			//	Verify the token.
-			token, err := tokens.GetByHash(ctx, client, key)
+			token, err := tokens.GetByHash(ctx, client, hash)
 			if err != nil {
 				return false, err.Error
 			}
 
 			if token.EnvID == "" {
-				return false, errors.New("failed to the environment this token is associated with")
+				return false, errors.New("failed to fetch the environment this token is associated with")
 			}
-
-			//	Set the environment ID in echo's context.
-			c.Set("env_id", token.EnvID)
 
 			//	Parse the token expiry
 			now := time.Now()
@@ -88,6 +95,9 @@ func TokenHeader() echo.MiddlewareFunc {
 			if expired {
 				return false, errors.New("token expired")
 			}
+
+			//	Set the environment ID in echo's context.
+			c.Set("env_id", token.EnvID)
 
 			return true, nil
 		},

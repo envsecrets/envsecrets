@@ -2,6 +2,8 @@ package commons
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -43,7 +45,7 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 	return b, nil
 }
 
-//	Get the JWT key from NHOST variables
+// Get the JWT key from NHOST variables
 func GetJWTSecret() (*JWTSecret, error) {
 	var response JWTSecret
 	payload := os.Getenv("NHOST_JWT_SECRET")
@@ -61,9 +63,9 @@ func GetAESKey() (string, error) {
 	return payload, nil
 }
 
-func Hash(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
+func SHA256Hash(payload []byte) string {
+	hash := sha256.Sum256(payload)
+	return hex.EncodeToString(hash[:])
 }
 
 func ValidateHash(password, hash string) bool {
