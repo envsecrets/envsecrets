@@ -34,7 +34,6 @@ func CreateHandler(c echo.Context) error {
 	expiry, er := time.ParseDuration(payload.Expiry)
 	if er != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "Failed to parse expiry duration",
 			Error:   er.Error(),
 		})
@@ -47,32 +46,12 @@ func CreateHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to create the token"),
-			Error:   err.Error.Error(),
-		})
-	}
-
-	//	Re-Initialize a new Hasura client with admin privileges
-	client = clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	Get the token hash using the new admin client
-	token, err = Get(ctx, client, token.ID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to create the token"),
 			Error:   err.Error.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully generated token",
 		Data: map[string]interface{}{
 			"token": token.Hash,

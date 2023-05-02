@@ -39,6 +39,7 @@ type CreateGraphQLOptions struct {
 	EnvID  string    `json:"env_id"`
 	Expiry time.Time `json:"expiry"`
 	Name   string    `json:"name,omitempty"`
+	Hash   string    `json:"hash,omitempty"`
 }
 
 type GetGraphQLOptions struct {

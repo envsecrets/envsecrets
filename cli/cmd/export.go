@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -36,10 +36,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/cli/internal"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
@@ -102,32 +104,57 @@ var exportCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
+		var secret secretsCommons.GetResponse
 		var orgKey [32]byte
-		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
-		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
-		}
-		copy(orgKey[:], decryptedOrgKey)
 
-		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetSecretOptions{
-			EnvID: commons.ProjectConfig.Environment,
-		}
+		if XTokenHeader != "" {
 
-		if version > -1 {
-			getOptions.Version = &version
-		}
+			options := internal.GetValuesOptions{
+				Token: XTokenHeader,
+			}
 
-		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
-		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			if version > -1 {
+				options.Version = &version
+			}
+
+			result, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+			if err != nil {
+				log.Debug(err.Error)
+				log.Fatal(err.Message)
+			}
+
+			secret = *result
+
+		} else {
+
+			decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+			if err != nil {
+				log.Debug(err.Error)
+				log.Fatal(err.Message)
+			}
+			copy(orgKey[:], decryptedOrgKey)
+
+			//	Get the values from Hasura.
+			getOptions := secretsCommons.GetSecretOptions{
+				EnvID: commons.ProjectConfig.Environment,
+			}
+
+			if version > -1 {
+				getOptions.Version = &version
+			}
+
+			result, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
+			if err != nil {
+				log.Debug(err.Error)
+				log.Fatal(err.Message)
+			}
+
+			secret = *result
 		}
 
 		//	Initialize a new buffer to store key-value lines
 		var buffer bytes.Buffer
-
+		var variables []string
 		for key, item := range secret.Data {
 
 			//	Base64 decode the secret value
@@ -137,7 +164,7 @@ var exportCmd = &cobra.Command{
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			if item.Type == secretsCommons.Ciphertext {
+			if item.Type == secretsCommons.Ciphertext && XTokenHeader == "" {
 
 				//	Decrypt the value using org-key.
 				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
@@ -151,9 +178,10 @@ var exportCmd = &cobra.Command{
 				item.Value = string(decoded)
 			}
 
-			buffer.WriteString(fmt.Sprintf("%s=%s", key, item.Value))
-			buffer.WriteString("\n")
+			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
 		}
+
+		buffer.WriteString(strings.Join(variables, "\n"))
 
 		if exportfile != "" {
 
@@ -212,5 +240,5 @@ func init() {
 	// is called directly, e.g.:
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
-	//exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

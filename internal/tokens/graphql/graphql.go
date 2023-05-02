@@ -9,14 +9,14 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new organisation
+// Create a new organisation
 func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateGraphQLOptions) (*commons.Token, *errors.Error) {
 
 	errorMessage := "Failed to create token"
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($name: String!, $env_id: uuid!, $expiry: timestamptz) {
-		insert_tokens_one(object: {name: $name, env_id: $env_id, expiry: $expiry}) {
+	mutation MyMutation($name: String!, $hash: String!, $env_id: uuid!, $expiry: timestamptz) {
+		insert_tokens_one(object: {name: $name, hash: $hash, env_id: $env_id, expiry: $expiry}) {
 		  id
 		}
 	  }
@@ -24,6 +24,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	req.Var("env_id", options.EnvID)
 	req.Var("name", options.Name)
+	req.Var("hash", options.Hash)
 	if !options.Expiry.IsZero() {
 		req.Var("expiry", options.Expiry)
 	}
@@ -41,7 +42,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return &resp, nil
 }
 
-//	Fetch a token by it's  ID.
+// Fetch a token by it's  ID.
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Token, *errors.Error) {
 
 	errorMessage := "Failed to get the token"
@@ -69,7 +70,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	return &resp, nil
 }
 
-//	Fetch a token by it's environment ID.
+// Fetch a token by it's environment ID.
 func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*commons.Token, *errors.Error) {
 
 	errorMessage := "Failed to get the token"
@@ -99,7 +100,7 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	return &resp[0], nil
 }
 
-//	Fetch a token by it's hash.
+// Fetch a token by it's hash.
 func GetByHash(ctx context.ServiceContext, client *clients.GQLClient, hash string) (*commons.Token, *errors.Error) {
 
 	errorMessage := "Failed to get the token"
