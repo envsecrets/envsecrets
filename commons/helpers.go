@@ -3,7 +3,7 @@ package commons
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -65,7 +65,7 @@ func GetAESKey() (string, error) {
 
 func SHA256Hash(payload []byte) string {
 	hash := sha256.Sum256(payload)
-	return base64.StdEncoding.EncodeToString(hash[:])
+	return hex.EncodeToString(hash[:])
 }
 
 func ValidateHash(password, hash string) bool {

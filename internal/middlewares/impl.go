@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"log"
 	"os"
@@ -70,8 +70,8 @@ func TokenHeader() echo.MiddlewareFunc {
 				},
 			})
 
-			//	Base64 decode the token
-			payload, er := base64.StdEncoding.DecodeString(key)
+			//	Decode the token
+			payload, er := hex.DecodeString(key)
 			if er != nil {
 				return false, er
 			}

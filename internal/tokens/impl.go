@@ -1,7 +1,7 @@
 package tokens
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"time"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
@@ -36,7 +36,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		return nil, err
 	}
 
-	result.Hash = base64.StdEncoding.EncodeToString(token)
+	result.Hash = hex.EncodeToString(token)
 	return result, nil
 }
 
