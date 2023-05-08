@@ -11,7 +11,6 @@ type SetupOptions struct {
 	SetupAction    string
 	State          string
 	OrgID          string
-	Token          string
 }
 
 type InstallationAccessTokenResponse struct {

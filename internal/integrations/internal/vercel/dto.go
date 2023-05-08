@@ -1,12 +1,13 @@
 package vercel
 
+import secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+
 type SetupOptions struct {
 	ConfigurationID string
 	Source          string
 	Next            string
 	State           string
 	OrgID           string
-	Token           string
 	Code            string
 }
 
@@ -34,6 +35,16 @@ type InstallationAccessTokenResponse struct {
 type RepositoryActionsSecretsPublicKeyResponse struct {
 	Key   string `json:"key"`
 	KeyID string `json:"key_id"`
+}
+
+type ListOptions struct {
+	Credentials map[string]interface{}
+}
+
+type SyncOptions struct {
+	Credentials   map[string]interface{}           `json:"credentials"`
+	EntityDetails map[string]interface{}           `json:"entity_details"`
+	Data          map[string]secretCommons.Payload `json:"data"`
 }
 
 type ListProjectsResponse struct {

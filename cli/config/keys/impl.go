@@ -15,7 +15,6 @@ const (
 )
 
 var (
-	DIR        = filepath.Dir(commons.EXECUTABLE)
 	CONFIG_DIR = filepath.Join(commons.HOME_DIR, commons.CONFIG_FOLDER_NAME)
 	CONFIG_LOC = filepath.Join(CONFIG_DIR, CONFIG_FILENAME)
 )

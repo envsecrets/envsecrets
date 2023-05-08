@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -105,26 +104,31 @@ func SecretInserted(c echo.Context) error {
 		}
 	}
 
+	//	Get organisation from environment.
+	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to the organisation this secret is associated with"),
+			Error:   err.Error.Error(),
+		})
+	}
+
 	//	Get the integration service
 	integrationService := integrations.GetService()
 
-	var wg sync.WaitGroup
 	for _, event := range *events {
-		wg.Add(1)
-		go func(event *eventCommons.Event) {
-			if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
-				InstallationID: event.Integration.InstallationID,
-				EntityDetails:  event.EntityDetails,
-				Data:           decrypted,
-				Credentials:    event.Integration.Credentials,
-			}); err != nil {
-				log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)
-				log.Println(err)
-			}
-			wg.Done()
-		}(&event)
+		if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
+			EventID:        event.ID,
+			OrgID:          organisation.ID,
+			InstallationID: event.Integration.InstallationID,
+			EntityDetails:  event.EntityDetails,
+			Data:           decrypted,
+			Credentials:    event.Integration.Credentials,
+		}); err != nil {
+			log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)
+			log.Println(err)
+		}
 	}
-	wg.Wait()
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully synced secrets",
@@ -212,6 +216,8 @@ func EventInserted(c echo.Context) error {
 	integrationService := integrations.GetService()
 
 	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
+		EventID:        row.ID,
+		OrgID:          integration.OrgID,
 		InstallationID: integration.InstallationID,
 		EntityDetails:  row.EntityDetails,
 		Data:           decrypted,
@@ -572,7 +578,7 @@ func ProjectInserted(c echo.Context) error {
 	})
 
 	//	Create default environments for this new project.
-	envs := []string{"dev", "staging", "qa", "production"}
+	envs := []string{"development", "test", "staging", "production"}
 	for _, item := range envs {
 		if _, err := environments.CreateWithUserID(ctx, client, &environments.CreateOptions{
 			Name:      item,
