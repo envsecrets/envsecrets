@@ -56,20 +56,20 @@ func SetupCallbackHandler(c echo.Context) error {
 	options := make(map[string]string)
 
 	for key, value := range params {
-		fmt.Println(key, value)
+		options[key] = value[0]
 	}
 
 	//	Run the service handler.
-	integration, err := service.Setup(ctx, client, serviceType, &commons.SetupOptions{
+	_, err := service.Setup(ctx, client, serviceType, &commons.SetupOptions{
 		OrgID:   orgID,
 		Options: options,
 	})
 	if err != nil {
-		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed&integration_type="+integration_type)
+		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed")
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/%s?setup_action=install&setup_status=successful&integration_type=%s", os.Getenv("FE_URL"), integration.ID, integration_type))
+	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/%s/sync?setup_action=install&setup_status=successful", os.Getenv("FE_URL"), integration_type))
 }
 
 func SetupHandler(c echo.Context) error {

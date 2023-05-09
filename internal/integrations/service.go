@@ -42,19 +42,21 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	}
 
 	//	Decrypt the credentials.
-	payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
-	}
-
-	decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
-	if err != nil {
-		return nil, err
-	}
-
 	var credentials map[string]interface{}
-	if err := json.Unmarshal(decryptedCredentials, &credentials); err != nil {
-		return nil, errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	if integration.Credentials != "" {
+		payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
+		if er != nil {
+			return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		}
+
+		decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(decryptedCredentials, &credentials); err != nil {
+			return nil, errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		}
 	}
 
 	switch integrationType {
