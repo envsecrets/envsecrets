@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"encoding/base64"
-	"os"
 
 	internalErrors "errors"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
-	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 )
@@ -29,7 +27,7 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return nil
 }
 
-//	Cleanup entries from `secrets` table.
+// Cleanup entries from `secrets` table.
 func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
 	return graphql.Cleanup(ctx, client, options)
 }
@@ -103,7 +101,7 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return &data, nil
 }
 
-//	Fetches only the keys of a secret row.
+// Fetches only the keys of a secret row.
 func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (*commons.GetResponse, *errors.Error) {
 
 	var data commons.GetResponse
@@ -144,9 +142,9 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	return &data, nil
 }
 
-//	Pulls all secret key-value pairs from the source environment,
-//	and overwrites them in the target environment.
-//	It creates a new secret version.
+// Pulls all secret key-value pairs from the source environment,
+// and overwrites them in the target environment.
+// It creates a new secret version.
 func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, *errors.Error) {
 
 	//	Fetch all key-value pairs of the source environment.
@@ -188,25 +186,8 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (map[string]commons.Payload, *errors.Error) {
 
 	//	Get the server's copy of org-key.
-	serverOrgKey, err := organisations.GetServerKeyCopy(ctx, client, options.OrgID)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Decrypt the copy with server's private key (in env vars).
-	var serverPublicKey, serverPrivateKey, orgKey [32]byte
-	serverPrivateKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode server's private key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
-	}
-	copy(serverPrivateKey[:], serverPrivateKeyBytes)
-	serverPublicKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode server's public key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
-	}
-	copy(serverPublicKey[:], serverPublicKeyBytes)
-
-	orgKeyBytes, err := keys.OpenAsymmetricallyAnonymous(serverOrgKey, serverPublicKey, serverPrivateKey)
+	var orgKey [32]byte
+	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, options.OrgID)
 	if err != nil {
 		return nil, err
 	}

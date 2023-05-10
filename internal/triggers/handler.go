@@ -78,37 +78,31 @@ func SecretInserted(c echo.Context) error {
 		})
 	}
 
-	var decrypted map[string]secretCommons.Payload
-
-	if len(*events) > 0 {
-
-		//	Get the organisation to which these secrets belong to.
-		organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
-		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get organisation to which these secrets are associated"),
-				Error:   err.Error.Error(),
-			})
-		}
-
-		//	Decrypt the value of every secret.
-		decrypted, err = secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-			OrgID: organisation.ID,
-			Data:  row.Data,
+	if len(*events) == 0 {
+		return c.JSON(http.StatusOK, &clients.APIResponse{
+			Message: "there are no events in this environment to sync this secret with",
 		})
-		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to  decrypt secrets"),
-				Error:   err.Error.Error(),
-			})
-		}
 	}
 
-	//	Get organisation from environment.
+	var decrypted map[string]secretCommons.Payload
+
+	//	Get the organisation to which these secrets belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to the organisation this secret is associated with"),
+			Message: err.GenerateMessage("Failed to get organisation to which these secrets are associated"),
+			Error:   err.Error.Error(),
+		})
+	}
+
+	//	Decrypt the value of every secret.
+	decrypted, err = secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+		OrgID: organisation.ID,
+		Data:  row.Data,
+	})
+	if err != nil {
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to  decrypt secrets"),
 			Error:   err.Error.Error(),
 		})
 	}

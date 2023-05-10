@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -189,7 +189,11 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Encrypt the secrets
 		for key, payload := range data {
 			if encrypt {
-				encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), orgKey)
+				encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), orgKey)
+				if err != nil {
+					log.Debug(err)
+					log.Error(err.Message)
+				}
 				payload.Value = base64.StdEncoding.EncodeToString(encrypted)
 			} else {
 				payload.Value = base64.StdEncoding.EncodeToString([]byte(payload.Value.(string)))

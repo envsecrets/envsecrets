@@ -36,17 +36,17 @@ func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient,
 	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
 }
 
-func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) []byte {
+func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
 
 	// You must use a different nonce for each message you encrypt with the
 	// same key. Since the nonce here is 192 bits long, a random value
 	// provides a sufficiently small probability of repeats.
 	var nonce [commons.NONCE_LEN]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		panic(err)
+		return nil, errors.New(err, "Failed to seal the message with symmetric key", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
 	}
 
-	return secretbox.Seal(nonce[:], message, &nonce, &key)
+	return secretbox.Seal(nonce[:], message, &nonce, &key), nil
 }
 
 func OpenSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
@@ -74,7 +74,7 @@ func SealAsymmetricallyAnonymous(message []byte, key [commons.KEY_BYTES]byte) ([
 	// provides a sufficiently small probability of repeats.
 	var nonce [commons.NONCE_LEN]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		panic(err)
+		return nil, errors.New(err, "Failed to generate nonce", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
 
 	// This encrypts msg and appends the result to the nonce.
@@ -134,7 +134,10 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Er
 	//	Encrypt the private key using protection key
 	var protectionKeyForSealing [32]byte
 	copy(protectionKeyForSealing[:], protectionKeyBytes)
-	encryptedPrivateKeyBytes := SealSymmetrically(privateKeyBytes[:], protectionKeyForSealing)
+	encryptedPrivateKeyBytes, err := SealSymmetrically(privateKeyBytes[:], protectionKeyForSealing)
+	if err != nil {
+		return nil, err
+	}
 
 	//	Generate random 32 byte salt
 	saltBytes, er := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
@@ -148,7 +151,10 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Er
 	//	Encrypt the protection key using password derived key
 	var passwordDerivedKeyForSealing [32]byte
 	copy(passwordDerivedKeyForSealing[:], passwordDerivedKey)
-	encryptedProtectionKeyBytes := SealSymmetrically(protectionKeyBytes, passwordDerivedKeyForSealing)
+	encryptedProtectionKeyBytes, err := SealSymmetrically(protectionKeyBytes, passwordDerivedKeyForSealing)
+	if err != nil {
+		return nil, err
+	}
 
 	return &commons.IssueKeyPairResponse{
 		PublicKey:           publicKeyBytes[:],

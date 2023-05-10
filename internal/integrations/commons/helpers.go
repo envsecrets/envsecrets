@@ -27,7 +27,10 @@ func EncryptCredentials(ctx context.ServiceContext, org_id string, payload map[s
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Encrypt the secrets with the server-copy of organisation's encryption key.
-	encrypted := keys.SealSymmetrically(credentials, orgKey)
+	encrypted, err := keys.SealSymmetrically(credentials, orgKey)
+	if err != nil {
+		return nil, err
+	}
 
 	return encrypted, nil
 }

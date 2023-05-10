@@ -59,7 +59,13 @@ func SetHandler(c echo.Context) error {
 	//	Encrypt the values with decrypted key
 	for key, item := range payload.Data {
 		if item.Type == commons.Ciphertext {
-			encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
+			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
+			if err != nil {
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+					Message: err.GenerateMessage("Failed to encrypt the secret: " + key),
+					Error:   err.Message,
+				})
+			}
 			item.Value = base64.StdEncoding.EncodeToString(encrypted)
 		} else {
 			item.Value = base64.StdEncoding.EncodeToString([]byte(item.Value.(string)))
