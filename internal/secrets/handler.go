@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -41,51 +40,17 @@ func SetHandler(c echo.Context) error {
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
 			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
 			Error:   err.Message,
 		})
 	}
 
-	//	Initialize new GQL client with admin privileges
-	adminGQLClient := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	Get the server's key copy
-	serverCopy, err := organisations.GetServerKeyCopy(ctx, adminGQLClient, organisation.ID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
-	//	Decrypt the copy with server's private key (in env vars).
-	serverPrivateKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if er != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
-	serverPublicKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
+	//	Get the server's copy of organisation's encryption key.
 	var orgKey [32]byte
-	orgKeyBytes, err := keys.DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverCopy)
+	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to decrypt server's copy of org-key"),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
 			Error:   err.Message,
 		})
 	}
@@ -94,7 +59,13 @@ func SetHandler(c echo.Context) error {
 	//	Encrypt the values with decrypted key
 	for key, item := range payload.Data {
 		if item.Type == commons.Ciphertext {
-			encrypted := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
+			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
+			if err != nil {
+				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+					Message: err.GenerateMessage("Failed to encrypt the secret: " + key),
+					Error:   err.Message,
+				})
+			}
 			item.Value = base64.StdEncoding.EncodeToString(encrypted)
 		} else {
 			item.Value = base64.StdEncoding.EncodeToString([]byte(item.Value.(string)))
@@ -240,45 +211,12 @@ func GetHandler(c echo.Context) error {
 		})
 	}
 
-	//	Initialize new GQL client with admin privileges
-	adminGQLClient := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	Get the server's key copy
-	serverCopy, err := organisations.GetServerKeyCopy(ctx, adminGQLClient, organisation.ID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
-	//	Decrypt the copy with server's private key (in env vars).
-	serverPrivateKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if er != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
-	serverPublicKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
-		})
-	}
-
+	//	Get the server's copy of organisation's encryption key.
 	var orgKey [32]byte
-	orgKeyBytes, err := keys.DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverCopy)
+	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to decrypt server's copy of org-key"),
+		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
+			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
 			Error:   err.Message,
 		})
 	}

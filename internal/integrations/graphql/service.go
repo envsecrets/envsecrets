@@ -13,7 +13,7 @@ import (
 func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) (*commons.Integration, *errors.Error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($org_id: uuid!, $installation_id: String!, $type: String!, $credentials: jsonb) {
+	mutation MyMutation($org_id: uuid!, $installation_id: String, $type: String!, $credentials: String) {
 		insert_integrations(objects: {org_id: $org_id, installation_id: $installation_id, type: $type, credentials: $credentials}) {
 		  returning {
 			id
@@ -23,10 +23,12 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	`)
 
 	req.Var("org_id", options.OrgID)
-	req.Var("installation_id", options.InstallationID)
 	req.Var("type", options.Type)
 
-	if options.Credentials != nil {
+	if options.InstallationID != "" {
+		req.Var("installation_id", options.InstallationID)
+	}
+	if options.Credentials != "" {
 		req.Var("credentials", options.Credentials)
 	}
 
@@ -119,4 +121,34 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	}
 
 	return &resp, nil
+}
+
+func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateDetailsOptions) *errors.Error {
+
+	errorMessage := "Failed to update entity details"
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($id: uuid!, $details: jsonb!) {
+		update_events(where: {id: {_eq: $id}}, _set: {entity_details: $details}) {
+		  affected_rows
+		}
+	  }							  
+	`)
+
+	req.Var("id", options.ID)
+	req.Var("details", options.EntityDetails)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["update_events"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
 }

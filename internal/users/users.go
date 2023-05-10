@@ -8,6 +8,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/machinebox/graphql"
+
+	internalErrors "errors"
 )
 
 func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, *errors.Error) {
@@ -45,6 +47,8 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 
 func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, *errors.Error) {
 
+	errMessage := "Failed to fetch the user"
+
 	req := graphql.NewRequest(`
 	query MyQuery($email: citext!) {
 		users(where: {email: {_eq: $email}}) {
@@ -71,6 +75,10 @@ func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email str
 	var resp []commons.User
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, errors.New(err, "failed to nmarshal returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+	}
+
+	if len(resp) == 0 {
+		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
 	}
 
 	return &resp[0], nil

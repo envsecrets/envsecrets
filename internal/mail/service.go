@@ -70,12 +70,6 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 		return err
 	}
 
-	//	Fetch the user who is receiver the invite.
-	receiver, err := users.GetByEmail(ctx, client, options.ReceiverEmail)
-	if err != nil {
-		return err
-	}
-
 	//	Fetch the organisation for which the invite has been sent.
 	organisation, err := organisations.Get(ctx, client, options.OrgID)
 	if err != nil {
@@ -85,7 +79,6 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
-			Name:     strings.Split(receiver.DisplayName, " ")[0],
 			Intros: []string{
 				"You have been invited to join a new organisation on envsecrets.",
 			},
@@ -103,7 +96,6 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 					},
 				},
 			},
-			Signature: "Mrinal Wahal",
 		},
 	}
 

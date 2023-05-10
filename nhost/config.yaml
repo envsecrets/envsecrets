@@ -130,7 +130,7 @@ auth:
     default_allowed_roles: user,me
     default_role: user
     mfa:
-      enabled: false
+      enabled: true
       issuer: nhost
 storage:
   force_download_for_content_types: text/html,application/javascript

@@ -2,6 +2,7 @@ package vercel
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -39,13 +40,24 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	data.Set("code", options.Code)
 	data.Set("redirect_uri", os.Getenv("REDIRECT_DOMAIN")+"/v1/integrations/vercel/setup")
 
-	req, err := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
-	if err != nil {
-		return nil, errors.New(err, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	req, er := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
+	if er != nil {
+		return nil, errors.New(er, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
 	}
 
 	var response CodeExchangeResponse
 	if err := httpClient.Run(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	//	Encrypt the credentials
+	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
+		"token_type":   response.TokenType,
+		"access_token": response.AccessToken,
+		"user_id":      response.UserID,
+		"team_id":      response.TeamID,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -54,21 +66,16 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 		OrgID:          options.OrgID,
 		InstallationID: response.InstallationID,
 		Type:           commons.Vercel,
-		Credentials: map[string]interface{}{
-			"token_type":   response.TokenType,
-			"access_token": response.AccessToken,
-			"user_id":      response.UserID,
-			"team_id":      response.TeamID,
-		},
+		Credentials:    base64.StdEncoding.EncodeToString(credentials),
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (interface{}, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
 
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
 		Type:          clients.VercelClientType,
-		Authorization: fmt.Sprintf("%v %v", integration.Credentials["token_type"], integration.Credentials["access_token"]),
+		Authorization: fmt.Sprintf("%v %v", options.Credentials["token_type"], options.Credentials["access_token"]),
 	})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.vercel.com/v9/projects", nil)
@@ -78,9 +85,9 @@ func ListEntities(ctx context.ServiceContext, integration *commons.Integration) 
 
 	//	If the user had integrated a team account,
 	//	then perform ther equest on behalf of that team_id.
-	if integration.Credentials["team_id"] != nil {
+	if options.Credentials["team_id"] != nil {
 		params := req.URL.Query()
-		params.Set("teamId", integration.Credentials["team_id"].(string))
+		params.Set("teamId", options.Credentials["team_id"].(string))
 		req.URL.RawQuery = params.Encode()
 	}
 
@@ -102,7 +109,7 @@ func ListEntities(ctx context.ServiceContext, integration *commons.Integration) 
 	return &response.Projects, nil
 }
 
-func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Error {
+func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
