@@ -72,8 +72,8 @@ type ListEntitiesRequestOptions struct {
 }
 
 type SetupOptions struct {
-	Options map[string]string `json:"options"`
-	OrgID   string            `json:"org_id"`
+	Options map[string]interface{} `json:"options"`
+	OrgID   string                 `json:"org_id"`
 }
 
 type SyncOptions struct {

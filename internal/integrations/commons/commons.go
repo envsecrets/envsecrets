@@ -15,6 +15,7 @@ const (
 	Github   IntegrationType = "github"
 	Vercel   IntegrationType = "vercel"
 	ASM      IntegrationType = "asm"
+	GSM      IntegrationType = "gsm"
 	CircleCI IntegrationType = "circle"
 )
 
@@ -24,5 +25,5 @@ const (
 )
 
 var (
-	AllowedIntegrations = []IntegrationType{Github, Vercel, ASM, CircleCI}
+	AllowedIntegrations = []IntegrationType{Github, Vercel, ASM, CircleCI, GSM}
 )

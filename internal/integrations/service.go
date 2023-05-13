@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	internalErrors "errors"
+	"fmt"
 	"net/url"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -14,6 +15,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/asm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/circle"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/github"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
 )
 
@@ -71,6 +73,11 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
+	case commons.GSM:
+		return gsm.ListEntities(ctx, &gsm.ListOptions{
+			Credentials: credentials,
+			OrgID:       integration.OrgID,
+		})
 	case commons.CircleCI:
 		return circle.ListEntities(ctx, &circle.ListOptions{
 			Credentials: credentials,
@@ -125,29 +132,40 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 	switch integrationType {
 	case commons.Github:
 		return github.Setup(ctx, client, &github.SetupOptions{
-			InstallationID: options.Options["installation_id"],
-			SetupAction:    options.Options["setup_action"],
-			State:          options.Options["state"],
+			InstallationID: fmt.Sprint(options.Options["installation_id"]),
+			SetupAction:    fmt.Sprint(options.Options["setup_action"]),
+			State:          fmt.Sprint(options.Options["state"]),
 			OrgID:          options.OrgID,
 		})
 	case commons.Vercel:
 		return vercel.Setup(ctx, client, &vercel.SetupOptions{
-			ConfigurationID: options.Options["configurationId"],
-			Next:            options.Options["next"],
-			Source:          options.Options["source"],
-			Code:            options.Options["code"],
-			State:           options.Options["state"],
+			ConfigurationID: fmt.Sprint(options.Options["configurationId"]),
+			Next:            fmt.Sprint(options.Options["next"]),
+			Source:          fmt.Sprint(options.Options["source"]),
+			Code:            fmt.Sprint(options.Options["code"]),
+			State:           fmt.Sprint(options.Options["state"]),
 			OrgID:           options.OrgID,
 		})
 	case commons.ASM:
 		return asm.Setup(ctx, client, &asm.SetupOptions{
-			Region:  options.Options["region"],
-			RoleARN: options.Options["role_arn"],
+			Region:  fmt.Sprint(options.Options["region"]),
+			RoleARN: fmt.Sprint(options.Options["role_arn"]),
 			OrgID:   options.OrgID,
+		})
+	case commons.GSM:
+
+		var keys map[string]interface{}
+		if err := json.Unmarshal([]byte(options.Options["keys"].(string)), &keys); err != nil {
+			return nil, errors.New(err, "Failed to setup the GSM integration", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		}
+
+		return gsm.Setup(ctx, client, &gsm.SetupOptions{
+			Keys:  keys,
+			OrgID: options.OrgID,
 		})
 	case commons.CircleCI:
 		return circle.Setup(ctx, client, &circle.SetupOptions{
-			Token: options.Options["token"],
+			Token: fmt.Sprint(options.Options["token"]),
 			OrgID: options.OrgID,
 		})
 	}
@@ -188,6 +206,12 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationTy
 		})
 	case commons.CircleCI:
 		return circle.Sync(ctx, &circle.SyncOptions{
+			Credentials:   credentials,
+			Data:          options.Data,
+			EntityDetails: options.EntityDetails,
+		})
+	case commons.GSM:
+		return gsm.Sync(ctx, &gsm.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
