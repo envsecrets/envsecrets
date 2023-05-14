@@ -53,7 +53,7 @@ func SetupCallbackHandler(c echo.Context) error {
 		},
 	})
 
-	options := make(map[string]string)
+	options := make(map[string]interface{})
 
 	for key, value := range params {
 		options[key] = value[0]

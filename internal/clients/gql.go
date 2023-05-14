@@ -83,7 +83,6 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 	//	Parse the error
 	if err := c.Run(ctx, req, &resp); err != nil {
-
 		apiError := errors.Parse(err)
 
 		//	If it's a JWTExpired error,
