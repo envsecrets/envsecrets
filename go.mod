@@ -19,6 +19,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stripe/stripe-go/v74 v74.15.0
 	golang.org/x/crypto v0.8.0
+	google.golang.org/api v0.118.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -63,7 +64,6 @@ require (
 	github.com/vanng822/go-premailer v1.20.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
-	google.golang.org/api v0.118.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.55.0 // indirect
