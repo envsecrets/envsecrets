@@ -15,52 +15,8 @@ import (
 
 // Options provide toggles and overrides to control specific rendering behaviors.
 type Options struct {
-	PrettyTables        bool                 // Turns on pretty ASCII rendering for table elements.
-	PrettyTablesOptions *PrettyTablesOptions // Configures pretty ASCII rendering for table elements.
-	OmitLinks           bool                 // Turns on omitting links
-	TextOnly            bool                 // Returns only plain text
-}
-
-// PrettyTablesOptions overrides tablewriter behaviors
-type PrettyTablesOptions struct {
-	AutoFormatHeader     bool
-	AutoWrapText         bool
-	ReflowDuringAutoWrap bool
-	ColWidth             int
-	ColumnSeparator      string
-	RowSeparator         string
-	CenterSeparator      string
-	HeaderAlignment      int
-	FooterAlignment      int
-	Alignment            int
-	ColumnAlignment      []int
-	NewLine              string
-	HeaderLine           bool
-	RowLine              bool
-	AutoMergeCells       bool
-	Borders              tablewriter.Border
-}
-
-// NewPrettyTablesOptions creates PrettyTablesOptions with default settings
-func NewPrettyTablesOptions() *PrettyTablesOptions {
-	return &PrettyTablesOptions{
-		AutoFormatHeader:     true,
-		AutoWrapText:         true,
-		ReflowDuringAutoWrap: true,
-		ColWidth:             tablewriter.MAX_ROW_WIDTH,
-		ColumnSeparator:      tablewriter.COLUMN,
-		RowSeparator:         tablewriter.ROW,
-		CenterSeparator:      tablewriter.CENTER,
-		HeaderAlignment:      tablewriter.ALIGN_DEFAULT,
-		FooterAlignment:      tablewriter.ALIGN_DEFAULT,
-		Alignment:            tablewriter.ALIGN_DEFAULT,
-		ColumnAlignment:      []int{},
-		NewLine:              tablewriter.NEWLINE,
-		HeaderLine:           true,
-		RowLine:              false,
-		AutoMergeCells:       false,
-		Borders:              tablewriter.Border{Left: true, Right: true, Bottom: true, Top: true},
-	}
+	PrettyTables bool // Turns on pretty ASCII rendering for table elements.
+	OmitLinks    bool // Turns on omitting links
 }
 
 // FromHTMLNode renders text output from a pre-parsed HTML document.
@@ -158,9 +114,6 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 		}
 
 		str := subCtx.buf.String()
-		if ctx.options.TextOnly {
-			return ctx.emit(str + ".\n\n")
-		}
 		dividerLen := 0
 		for _, line := range strings.Split(str, "\n") {
 			if lineLen := len([]rune(line)); lineLen-1 > dividerLen {
@@ -181,9 +134,7 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 
 	case atom.Blockquote:
 		ctx.blockquoteLevel++
-		if !ctx.options.TextOnly {
-			ctx.prefix = strings.Repeat(">", ctx.blockquoteLevel) + " "
-		}
+		ctx.prefix = strings.Repeat(">", ctx.blockquoteLevel) + " "
 		if err := ctx.emit("\n"); err != nil {
 			return err
 		}
@@ -196,9 +147,7 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 			return err
 		}
 		ctx.blockquoteLevel--
-		if !ctx.options.TextOnly {
-			ctx.prefix = strings.Repeat(">", ctx.blockquoteLevel)
-		}
+		ctx.prefix = strings.Repeat(">", ctx.blockquoteLevel)
 		if ctx.blockquoteLevel > 0 {
 			ctx.prefix += " "
 		}
@@ -221,10 +170,8 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 		return err
 
 	case atom.Li:
-		if !ctx.options.TextOnly {
-			if err := ctx.emit("* "); err != nil {
-				return err
-			}
+		if err := ctx.emit("* "); err != nil {
+			return err
 		}
 
 		if err := ctx.traverseChildren(node); err != nil {
@@ -240,9 +187,6 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 			return err
 		}
 		str := subCtx.buf.String()
-		if ctx.options.TextOnly {
-			return ctx.emit(str + ".")
-		}
 		return ctx.emit("*" + str + "*")
 
 	case atom.A:
@@ -267,7 +211,7 @@ func (ctx *textifyTraverseContext) handleElement(node *html.Node) error {
 		if attrVal := getAttrVal(node, "href"); attrVal != "" {
 			attrVal = ctx.normalizeHrefLink(attrVal)
 			// Don't print link href if it matches link element content or if the link is empty.
-			if (attrVal != "" && linkText != attrVal) && !ctx.options.OmitLinks && !ctx.options.TextOnly {
+			if !ctx.options.OmitLinks && attrVal != "" && linkText != attrVal {
 				hrefLink = "( " + attrVal + " )"
 			}
 		}
@@ -333,25 +277,6 @@ func (ctx *textifyTraverseContext) handleTableElement(node *html.Node) error {
 
 		buf := &bytes.Buffer{}
 		table := tablewriter.NewWriter(buf)
-		if ctx.options.PrettyTablesOptions != nil {
-			options := ctx.options.PrettyTablesOptions
-			table.SetAutoFormatHeaders(options.AutoFormatHeader)
-			table.SetAutoWrapText(options.AutoWrapText)
-			table.SetReflowDuringAutoWrap(options.ReflowDuringAutoWrap)
-			table.SetColWidth(options.ColWidth)
-			table.SetColumnSeparator(options.ColumnSeparator)
-			table.SetRowSeparator(options.RowSeparator)
-			table.SetCenterSeparator(options.CenterSeparator)
-			table.SetHeaderAlignment(options.HeaderAlignment)
-			table.SetFooterAlignment(options.FooterAlignment)
-			table.SetAlignment(options.Alignment)
-			table.SetColumnAlignment(options.ColumnAlignment)
-			table.SetNewLine(options.NewLine)
-			table.SetHeaderLine(options.HeaderLine)
-			table.SetRowLine(options.RowLine)
-			table.SetAutoMergeCells(options.AutoMergeCells)
-			table.SetBorders(options.Borders)
-		}
 		table.SetHeader(ctx.tableCtx.header)
 		table.SetFooter(ctx.tableCtx.footer)
 		table.AppendBulk(ctx.tableCtx.body)
@@ -412,7 +337,7 @@ func (ctx *textifyTraverseContext) traverse(node *html.Node) error {
 		if ctx.isPre {
 			data = node.Data
 		} else {
-			data = strings.TrimSpace(spacingRe.ReplaceAllString(node.Data, " "))
+			data = strings.Trim(spacingRe.ReplaceAllString(node.Data, " "), " ")
 		}
 		return ctx.emit(data)
 

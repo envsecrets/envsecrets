@@ -4,6 +4,7 @@
 package xstrings
 
 import (
+	"bytes"
 	"unicode/utf8"
 )
 
@@ -17,10 +18,9 @@ import (
 // If tabSize <= 0, ExpandTabs panics with error.
 //
 // Samples:
-//
-//	ExpandTabs("a\tbc\tdef\tghij\tk", 4) => "a   bc  def ghij    k"
-//	ExpandTabs("abcdefg\thij\nk\tl", 4)  => "abcdefg hij\nk   l"
-//	ExpandTabs("z中\t文\tw", 4)           => "z中 文  w"
+//     ExpandTabs("a\tbc\tdef\tghij\tk", 4) => "a   bc  def ghij    k"
+//     ExpandTabs("abcdefg\thij\nk\tl", 4)  => "abcdefg hij\nk   l"
+//     ExpandTabs("z中\t文\tw", 4)           => "z中 文  w"
 func ExpandTabs(str string, tabSize int) string {
 	if tabSize <= 0 {
 		panic("tab size must be positive")
@@ -28,7 +28,7 @@ func ExpandTabs(str string, tabSize int) string {
 
 	var r rune
 	var i, size, column, expand int
-	var output *stringBuilder
+	var output *bytes.Buffer
 
 	orig := str
 
@@ -43,7 +43,7 @@ func ExpandTabs(str string, tabSize int) string {
 			}
 
 			for i = 0; i < expand; i++ {
-				output.WriteRune(' ')
+				output.WriteByte(byte(' '))
 			}
 
 			column += expand
@@ -75,10 +75,9 @@ func ExpandTabs(str string, tabSize int) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//
-//	LeftJustify("hello", 4, " ")    => "hello"
-//	LeftJustify("hello", 10, " ")   => "hello     "
-//	LeftJustify("hello", 10, "123") => "hello12312"
+//     LeftJustify("hello", 4, " ")    => "hello"
+//     LeftJustify("hello", 10, " ")   => "hello     "
+//     LeftJustify("hello", 10, "123") => "hello12312"
 func LeftJustify(str string, length int, pad string) string {
 	l := Len(str)
 
@@ -89,7 +88,7 @@ func LeftJustify(str string, length int, pad string) string {
 	remains := length - l
 	padLen := Len(pad)
 
-	output := &stringBuilder{}
+	output := &bytes.Buffer{}
 	output.Grow(len(str) + (remains/padLen+1)*len(pad))
 	output.WriteString(str)
 	writePadString(output, pad, padLen, remains)
@@ -102,10 +101,9 @@ func LeftJustify(str string, length int, pad string) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//
-//	RightJustify("hello", 4, " ")    => "hello"
-//	RightJustify("hello", 10, " ")   => "     hello"
-//	RightJustify("hello", 10, "123") => "12312hello"
+//     RightJustify("hello", 4, " ")    => "hello"
+//     RightJustify("hello", 10, " ")   => "     hello"
+//     RightJustify("hello", 10, "123") => "12312hello"
 func RightJustify(str string, length int, pad string) string {
 	l := Len(str)
 
@@ -116,7 +114,7 @@ func RightJustify(str string, length int, pad string) string {
 	remains := length - l
 	padLen := Len(pad)
 
-	output := &stringBuilder{}
+	output := &bytes.Buffer{}
 	output.Grow(len(str) + (remains/padLen+1)*len(pad))
 	writePadString(output, pad, padLen, remains)
 	output.WriteString(str)
@@ -129,10 +127,9 @@ func RightJustify(str string, length int, pad string) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//
-//	Center("hello", 4, " ")    => "hello"
-//	Center("hello", 10, " ")   => "  hello   "
-//	Center("hello", 10, "123") => "12hello123"
+//     Center("hello", 4, " ")    => "hello"
+//     Center("hello", 10, " ")   => "  hello   "
+//     Center("hello", 10, "123") => "12hello123"
 func Center(str string, length int, pad string) string {
 	l := Len(str)
 
@@ -143,7 +140,7 @@ func Center(str string, length int, pad string) string {
 	remains := length - l
 	padLen := Len(pad)
 
-	output := &stringBuilder{}
+	output := &bytes.Buffer{}
 	output.Grow(len(str) + (remains/padLen+1)*len(pad))
 	writePadString(output, pad, padLen, remains/2)
 	output.WriteString(str)
@@ -151,7 +148,7 @@ func Center(str string, length int, pad string) string {
 	return output.String()
 }
 
-func writePadString(output *stringBuilder, pad string, padLen, remains int) {
+func writePadString(output *bytes.Buffer, pad string, padLen, remains int) {
 	var r rune
 	var size int
 

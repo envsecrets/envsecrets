@@ -71,14 +71,14 @@ func (pr *premailer) sortRules() {
 			importantStyles := make([]*css.CSSStyleDeclaration, 0)
 
 			for _, s := range rule.Style.Styles {
-				if s.Important {
+				if s.Important == 1 {
 					importantStyles = append(importantStyles, s)
 				} else {
 					normalStyles = append(normalStyles, s)
 				}
 			}
 
-			selectors := strings.Split(rule.Style.Selector.Text(), ",")
+			selectors := strings.Split(rule.Style.SelectorText, ",")
 			for _, selector := range selectors {
 				if unmergableSelector.MatchString(selector) || notSupportedSelector.MatchString(selector) {
 					// cause longer css
@@ -133,12 +133,7 @@ func (pr *premailer) collectElements() {
 				s.SetAttr(pr.elIdAttr, id)
 				rules := make([]*styleRule, 0)
 				rules = append(rules, rule)
-				pr.elements[id] = &elementRules{
-					element:           s,
-					rules:             rules,
-					cssToAttributes:   pr.options.CssToAttributes,
-					keepBangImportant: pr.options.KeepBangImportant,
-				}
+				pr.elements[id] = &elementRules{element: s, rules: rules, cssToAttributes: pr.options.CssToAttributes}
 				pr.elementId += 1
 			}
 		})
@@ -174,7 +169,7 @@ func (pr *premailer) addLeftover() {
 				}
 				cssData = append(cssData, fmt.Sprintf("%s %s{\n%s\n}\n",
 					rule.Type.Text(),
-					rule.Style.Selector.Text(),
+					rule.Style.SelectorText,
 					strings.Join(mcssData, "\n")))
 			} else {
 				cssData = append(cssData, makeRuleImportant(rule))

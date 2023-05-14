@@ -1,7 +1,6 @@
 package sprig
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -29,8 +28,6 @@ func dateInZone(fmt string, date interface{}, zone string) string {
 		t = time.Now()
 	case time.Time:
 		t = date
-	case *time.Time:
-		t = *date
 	case int64:
 		t = time.Unix(date, 0)
 	case int:
@@ -76,8 +73,4 @@ func dateAgo(date interface{}) string {
 func toDate(fmt, str string) time.Time {
 	t, _ := time.ParseInLocation(fmt, str, time.Local)
 	return t
-}
-
-func unixEpoch(date time.Time) string {
-	return strconv.FormatInt(date.Unix(), 10)
 }

@@ -1,5 +1,4 @@
-//go:build js && !appengine
-// +build js,!appengine
+// +build js
 
 package runewidth
 

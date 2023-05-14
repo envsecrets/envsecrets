@@ -1,5 +1,38 @@
 # Changelog
 
+## 74.18.0 - 2023-05-11
+* [#1656](https://github.com/stripe/stripe-go/pull/1656) Update generated code
+  Release specs are identical.
+* [#1653](https://github.com/stripe/stripe-go/pull/1653) Update generated code
+  * Add support for `Paypal` on `ChargePaymentMethodDetails`, `CheckoutSessionPaymentMethodOptionsParams`, `MandatePaymentMethodDetails`, `PaymentIntentConfirmPaymentMethodDataParams`, `PaymentIntentConfirmPaymentMethodOptionsParams`, `PaymentIntentPaymentMethodDataParams`, `PaymentIntentPaymentMethodOptionsParams`, `PaymentIntentPaymentMethodOptions`, `PaymentMethodParams`, `PaymentMethod`, `SetupAttemptPaymentMethodDetails`, `SetupIntentConfirmPaymentMethodDataParams`, `SetupIntentConfirmPaymentMethodOptionsParams`, `SetupIntentPaymentMethodDataParams`, `SetupIntentPaymentMethodOptionsParams`, and `SetupIntentPaymentMethodOptions`
+  * Add support for `NetworkToken` on `ChargePaymentMethodDetailsCard`
+  * Add support for `TaxabilityReason` and `TaxableAmount` on `CheckoutSessionShippingCostTaxes`, `CheckoutSessionTotalDetailsBreakdownTaxes`, `CreditNoteShippingCostTaxes`, `CreditNoteTaxAmounts`, `InvoiceShippingCostTaxes`, `InvoiceTotalTaxAmounts`, `LineItemTaxes`, `QuoteComputedRecurringTotalDetailsBreakdownTaxes`, `QuoteComputedUpfrontTotalDetailsBreakdownTaxes`, and `QuoteTotalDetailsBreakdownTaxes`
+  * Add support for new value `paypal` on enums `InvoicePaymentSettingsPaymentMethodTypes` and `SubscriptionPaymentSettingsPaymentMethodTypes`
+  * Add support for new value `eftpos_au` on enums `PaymentIntentPaymentMethodOptionsCardNetwork`, `SetupIntentPaymentMethodOptionsCardNetwork`, and `SubscriptionPaymentSettingsPaymentMethodOptionsCardNetwork`
+  * Add support for new value `paypal` on enum `PaymentLinkPaymentMethodTypes`
+  * Add support for `Brand`, `CardholderName`, `Country`, `ExpMonth`, `ExpYear`, `Fingerprint`, `Funding`, `Last4`, `Networks`, and `ReadMethod` on `PaymentMethodCardPresent` and `PaymentMethodInteracPresent`
+  * Add support for `PreferredLocales` on `PaymentMethodInteracPresent`
+  * Add support for new value `paypal` on enum `PaymentMethodType`
+  * Add support for `EffectivePercentage` on `TaxRate`
+  * Add support for `GBBankTransfer` and `JPBankTransfer` on `CustomerCashBalanceTransactionFundedBankTransfer `
+
+## 74.17.0 - 2023-05-04
+* [#1652](https://github.com/stripe/stripe-go/pull/1652) Update generated code
+  * Add support for `Link` on `CheckoutSessionPaymentMethodOptionsParams` and `CheckoutSessionPaymentMethodOptions`
+  * Add support for `Brand`, `Country`, `Description`, `ExpMonth`, `ExpYear`, `Fingerprint`, `Funding`, `IIN`, `Issuer`, `Last4`, `Network`, and `Wallet` on `SetupAttemptPaymentMethodDetailsCard`
+
+## 74.16.0 - 2023-04-27
+* [#1644](https://github.com/stripe/stripe-go/pull/1644) Update generated code
+  * Add support for `BillingCycleAnchor` and `ProrationBehavior` on `CheckoutSessionSubscriptionDataParams`
+  * Add support for `TerminalID` on `IssuingAuthorizationMerchantData` and `IssuingTransactionMerchantData`
+  * Add support for `Metadata` on `PaymentIntentCaptureParams`
+  * Add support for `Checks` on `SetupAttemptPaymentMethodDetailsCard`
+  * Add support for `TaxBreakdown` on `TaxCalculationShippingCost` and `TaxTransactionShippingCost`
+* [#1643](https://github.com/stripe/stripe-go/pull/1643) Update generated code
+
+* [#1640](https://github.com/stripe/stripe-go/pull/1640) Update generated code
+  * Release specs are identical.
+
 ## 74.15.0 - 2023-04-06
 * [#1638](https://github.com/stripe/stripe-go/pull/1638) Update generated code
   * Add support for new value `link` on enum `PaymentMethodCardWalletType`

@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/css/scanner"
 )
 
-func parseSelector(s *scanner.Scanner) []*scanner.Token {
+func parseSelector(s *scanner.Scanner) string {
 	/*
 		selector    : any+;
 		any         : [ IDENT | NUMBER | PERCENTAGE | DIMENSION | STRING
@@ -14,18 +14,19 @@ func parseSelector(s *scanner.Scanner) []*scanner.Token {
 		              ] S*;
 	*/
 
-	result := make([]*scanner.Token, 0)
+	selector := ""
 
-Loop:
 	for {
 		token := s.Next()
 
+		if token.Type == scanner.TokenError || token.Type == scanner.TokenEOF {
+			break
+		}
+
 		switch token.Type {
-		case scanner.TokenError, scanner.TokenEOF:
-			break Loop
 		case scanner.TokenChar:
 			if token.Value == "{" {
-				break Loop
+				return selector
 			}
 			fallthrough
 		case scanner.TokenIdent:
@@ -57,9 +58,9 @@ Loop:
 		case scanner.TokenPrefixMatch:
 			fallthrough
 		case scanner.TokenSubstringMatch:
-			result = append(result, token)
+			selector += token.Value
 		}
 	}
 
-	return result
+	return selector
 }

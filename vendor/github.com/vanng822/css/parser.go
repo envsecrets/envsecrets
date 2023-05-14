@@ -1,7 +1,9 @@
 package css
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gorilla/css/scanner"
 )
@@ -35,28 +37,29 @@ const (
 
 type parserContext struct {
 	State             State
-	NowSelector       []*scanner.Token
+	NowSelectorText   string
 	NowRuleType       RuleType
+	CurrentRule       *CSSRule
 	CurrentNestedRule *CSSRule
 }
 
-func (context *parserContext) resetContextStyleRule() {
-	context.NowSelector = make([]*scanner.Token, 0)
+func resetContextStyleRule(context *parserContext) {
+	context.CurrentRule = nil
+	context.NowSelectorText = ""
 	context.NowRuleType = STYLE_RULE
 	context.State = STATE_NONE
 }
 
 func parseRule(context *parserContext, s *scanner.Scanner, css *CSSStyleSheet) {
-	rule := NewRule(context.NowRuleType)
-	selector := append(context.NowSelector, parseSelector(s)...)
-	rule.Style.Selector = &CSSValue{Tokens: selector}
-	rule.Style.Styles = parseBlock(s)
+	context.CurrentRule = NewRule(context.NowRuleType)
+	context.NowSelectorText += parseSelector(s)
+	context.CurrentRule.Style.SelectorText = strings.TrimSpace(context.NowSelectorText)
+	context.CurrentRule.Style.Styles = parseBlock(s)
 	if context.CurrentNestedRule != nil {
-		context.CurrentNestedRule.Rules = append(context.CurrentNestedRule.Rules, rule)
+		context.CurrentNestedRule.Rules = append(context.CurrentNestedRule.Rules, context.CurrentRule)
 	} else {
-		css.CssRuleList = append(css.CssRuleList, rule)
+		css.CssRuleList = append(css.CssRuleList, context.CurrentRule)
 	}
-	context.resetContextStyleRule()
 }
 
 // Parse takes a string of valid css rules, stylesheet,
@@ -65,7 +68,7 @@ func parseRule(context *parserContext, s *scanner.Scanner, css *CSSStyleSheet) {
 func Parse(csstext string) *CSSStyleSheet {
 	context := &parserContext{
 		State:             STATE_NONE,
-		NowSelector:       make([]*scanner.Token, 0),
+		NowSelectorText:   "",
 		NowRuleType:       STYLE_RULE,
 		CurrentNestedRule: nil,
 	}
@@ -99,26 +102,28 @@ func Parse(csstext string) *CSSStyleSheet {
 				// https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face
 				context.NowRuleType = FONT_FACE_RULE
 				parseRule(context, s, css)
+				resetContextStyleRule(context)
 			case "@import":
 				// No validation
 				// https://developer.mozilla.org/en-US/docs/Web/CSS/@import
-				rule := parseAtNoBody(s, IMPORT_RULE)
+				rule := parseImport(s)
 				if rule != nil {
 					css.CssRuleList = append(css.CssRuleList, rule)
 				}
-				context.resetContextStyleRule()
+				resetContextStyleRule(context)
 			case "@charset":
 				// No validation
 				// https://developer.mozilla.org/en-US/docs/Web/CSS/@charset
-				rule := parseAtNoBody(s, CHARSET_RULE)
+				rule := parseCharset(s)
 				if rule != nil {
 					css.CssRuleList = append(css.CssRuleList, rule)
 				}
-				context.resetContextStyleRule()
+				resetContextStyleRule(context)
 
 			case "@page":
 				context.NowRuleType = PAGE_RULE
 				parseRule(context, s, css)
+				resetContextStyleRule(context)
 			case "@keyframes":
 				context.NowRuleType = KEYFRAMES_RULE
 			case "@-webkit-keyframes":
@@ -126,15 +131,16 @@ func Parse(csstext string) *CSSStyleSheet {
 			case "@counter-style":
 				context.NowRuleType = COUNTER_STYLE_RULE
 				parseRule(context, s, css)
+				resetContextStyleRule(context)
 			default:
-				log.Printf("Skip unsupported atrule: %s", token.Value)
+				log.Println(fmt.Printf("Skip unsupported atrule: %s", token.Value))
 				skipRules(s)
-				context.resetContextStyleRule()
+				resetContextStyleRule(context)
 			}
 		default:
 			if context.State == STATE_NONE {
 				if token.Value == "}" && context.CurrentNestedRule != nil {
-					// close media/keyframe/… rule
+					// close media rule
 					css.CssRuleList = append(css.CssRuleList, context.CurrentNestedRule)
 					context.CurrentNestedRule = nil
 					break
@@ -143,13 +149,13 @@ func Parse(csstext string) *CSSStyleSheet {
 
 			if context.NowRuleType == MEDIA_RULE || context.NowRuleType == KEYFRAMES_RULE || context.NowRuleType == WEBKIT_KEYFRAMES_RULE {
 				context.CurrentNestedRule = NewRule(context.NowRuleType)
-				sel := append([]*scanner.Token{token}, parseSelector(s)...)
-				context.CurrentNestedRule.Style.Selector = &CSSValue{Tokens: sel}
-				context.resetContextStyleRule()
+				context.CurrentNestedRule.Style.SelectorText = strings.TrimSpace(token.Value + parseSelector(s))
+				resetContextStyleRule(context)
 				break
 			} else {
-				context.NowSelector = append(context.NowSelector, token)
+				context.NowSelectorText += token.Value
 				parseRule(context, s, css)
+				resetContextStyleRule(context)
 				break
 			}
 		}

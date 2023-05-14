@@ -17,7 +17,7 @@ Package css is for parsing css stylesheet.
 		ss := css.Parse(csstext)
 		rules := ss.GetCSSRuleList()
 		for _, rule := range rules {
-			fmt.Println(rule.Style.Selector.Text())
+			fmt.Println(rule.Style.SelectorText)
 			fmt.Println(rule.Style.Styles)
 		}
 	}
