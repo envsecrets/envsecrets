@@ -65,7 +65,7 @@ func SetupCallbackHandler(c echo.Context) error {
 		Options: options,
 	})
 	if err != nil {
-		return c.Redirect(http.StatusPermanentRedirect, os.Getenv("FE_URL")+"/integrations?setup_action=install&setup_status=failed")
+		return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/catalog?setup_action=install&setup_status=failed&integration_type=%s", os.Getenv("FE_URL"), integration_type))
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
@@ -136,8 +136,14 @@ func ListEntitiesHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
+	options := make(map[string]interface{})
+
+	for key, value := range c.QueryParams() {
+		options[key] = value[0]
+	}
+
 	//	Run the service handler.
-	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID))
+	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID), options)
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
 			Message: err.GenerateMessage("failed to fetch integration entities"),

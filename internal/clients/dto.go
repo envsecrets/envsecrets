@@ -5,3 +5,8 @@ type APIResponse struct {
 	Error   string      `json:"error,omitempty"`
 	Message string      `json:"message,omitempty"`
 }
+
+type Response struct {
+	StatusCode int
+	Data       interface{}
+}

@@ -112,6 +112,7 @@ func SecretInserted(c echo.Context) error {
 
 	for _, event := range *events {
 		if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
+			IntegrationID:  event.Integration.ID,
 			EventID:        event.ID,
 			OrgID:          organisation.ID,
 			InstallationID: event.Integration.InstallationID,
@@ -210,6 +211,7 @@ func EventInserted(c echo.Context) error {
 	integrationService := integrations.GetService()
 
 	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
+		IntegrationID:  row.IntegrationID,
 		EventID:        row.ID,
 		OrgID:          integration.OrgID,
 		InstallationID: integration.InstallationID,

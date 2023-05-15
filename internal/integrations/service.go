@@ -15,13 +15,14 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/asm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/circle"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/github"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/gitlab"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
 )
 
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, *errors.Error)
-	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string) (interface{}, *errors.Error)
+	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, *errors.Error)
 	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, *errors.Error)
 	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, *errors.Error)
 	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
@@ -33,7 +34,7 @@ func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *client
 	return graphql.Get(ctx, client, id)
 }
 
-func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string) (interface{}, *errors.Error) {
+func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, options map[string]interface{}) (interface{}, *errors.Error) {
 
 	errMessage := "Failed to list entities"
 
@@ -64,6 +65,12 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	switch integrationType {
 	case commons.Github:
 		return github.ListEntities(ctx, integration)
+	case commons.Gitlab:
+		return gitlab.ListEntities(ctx, &gitlab.ListOptions{
+			Credentials: credentials,
+			Type:        gitlab.EntityType(options["type"].(string)),
+			Integration: integration,
+		})
 	case commons.Vercel:
 		return vercel.ListEntities(ctx, &vercel.ListOptions{
 			Credentials: credentials,
@@ -137,6 +144,11 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 			State:          fmt.Sprint(options.Options["state"]),
 			OrgID:          options.OrgID,
 		})
+	case commons.Gitlab:
+		return gitlab.Setup(ctx, client, &gitlab.SetupOptions{
+			Code:  fmt.Sprint(options.Options["code"]),
+			OrgID: options.OrgID,
+		})
 	case commons.Vercel:
 		return vercel.Setup(ctx, client, &vercel.SetupOptions{
 			ConfigurationID: fmt.Sprint(options.Options["configurationId"]),
@@ -198,6 +210,14 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationTy
 	switch integrationType {
 	case commons.Github:
 		return github.Sync(ctx, options)
+	case commons.Gitlab:
+		return gitlab.Sync(ctx, &gitlab.SyncOptions{
+			Credentials:   credentials,
+			EntityDetails: options.EntityDetails,
+			Data:          options.Data,
+			IntegrationID: options.IntegrationID,
+			OrgID:         options.OrgID,
+		})
 	case commons.Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
 			Credentials:   credentials,

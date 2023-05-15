@@ -152,3 +152,33 @@ func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, option
 
 	return nil
 }
+
+func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateCredentialsOptions) *errors.Error {
+
+	errorMessage := "Failed to update integration credentials"
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($id: uuid!, $credentials: String!) {
+		update_integrations(where: {id: {_eq: $id}}, _set: {credentials: $credentials}) {
+		  affected_rows
+		}
+	  }							  
+	`)
+
+	req.Var("id", options.ID)
+	req.Var("credentials", options.Credentials)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	returned := response["update_integrations"].(map[string]interface{})
+
+	affectedRows := returned["affected_rows"].(float64)
+	if affectedRows == 0 {
+		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+	}
+
+	return nil
+}

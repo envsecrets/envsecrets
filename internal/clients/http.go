@@ -141,7 +141,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
 
-		response, refreshErr := auth.RefreshToken(map[string]interface{}{
+		authResponse, refreshErr := auth.RefreshToken(map[string]interface{}{
 			"refreshToken": accountConfig.RefreshToken,
 		})
 
@@ -151,9 +151,9 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		//	Save the refreshed account config
 		refreshConfig := configCommons.Account{
-			AccessToken:  response.Session.AccessToken,
-			RefreshToken: response.Session.RefreshToken,
-			User:         response.Session.User,
+			AccessToken:  authResponse.Session.AccessToken,
+			RefreshToken: authResponse.Session.RefreshToken,
+			User:         authResponse.Session.User,
 		}
 
 		if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
@@ -161,7 +161,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		//	Update the authorization header in client.
-		c.Authorization = "Bearer " + response.Session.AccessToken
+		c.Authorization = "Bearer " + authResponse.Session.AccessToken
 
 		//	Re-set the body in the request, because it would have already been read once.
 		if body != nil {
