@@ -13,6 +13,7 @@ func (t *IntegrationType) IsValid() bool {
 
 const (
 	Github   IntegrationType = "github"
+	Gitlab   IntegrationType = "gitlab"
 	Vercel   IntegrationType = "vercel"
 	ASM      IntegrationType = "asm"
 	GSM      IntegrationType = "gsm"
@@ -25,5 +26,5 @@ const (
 )
 
 var (
-	AllowedIntegrations = []IntegrationType{Github, Vercel, ASM, CircleCI, GSM}
+	AllowedIntegrations = []IntegrationType{Github, Gitlab, Vercel, ASM, CircleCI, GSM}
 )

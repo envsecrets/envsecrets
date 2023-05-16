@@ -66,11 +66,11 @@ func ListRepositories(ctx context.ServiceContext, client *clients.HTTPClient) (*
 	return &repositoriesResponse, nil
 }
 
-//	-- Flow --
-//	1. Get repository's action secrets public key.
-//	2. Encrypt the secret data.
-//	3. Post the secrets to Github actions endpoint.
-func Sync(ctx context.ServiceContext, options *commons.SyncOptions) *errors.Error {
+// -- Flow --
+// 1. Get repository's action secrets public key.
+// 2. Encrypt the secret data.
+// 3. Post the secrets to Github actions endpoint.
+func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 	//	Get installation's access token
 	auth, err := GetInstallationAccessToken(ctx, options.InstallationID)
@@ -239,7 +239,7 @@ func GetInstallationAccessToken(ctx context.ServiceContext, installationID strin
 	return &response, nil
 }
 
-//	Fetches the public key for action secrets for supplied repository slug.
+// Fetches the public key for action secrets for supplied repository slug.
 func getRepositoryActionsSecretsPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, slug string) (*RepositoryActionsSecretsPublicKeyResponse, *errors.Error) {
 
 	//	Get user's access token from Github API.

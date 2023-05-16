@@ -100,7 +100,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 			accountConfig := accountConfigPayload.(*configCommons.Account)
 
-			response, refreshErr := auth.RefreshToken(map[string]interface{}{
+			authResponse, refreshErr := auth.RefreshToken(map[string]interface{}{
 				"refreshToken": accountConfig.RefreshToken,
 			})
 
@@ -110,9 +110,9 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 			//	Save the refreshed account config
 			refreshConfig := configCommons.Account{
-				AccessToken:  response.Session.AccessToken,
-				RefreshToken: response.Session.RefreshToken,
-				User:         response.Session.User,
+				AccessToken:  authResponse.Session.AccessToken,
+				RefreshToken: authResponse.Session.RefreshToken,
+				User:         authResponse.Session.User,
 			}
 
 			if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
@@ -121,7 +121,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 			//	Update the authorization header in client.
 			if c.Authorization != "" {
-				c.Authorization = "Bearer " + response.Session.AccessToken
+				c.Authorization = "Bearer " + authResponse.Session.AccessToken
 			}
 
 			return c.Do(ctx, req, &resp)

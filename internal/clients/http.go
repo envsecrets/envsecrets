@@ -22,6 +22,7 @@ type HTTPClient struct {
 	CustomHeaders   []CustomHeader
 	log             *logrus.Logger
 	ResponseHandler func(*http.Response) *errors.Error
+	Type            ClientType
 }
 
 type HTTPConfig struct {
@@ -112,7 +113,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
-	if resp.StatusCode == http.StatusUnauthorized {
+	if c.Type == HasuraClientType && resp.StatusCode == http.StatusUnauthorized {
 
 		defer resp.Body.Close()
 
@@ -141,7 +142,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
 
-		response, refreshErr := auth.RefreshToken(map[string]interface{}{
+		authResponse, refreshErr := auth.RefreshToken(map[string]interface{}{
 			"refreshToken": accountConfig.RefreshToken,
 		})
 
@@ -151,9 +152,9 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		//	Save the refreshed account config
 		refreshConfig := configCommons.Account{
-			AccessToken:  response.Session.AccessToken,
-			RefreshToken: response.Session.RefreshToken,
-			User:         response.Session.User,
+			AccessToken:  authResponse.Session.AccessToken,
+			RefreshToken: authResponse.Session.RefreshToken,
+			User:         authResponse.Session.User,
 		}
 
 		if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
@@ -161,7 +162,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		//	Update the authorization header in client.
-		c.Authorization = "Bearer " + response.Session.AccessToken
+		c.Authorization = "Bearer " + authResponse.Session.AccessToken
 
 		//	Re-set the body in the request, because it would have already been read once.
 		if body != nil {
@@ -169,7 +170,8 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		return c.Run(ctx, req, response)
-	} else if resp.StatusCode == http.StatusForbidden {
+
+	} else if c.Type == HasuraClientType && resp.StatusCode == http.StatusForbidden {
 		errors.New(nil, "You do not have permissions to perform this action", errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
 	}
 
