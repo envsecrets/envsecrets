@@ -82,11 +82,8 @@ type SetupOptions struct {
 }
 
 type SyncOptions struct {
-	EventID        string                           `json:"event_id"`
-	IntegrationID  string                           `json:"integration_id"`
-	OrgID          string                           `json:"org_id"`
-	InstallationID string                           `json:"installation_id"`
-	EntityDetails  map[string]interface{}           `json:"entity_details"`
-	Credentials    string                           `json:"credentials"`
-	Data           map[string]secretCommons.Payload `json:"data"`
+	EventID       string                           `json:"event_id"`
+	IntegrationID string                           `json:"integration_id"`
+	EntityDetails map[string]interface{}           `json:"entity_details"`
+	Data          map[string]secretCommons.Payload `json:"data"`
 }

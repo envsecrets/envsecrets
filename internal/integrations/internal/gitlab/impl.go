@@ -91,15 +91,28 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 	})
 
 	for key, payload := range options.Data {
-		if _, err := CreateVariable(ctx, client, &CreateVariableOptions{
-			ID:   int64(options.EntityDetails["id"].(float64)),
-			Type: EntityType(options.EntityDetails["type"].(string)),
-			Variable: Variable{
-				Key:   key,
-				Value: fmt.Sprint(payload.Value),
-			},
-		}); err != nil {
-			return err
+
+		switch EntityType(options.EntityDetails["type"].(string)) {
+		case ProjectType:
+			if _, err := CreateProjectVariable(ctx, client, &CreateVariableOptions{
+				ID: int64(options.EntityDetails["id"].(float64)),
+				Variable: Variable{
+					Key:   key,
+					Value: fmt.Sprint(payload.Value),
+				},
+			}); err != nil {
+				return err
+			}
+		case GroupType:
+			if _, err := CreateGroupVariable(ctx, client, &CreateVariableOptions{
+				ID: int64(options.EntityDetails["id"].(float64)),
+				Variable: Variable{
+					Key:   key,
+					Value: fmt.Sprint(payload.Value),
+				},
+			}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

@@ -10,8 +10,8 @@ import (
 type EntityType string
 
 const (
-	ProjectType EntityType = "projects"
-	GroupType   EntityType = "groups"
+	ProjectType EntityType = "project"
+	GroupType   EntityType = "group"
 )
 
 type SetupOptions struct {
@@ -74,7 +74,6 @@ type Group struct {
 
 type CreateVariableOptions struct {
 	ID       interface{}
-	Type     EntityType
 	Variable Variable
 }
 
@@ -88,7 +87,6 @@ type Variable struct {
 	Value            string `json:"value" form:"value"`
 	Protected        bool   `json:"protected,omitempty" form:"protected,omitempty"`
 	Masked           bool   `json:"masked,omitempty" form:"masked,omitempty"`
-	Raw              bool   `json:"raw,omitempty" form:"raw,omitempty"`
 	EnvironmentScope string `json:"environment_scope,omitempty" form:"environment_scope,omitempty"`
 }
 

@@ -9,18 +9,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//	Initialize common GQL Client for the CLI
+// Initialize common GQL Client for the CLI
 var GQLClient *clients.GQLClient
 
-//	Initialize common HTTP Client for the CLI
+// Initialize common HTTP Client for the CLI
 var HTTPClient *clients.HTTPClient
 
-//	Initialize common context for the CLI
+// Initialize common context for the CLI
 var DefaultContext = context.NewContext(&context.Config{Type: context.CLIContext})
 
 var Logger = logrus.New()
 
-//	Initialize configs
+// Initialize configs
 var AccountConfig *commons.Account
 var ProjectConfig *commons.Project
 var KeysConfig *commons.Keys
@@ -62,6 +62,7 @@ func Initialize() {
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
+		Type:    clients.HasuraClientType,
 		BaseURL: API + "/v1",
 		Logger:  Logger,
 	})

@@ -25,7 +25,7 @@ type Service interface {
 	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, *errors.Error)
 	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, *errors.Error)
 	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, *errors.Error)
-	Sync(context.ServiceContext, commons.IntegrationType, *commons.SyncOptions) *errors.Error
+	Sync(context.ServiceContext, *clients.GQLClient, *commons.SyncOptions) *errors.Error
 }
 
 type DefaultIntegrationService struct{}
@@ -185,19 +185,25 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 	return nil, errors.New(nil, "invalid integration type", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 }
 
-func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationType commons.IntegrationType, options *commons.SyncOptions) *errors.Error {
+func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) *errors.Error {
 
 	errMessage := "Failed to sync secrets"
 
+	//	Get the integration to which this event belong to.
+	integration, err := graphql.Get(ctx, client, options.IntegrationID)
+	if err != nil {
+		return err
+	}
+
 	//	Decrypt the credentials.
 	var credentials map[string]interface{}
-	if options.Credentials != "" {
-		payload, er := base64.StdEncoding.DecodeString(options.Credentials)
+	if integration.Credentials != "" {
+		payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
 		if er != nil {
 			return errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
 		}
 
-		decryptedCredentials, err := commons.DecryptCredentials(ctx, options.OrgID, payload)
+		decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
 		if err != nil {
 			return err
 		}
@@ -207,16 +213,20 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationTy
 		}
 	}
 
-	switch integrationType {
+	switch integration.Type {
 	case commons.Github:
-		return github.Sync(ctx, options)
+		return github.Sync(ctx, &github.SyncOptions{
+			InstallationID: integration.InstallationID,
+			EntityDetails:  options.EntityDetails,
+			Data:           options.Data,
+		})
 	case commons.Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
 			Data:          options.Data,
 			IntegrationID: options.IntegrationID,
-			OrgID:         options.OrgID,
+			OrgID:         integration.OrgID,
 		})
 	case commons.Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
@@ -238,7 +248,7 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, integrationTy
 		})
 	case commons.ASM:
 		resp, err := asm.Sync(ctx, &asm.SyncOptions{
-			OrgID:         options.OrgID,
+			OrgID:         integration.OrgID,
 			Data:          options.Data,
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,

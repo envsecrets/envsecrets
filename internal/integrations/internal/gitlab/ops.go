@@ -50,10 +50,10 @@ func ListGroups(ctx context.ServiceContext, client *clients.HTTPClient) (*ListGr
 	return &response, nil
 }
 
-// Creates a new variable.
-func CreateVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+// Creates a new project variable.
+func CreateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
 
-	URL := fmt.Sprintf("https://gitlab.com/api/v4/%v/%v/variables", options.Type, options.ID)
+	URL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/variables", options.ID)
 
 	body, er := options.Variable.Marshal()
 	if er != nil {
@@ -74,16 +74,69 @@ func CreateVariable(ctx context.ServiceContext, client *clients.HTTPClient, opti
 	//	then just assume that the variable already exists,
 	//	and try to update the value.
 	if response.Key == "" {
-		return UpdateVariable(ctx, client, options)
+		return UpdateProjectVariable(ctx, client, options)
+	}
+
+	return &response, nil
+}
+
+// Creates a new group variable.
+func CreateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+
+	URL := fmt.Sprintf("https://gitlab.com/api/v4/groups/%v/variables", options.ID)
+
+	body, er := options.Variable.Marshal()
+	if er != nil {
+		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	var response Variable
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	//	If the returned payload is nil,
+	//	then just assume that the variable already exists,
+	//	and try to update the value.
+	if response.Key == "" {
+		return UpdateGroupVariable(ctx, client, options)
 	}
 
 	return &response, nil
 }
 
 // Updates an existing variable.
-func UpdateVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+func UpdateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
 
-	URL := fmt.Sprintf("https://gitlab.com/api/v4/%v/%v/variables/%s", options.Type, options.ID, options.Variable.Key)
+	URL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/variables/%s", options.ID, options.Variable.Key)
+
+	body, er := options.Variable.Marshal()
+	if er != nil {
+		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, URL, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	}
+
+	var response Variable
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+// Updates an existing variable.
+func UpdateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+
+	URL := fmt.Sprintf("https://gitlab.com/api/v4/groups/%v/variables/%s", options.ID, options.Variable.Key)
 
 	body, er := options.Variable.Marshal()
 	if er != nil {

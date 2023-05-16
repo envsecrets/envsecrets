@@ -22,6 +22,7 @@ type HTTPClient struct {
 	CustomHeaders   []CustomHeader
 	log             *logrus.Logger
 	ResponseHandler func(*http.Response) *errors.Error
+	Type            ClientType
 }
 
 type HTTPConfig struct {
@@ -112,7 +113,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 	//	If the request failed due to expired JWT,
 	//	refresh the token and re-do the request.
-	if resp.StatusCode == http.StatusUnauthorized {
+	if c.Type == HasuraClientType && resp.StatusCode == http.StatusUnauthorized {
 
 		defer resp.Body.Close()
 
@@ -169,7 +170,8 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		return c.Run(ctx, req, response)
-	} else if resp.StatusCode == http.StatusForbidden {
+
+	} else if c.Type == HasuraClientType && resp.StatusCode == http.StatusForbidden {
 		errors.New(nil, "You do not have permissions to perform this action", errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
 	}
 

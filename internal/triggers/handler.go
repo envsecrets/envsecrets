@@ -111,16 +111,13 @@ func SecretInserted(c echo.Context) error {
 	integrationService := integrations.GetService()
 
 	for _, event := range *events {
-		if err := integrationService.Sync(ctx, event.Integration.Type, &integrationCommons.SyncOptions{
-			IntegrationID:  event.Integration.ID,
-			EventID:        event.ID,
-			OrgID:          organisation.ID,
-			InstallationID: event.Integration.InstallationID,
-			EntityDetails:  event.EntityDetails,
-			Data:           decrypted,
-			Credentials:    event.Integration.Credentials,
+		if err := integrationService.Sync(ctx, client, &integrationCommons.SyncOptions{
+			IntegrationID: event.Integration.ID,
+			EventID:       event.ID,
+			EntityDetails: event.EntityDetails,
+			Data:          decrypted,
 		}); err != nil {
-			log.Printf("failed to push secret with ID %s for %s integration: %s", row.ID, event.Integration.Type, event.Integration.ID)
+			log.Printf("failed to push secret with ID %s for %s event: %s", row.ID, event.Integration.Type, event.ID)
 			log.Println(err)
 		}
 	}
@@ -176,15 +173,6 @@ func EventInserted(c echo.Context) error {
 		})
 	}
 
-	//	Get the integration to which this event belong to.
-	integration, err := integrations.GetService().Get(ctx, client, row.IntegrationID)
-	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get integration to which this event is associated"),
-			Error:   err.Error.Error(),
-		})
-	}
-
 	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
 		EnvID: row.EnvID,
 	})
@@ -210,17 +198,14 @@ func EventInserted(c echo.Context) error {
 	//	Get the integration service
 	integrationService := integrations.GetService()
 
-	if err := integrationService.Sync(ctx, integration.Type, &integrationCommons.SyncOptions{
-		IntegrationID:  row.IntegrationID,
-		EventID:        row.ID,
-		OrgID:          integration.OrgID,
-		InstallationID: integration.InstallationID,
-		EntityDetails:  row.EntityDetails,
-		Data:           decrypted,
-		Credentials:    integration.Credentials,
+	if err := integrationService.Sync(ctx, client, &integrationCommons.SyncOptions{
+		IntegrationID: row.IntegrationID,
+		EventID:       row.ID,
+		EntityDetails: row.EntityDetails,
+		Data:          decrypted,
 	}); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for %s integration: %s", row.ID, integration.Type, row.IntegrationID)),
+			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID)),
 			Error:   err.Error.Error(),
 		})
 	}
