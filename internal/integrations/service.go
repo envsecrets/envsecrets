@@ -17,6 +17,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/github"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gitlab"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/netlify"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/supabase"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
 )
 
@@ -73,6 +75,14 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 		})
 	case commons.Vercel:
 		return vercel.ListEntities(ctx, &vercel.ListOptions{
+			Credentials: credentials,
+		})
+	case commons.Supabase:
+		return supabase.ListEntities(ctx, &supabase.ListOptions{
+			Credentials: credentials,
+		})
+	case commons.Netlify:
+		return netlify.ListEntities(ctx, &netlify.ListOptions{
 			Credentials: credentials,
 		})
 	case commons.ASM:
@@ -144,6 +154,11 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 			State:          fmt.Sprint(options.Options["state"]),
 			OrgID:          options.OrgID,
 		})
+	case commons.Netlify:
+		return netlify.Setup(ctx, client, &netlify.SetupOptions{
+			Token: fmt.Sprint(options.Options["token"]),
+			OrgID: options.OrgID,
+		})
 	case commons.Gitlab:
 		return gitlab.Setup(ctx, client, &gitlab.SetupOptions{
 			Code:  fmt.Sprint(options.Options["code"]),
@@ -177,6 +192,11 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 		})
 	case commons.CircleCI:
 		return circle.Setup(ctx, client, &circle.SetupOptions{
+			Token: fmt.Sprint(options.Options["token"]),
+			OrgID: options.OrgID,
+		})
+	case commons.Supabase:
+		return supabase.Setup(ctx, client, &supabase.SetupOptions{
 			Token: fmt.Sprint(options.Options["token"]),
 			OrgID: options.OrgID,
 		})
@@ -236,6 +256,18 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		})
 	case commons.CircleCI:
 		return circle.Sync(ctx, &circle.SyncOptions{
+			Credentials:   credentials,
+			Data:          options.Data,
+			EntityDetails: options.EntityDetails,
+		})
+	case commons.Supabase:
+		return supabase.Sync(ctx, &supabase.SyncOptions{
+			Credentials:   credentials,
+			Data:          options.Data,
+			EntityDetails: options.EntityDetails,
+		})
+	case commons.Netlify:
+		return netlify.Sync(ctx, &netlify.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
