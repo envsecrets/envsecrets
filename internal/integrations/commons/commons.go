@@ -18,6 +18,8 @@ const (
 	ASM      IntegrationType = "asm"
 	GSM      IntegrationType = "gsm"
 	CircleCI IntegrationType = "circle"
+	Supabase IntegrationType = "supabase"
+	Netlify  IntegrationType = "netlify"
 )
 
 const (
@@ -26,5 +28,5 @@ const (
 )
 
 var (
-	AllowedIntegrations = []IntegrationType{Github, Gitlab, Vercel, ASM, CircleCI, GSM}
+	AllowedIntegrations = []IntegrationType{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify}
 )
