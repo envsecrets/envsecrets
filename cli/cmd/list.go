@@ -85,7 +85,7 @@ var listCmd = &cobra.Command{
 			log.Fatal("Failed to fetch the secrets")
 		}
 
-		for key := range secrets.Secrets {
+		for key := range secrets.Data {
 			fmt.Println(key)
 		}
 	},

@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -99,46 +98,27 @@ var getCmd = &cobra.Command{
 			getOptions.Version = &version
 		}
 
-		var result secretsCommons.Payload
-		list, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
 
 			log.Debug(err)
 			log.Fatal("Failed to fetch the secrets")
 
-			//	Read the value from Contingency file.
-			if commons.ContingencyConfig != nil {
-				log.Warn("Searching value in contingency file")
-				temp := *commons.ContingencyConfig
-				result = temp[key]
-			}
-
-		} else {
-			result = list.Secrets.Get(key)
+			/* 			//	Read the value from Contingency file.
+			   			if commons.ContingencyConfig != nil {
+			   				log.Warn("Searching value in contingency file")
+			   				temp := *commons.ContingencyConfig
+			   				result = temp[key]
+			   			}
+			*/
 		}
 
-		//	Base64 decode the secret value
-		decoded, err := base64.StdEncoding.DecodeString(result.Value)
-		if err != nil {
+		if err := secret.Decrypt(orgKey); err != nil {
 			log.Debug(err)
-			log.Fatal("Failed to base64 decode the value for ", key)
+			log.Fatal("Failed to decrypt the secret")
 		}
 
-		if result.Type == secretsCommons.Ciphertext {
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the secret")
-			}
-
-			result.Value = string(decrypted)
-		} else {
-			result.Value = string(decoded)
-		}
-
-		fmt.Printf("%v", result.Value)
+		fmt.Printf("%v", secret.Get(key).Value)
 		fmt.Println()
 
 		/*

@@ -44,7 +44,7 @@ type ListOptions struct {
 type SyncOptions struct {
 	Credentials   map[string]interface{} `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secrets       secretCommons.Secrets  `json:"secrets"`
+	Secret        secretCommons.Secret   `json:"secret"`
 }
 
 type ListProjectsResponse struct {

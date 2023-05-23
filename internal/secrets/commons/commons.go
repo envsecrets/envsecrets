@@ -11,8 +11,3 @@ const (
 const (
 	VAULT_ROOT_TOKEN = "VAULT_ROOT_TOKEN"
 )
-
-const (
-	Plaintext  Type = "plaintext"
-	Ciphertext Type = "ciphertext"
-)

@@ -51,8 +51,15 @@ func SetHandler(c echo.Context) error {
 	}
 	copy(orgKey[:], orgKeyBytes)
 
+	//	Since, the client is already sending base64 encoded values,
+	//	mark the values as 'encoded'.
+	vehicle := commons.Secret{
+		Data: payload.Data,
+	}
+	vehicle.MarkEncoded()
+
 	//	Encrypt the values with decrypted key
-	if err := payload.Secrets.Encrypt(orgKey); err != nil {
+	if err := vehicle.Encrypt(orgKey); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to encrypt the secrets",
 			Error:   err.Error(),
@@ -62,7 +69,7 @@ func SetHandler(c echo.Context) error {
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
 		EnvID:      payload.EnvID,
-		Secrets:    payload.Secrets,
+		Data:       vehicle.Data,
 		KeyVersion: payload.KeyVersion,
 	})
 	if err != nil {
@@ -151,7 +158,7 @@ func GetHandler(c echo.Context) error {
 		payload.EnvID = c.Get("env_id").(string)
 	}
 
-	var response *commons.GetResponse
+	var response *commons.Secret
 	var err error
 
 	//	If there is a specific key,
@@ -208,7 +215,7 @@ func GetHandler(c echo.Context) error {
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Decrypt the values with decrypted key
-	if err := response.Secrets.Decrypt(orgKey); err != nil {
+	if err := response.Decrypt(orgKey); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to decrypt the secrets",
 			Error:   err.Error(),

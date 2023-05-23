@@ -60,7 +60,15 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		Authorization: "Bearer " + options.Credentials["token"].(string),
 	})
 
-	body, err := json.Marshal(transform(options.Secrets))
+	var result []map[string]interface{}
+	for key, payload := range options.Secret.Data {
+		result = append(result, map[string]interface{}{
+			"name":  key,
+			"value": payload.Value,
+		})
+	}
+
+	body, err := json.Marshal(result)
 	if err != nil {
 		return err
 	}

@@ -64,7 +64,21 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		return err
 	}
 
-	body, err := json.Marshal(transform(options.Secrets))
+	var result []map[string]interface{}
+	for key, payload := range options.Secret.Data {
+		result = append(result, map[string]interface{}{
+			"key":    key,
+			"scopes": []string{"builds", "functions", "runtime", "post-processing"},
+			"values": []map[string]interface{}{
+				{
+					"value":   payload.Value,
+					"context": "all",
+				},
+			},
+		})
+	}
+
+	body, err := json.Marshal(result)
 	if err != nil {
 		return err
 	}

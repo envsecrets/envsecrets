@@ -11,7 +11,7 @@ import (
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
-func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.GetResponse, error) {
+func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.Secret, error) {
 
 	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets/values", nil)
 	if err != nil {
@@ -57,7 +57,7 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 		return nil, err
 	}
 
-	var data secretCommons.GetResponse
+	var data secretCommons.Secret
 	if err := globalCommons.MapToStruct(response.Data, &data); err != nil {
 		return nil, err
 	}

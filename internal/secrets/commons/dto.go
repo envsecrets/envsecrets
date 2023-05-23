@@ -1,57 +1,141 @@
 package commons
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
+	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
 )
 
-type Type string
+type Secret struct {
 
-type Row struct {
-	ID        string    `json:"id,omitempty" graphql:"id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty" graphql:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
-	Name      string    `json:"name,omitempty" graphql:"name,omitempty"`
-	UserID    string    `json:"user_id,omitempty" graphql:"user_id,omitempty"`
-	EnvID     string    `json:"env_id,omitempty" graphql:"env_id,omitempty"`
-	Version   int       `json:"version,omitempty" graphql:"version,omitempty"`
-	Data      Secrets   `json:"data,omitempty" graphql:"data,omitempty"`
+	//	To allows mutually exclusive locking
+	sync.Mutex
+
+	ID        string    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	UserID    string    `json:"user_id,omitempty"`
+	EnvID     string    `json:"env_id,omitempty"`
+
+	//	Version of the secrets, if available.
+	Version *int `json:"version,omitempty"`
+
+	// Contains the secret mapping.
+	Data map[string]*payload.Payload `json:"data,omitempty"`
 }
 
-// Contains the following mapping:
-// key : { value: secret-value, type: plaintext/ciphertext }
-type Secrets map[string]Payload
+// Returns the secret's key=value mapping.
+func (s *Secret) GetMap() map[string]*payload.Payload {
+	return s.Data
+}
+
+// Checks whether the secret contains even a single key=value mapping.
+func (s *Secret) IsEmpty() bool {
+	return len(s.Data) == 0
+}
+
+// Returns a new initialized 'Secret' object.
+func New() *Secret {
+	return &Secret{}
+}
+
+func ParseAndInitialize(data []byte) (*Secret, error) {
+
+	var result Secret
+	if data == nil {
+		return nil, fmt.Errorf("invalid inputs")
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	result.MarkEncoded()
+	return &result, nil
+}
 
 // Sets a key=value pair to the map.
-func (s Secrets) Set(key string, payload Payload) {
-	s[key] = payload
+func (s *Secret) Set(key string, value *payload.Payload) {
+	if s.Data == nil {
+		s.Data = make(map[string]*payload.Payload)
+	}
+	s.Data[key] = value
+}
+
+type AddConfig struct {
+	Value string `json:"value,omitempty"`
+
+	//	Allows the value to be synced as an exposable one
+	//	on platforms which differentiate between decryptable and non-decryptable secrets.
+	//	For example, Github and Vercel.
+	Exposable bool `json:"exposable,omitempty"`
+}
+
+// Sets a new key=value pair to the map.
+func (s *Secret) Add(key string, config *AddConfig) {
+	s.Set(key, &payload.Payload{
+		Value:     config.Value,
+		Exposable: config.Exposable,
+	})
 }
 
 // Fetches the value for a specific key from the map.
-func (s Secrets) Get(key string) Payload {
-	return s[key]
+func (s *Secret) Get(key string) *payload.Payload {
+	return s.Data[key]
+}
+
+// Fetches key=value representation for a specific key and value from the map.
+func (s *Secret) GetString(key string) string {
+	return fmt.Sprintf("%s=%s", key, s.Data[key].Value)
 }
 
 // Deletes a key=value pair from the map.
-func (s Secrets) Detele(key string) {
-	delete(s, key)
+func (s *Secret) Delete(key string) {
+	delete(s.Data, key)
+}
+
+// Ovewrites or replaces values in the map for respective keys from supplied map.
+func (s *Secret) Overwrite(source map[string]*payload.Payload) {
+	for name, payload := range source {
+		s.Set(name, payload)
+	}
+}
+
+// Base64 encodes all the pairs in the map.
+func (s *Secret) Encode() {
+	for name, payload := range s.Data {
+		payload.Encode()
+		s.Set(name, payload)
+	}
+}
+
+// Base64 decodes all the pairs in the map.
+func (s *Secret) Decode() error {
+	for name, payload := range s.Data {
+		if err := payload.Decode(); err != nil {
+			return err
+		}
+		s.Set(name, payload)
+	}
+	return nil
+}
+
+// Marks all payload values as Base64 encoded.
+func (s *Secret) MarkEncoded() {
+	for _, payload := range s.Data {
+		payload.MarkEncoded()
+	}
 }
 
 // Encrypts all the key=value pairs with provided encryption key.
-func (s Secrets) Encrypt(key [32]byte) error {
-	for name, payload := range s {
-		if payload.Type == Ciphertext {
-			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), key)
-			if err != nil {
-				return err
-			}
-			payload.Value = base64.StdEncoding.EncodeToString(encrypted)
-		} else {
-			payload.Value = base64.StdEncoding.EncodeToString([]byte(payload.Value))
+func (s *Secret) Encrypt(key [32]byte) error {
+	for name, payload := range s.Data {
+		if err := payload.Encrypt(key); err != nil {
+			return err
 		}
 		s.Set(name, payload)
 	}
@@ -60,118 +144,49 @@ func (s Secrets) Encrypt(key [32]byte) error {
 
 // Encrypts all the key=value pairs with provided encryption key
 // and returns a new copy of the secrets payload without mutating the existing one.
-func (s Secrets) Encrypted(key [32]byte) (result *Secrets, err error) {
+func (s *Secret) Encrypted(key [32]byte) (result *Secret, err error) {
 	copy := s
 	if err := copy.Encrypt(key); err != nil {
 		return nil, err
 	}
-	return &copy, nil
+	return copy, nil
 }
 
 // Decrypts all the key=value pairs with provided decryption key.
-func (s Secrets) Decrypt(key [32]byte) error {
-	for name, payload := range s {
-		if payload.Type == Ciphertext {
-
-			//	Base64 decode the secret value
-			decoded, err := base64.StdEncoding.DecodeString(payload.Value)
-			if err != nil {
-				return err
-			}
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, key)
-			if err != nil {
-				return err
-			}
-
-			payload.Value = base64.StdEncoding.EncodeToString(decrypted)
-			s.Set(name, payload)
+func (s *Secret) Decrypt(key [32]byte) error {
+	for name, payload := range s.Data {
+		if err := payload.Decrypt(key); err != nil {
+			return err
 		}
+		s.Set(name, payload)
 	}
 	return nil
 }
 
 // Decrypts all the key=value pairs with provided decryption key
 // and returns a new copy of the secrets payload without mutating the existing one.
-func (s Secrets) Decrypted(key [32]byte) (result *Secrets, err error) {
+func (s *Secret) Decrypted(key [32]byte) (result *Secret, err error) {
 	copy := s
 	if err := copy.Decrypt(key); err != nil {
 		return nil, err
 	}
-	return &copy, nil
+	return copy, nil
 }
 
-// Ovewrites or replaces values in the map for respective keys from supplied map.
-func (s *Secrets) Overwrite(source Secrets) {
-	for name, payload := range source {
-		s.Set(name, payload)
+// Empties the values from the payloads of all key=value pairs.
+func (s *Secret) Empty() {
+	s.Lock()
+	defer s.Unlock()
+
+	for _, payload := range s.Data {
+		payload.Empty()
 	}
-}
-
-type Payload struct {
-
-	//	Internal variable to record the current state of encoding of this payload's value.
-	isEncoded bool `json:"-"`
-
-	//	Value
-	Value string `json:"value,omitempty"`
-
-	//	Type in which the value is stored in our database.
-	Type Type `json:"type,omitempty"`
-}
-
-func (p *Payload) GetDecodedValue() ([]byte, error) {
-	return base64.StdEncoding.DecodeString(p.Value)
-}
-
-// Converts the payload to a map.
-func (p *Payload) Map() (result map[string]interface{}, err error) {
-	payload, err := json.Marshal(p)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(payload, &result)
-	return
-}
-
-// Map representing key=value pairs.
-type KVMap map[string]string
-
-// Sets a key=value pair to the map.
-func (m KVMap) Set(key, value string) {
-	m[key] = value
-}
-
-// Fetches the value for a specific key from the map.
-func (m KVMap) Get(key string) string {
-	return m[key]
-}
-
-// Deletes a key=value pair from the map.
-func (m KVMap) Detele(key string) {
-	delete(m, key)
-}
-
-// Returns JSON Marshalled map.
-func (m *KVMap) Marshal() ([]byte, error) {
-	return json.Marshal(m)
-}
-
-// Unmarshalls the json in provided interface.
-func (m *KVMap) UnmarshalIn(i interface{}) error {
-	payload, err := m.Marshal()
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(payload, &i)
 }
 
 // Converts all the key=value pairs to a map.
-func (s *Secrets) ToMap() *KVMap {
-	result := make(KVMap)
-	for name, payload := range *s {
+func (s *Secret) ToMap() *keyvalue.KVMap {
+	var result keyvalue.KVMap
+	for name, payload := range s.Data {
 		result.Set(name, payload.Value)
 	}
 	return &result
@@ -202,9 +217,9 @@ type VaultResponse struct {
 }
 
 type SetRequestOptions struct {
-	EnvID      string  `json:"env_id"`
-	Secrets    Secrets `json:"secrets"`
-	KeyVersion *int    `json:"key_version,omitempty"`
+	EnvID      string                      `json:"env_id"`
+	Data       map[string]*payload.Payload `json:"data"`
+	KeyVersion *int                        `json:"key_version,omitempty"`
 }
 
 func (r *SetRequestOptions) Marshal() ([]byte, error) {
@@ -212,9 +227,9 @@ func (r *SetRequestOptions) Marshal() ([]byte, error) {
 }
 
 type SetSecretOptions struct {
-	EnvID      string  `json:"env_id"`
-	Secrets    Secrets `json:"secrets"`
-	KeyVersion *int    `json:"key_version,omitempty"`
+	EnvID      string                      `json:"env_id"`
+	Data       map[string]*payload.Payload `json:"data"`
+	KeyVersion *int                        `json:"key_version,omitempty"`
 }
 
 func (r *SetSecretOptions) Marshal() ([]byte, error) {
@@ -243,8 +258,8 @@ func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
 }
 
 type DecryptSecretOptions struct {
-	Secrets Secrets `json:"secrets"`
-	OrgID   string  `json:"org"`
+	Secret Secret `json:"secret"`
+	OrgID  string `json:"org"`
 }
 
 type GetRequestOptions struct {
@@ -264,8 +279,8 @@ type GetSecretOptions struct {
 }
 
 type GetResponse struct {
-	Secrets Secrets `json:"secrets"`
-	Version *int    `json:"version,omitempty"`
+	Secret  Secret `json:"secret"`
+	Version *int   `json:"version,omitempty"`
 }
 
 type MergeRequestOptions struct {

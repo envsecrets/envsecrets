@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -123,21 +122,20 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		//	Initialize a new buffer to store key=value lines
 		var variables []string
-		if err := secret.Secrets.Decrypt(orgKey); err != nil {
+		if err := secret.Decrypt(orgKey); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to decrypt secrets")
 		}
 
-		for key, item := range secret.Secrets {
+		for key, item := range secret.Data {
 
 			//	Base64 decode the secret value
-			decoded, err := base64.StdEncoding.DecodeString(item.Value)
-			if err != nil {
+			if err := item.Decode(); err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			variables = append(variables, fmt.Sprintf("%s=%s", key, string(decoded)))
+			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
 		}
 
 		log.Info("Injecting secrets version ", *secret.Version, " into your process")

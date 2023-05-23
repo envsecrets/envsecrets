@@ -32,7 +32,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -104,7 +103,8 @@ var exportCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var secret secretsCommons.GetResponse
+		var secret *secretsCommons.Secret
+		var err error
 		var orgKey [32]byte
 
 		if XTokenHeader != "" {
@@ -117,13 +117,11 @@ var exportCmd = &cobra.Command{
 				options.Version = &version
 			}
 
-			result, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+			secret, err = internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
 			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to fetch the secrets")
 			}
-
-			secret = *result
 
 		} else {
 
@@ -143,42 +141,23 @@ var exportCmd = &cobra.Command{
 				getOptions.Version = &version
 			}
 
-			result, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
+			secret, err = secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
 			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to fetch the secrets")
 			}
+		}
 
-			secret = *result
+		if err := secret.Decrypt(orgKey); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the secret")
 		}
 
 		//	Initialize a new buffer to store key=value lines
 		var buffer bytes.Buffer
 		var variables []string
-		for key, item := range secret.Secrets {
-
-			//	Base64 decode the secret value
-			decoded, err := base64.StdEncoding.DecodeString(item.Value)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to base64 decode the value for ", key)
-			}
-
-			if item.Type == secretsCommons.Ciphertext && XTokenHeader == "" {
-
-				//	Decrypt the value using org-key.
-				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to decrypt the secret")
-				}
-
-				item.Value = string(decrypted)
-			} else {
-				item.Value = string(decoded)
-			}
-
-			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
+		for key := range secret.Data {
+			variables = append(variables, secret.GetString(key))
 		}
 
 		buffer.WriteString(strings.Join(variables, "\n"))

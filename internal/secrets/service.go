@@ -1,8 +1,6 @@
 package secrets
 
 import (
-	"errors"
-
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys"
@@ -10,7 +8,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 )
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, error) {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, error) {
 	return graphql.Set(ctx, client, options)
 }
 
@@ -29,83 +27,36 @@ func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *com
 	return graphql.Cleanup(ctx, client, options)
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
-
-	//	Inittialize our payload
-	var payload commons.Payload
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, error) {
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
 	if options.Version != nil {
-
-		resp, err := graphql.GetByKeyByVersion(ctx, client, options)
-		if err != nil {
-			return nil, err
-		}
-
-		payload = resp.Data[options.Key]
-
-	} else {
-
-		resp, err := graphql.GetByKey(ctx, client, options)
-		if err != nil {
-			return nil, err
-		}
-
-		payload = resp.Data[options.Key]
-		options.Version = &resp.Version
+		return graphql.GetByKeyByVersion(ctx, client, options)
 	}
 
-	if payload.Value != "" {
-		secrets := make(commons.Secrets)
-		secrets.Set(options.Key, payload)
-		return &commons.GetResponse{
-			Secrets: secrets,
-			Version: options.Version,
-		}, nil
-	}
-
-	return nil, errors.New("failed to fetch the value")
+	return graphql.GetByKey(ctx, client, options)
 }
 
-func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
-
-	var data commons.GetResponse
+func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Secret, error) {
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
 	if options.Version != nil {
-
-		resp, err := graphql.GetByVersion(ctx, client, options)
-		if err != nil {
-			return nil, err
-		}
-
-		data = *resp
-
-	} else {
-
-		resp, err := graphql.Get(ctx, client, options)
-		if err != nil {
-			return nil, err
-		}
-
-		data = *resp
+		return graphql.GetByVersion(ctx, client, options)
 	}
 
-	return &data, nil
+	return graphql.Get(ctx, client, options)
 }
 
 // Fetches only the keys of a secret row.
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (*commons.GetResponse, error) {
-
-	var data commons.GetResponse
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (result *commons.Secret, err error) {
 
 	//	If the request has a specific version specified,
 	//	make the call for only that version
 	if options.Version != nil {
 
-		resp, err := graphql.GetByVersion(ctx, client, &commons.GetSecretOptions{
+		result, err = graphql.GetByVersion(ctx, client, &commons.GetSecretOptions{
 			EnvID:   options.EnvID,
 			Version: options.Version,
 		})
@@ -113,34 +64,27 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 			return nil, err
 		}
 
-		data = *resp
-
 	} else {
 
-		resp, err := graphql.Get(ctx, client, &commons.GetSecretOptions{
+		result, err = graphql.Get(ctx, client, &commons.GetSecretOptions{
 			EnvID: options.EnvID,
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		data = *resp
 	}
 
 	//	Remove the values from payload.
 	//	Only keep the type.
-	for key, item := range data.Secrets {
-		data.Secrets[key] = commons.Payload{
-			Type: item.Type,
-		}
-	}
-	return &data, nil
+	result.Empty()
+	return
 }
 
 // Pulls all secret key=value pairs from the source environment,
 // and overwrites them in the target environment.
 // It creates a new secret version.
-func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Row, error) {
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, error) {
 
 	//	Fetch all key=value pairs of the source environment.
 	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
@@ -159,24 +103,15 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 		return nil, err
 	}
 
-	//	If the target variables is nil,
-	//	then no pairs were fetched.
-	if targetVariables.Secrets == nil {
-		targetVariables.Secrets = make(commons.Secrets)
-	}
-
 	//	Iterate through the target pairs,
 	//	and overwrite the matching ones from the source pairs.
-	targetVariables.Secrets.Overwrite(sourceVariables.Secrets)
+	targetVariables.Overwrite(sourceVariables.Data)
 
 	//	Set the updated pairs in Hasura.
-	return graphql.Set(ctx, client, &commons.SetSecretOptions{
-		EnvID:   options.TargetEnvID,
-		Secrets: targetVariables.Secrets,
-	})
+	return targetVariables, nil
 }
 
-func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secrets, error) {
+func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secret, error) {
 
 	//	Get the server's copy of org-key.
 	var orgKey [32]byte
@@ -187,9 +122,9 @@ func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *com
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Decrypt the value of every secret.
-	if err := options.Secrets.Decrypt(orgKey); err != nil {
+	if err := options.Secret.Decrypt(orgKey); err != nil {
 		return nil, err
 	}
 
-	return &options.Secrets, nil
+	return &options.Secret, nil
 }

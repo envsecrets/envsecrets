@@ -14,7 +14,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
@@ -88,11 +87,11 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	//	Extract the slug from entity details
 	slug := options.EntityDetails["full_name"].(string)
 
-	for key, payload := range options.Secrets {
+	for key, payload := range options.Secret.Data {
 
 		//	If the payload is of type `ciphertext`,
 		//	we have to encrypt its value and push it to Github action's secrets.
-		if payload.Type == secretCommons.Ciphertext {
+		if !payload.IsExposable() {
 
 			//	Get the public key.
 			publicKey, err := getRepositoryActionsSecretsPublicKey(ctx, client, slug)
@@ -123,7 +122,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 				return err
 			}
 
-		} else if payload.Type == secretCommons.Plaintext {
+		} else {
 
 			//	Add response handler to HTTP client.
 			client.ResponseHandler = func(response *http.Response) error {

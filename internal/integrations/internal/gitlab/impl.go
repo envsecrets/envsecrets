@@ -90,7 +90,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		Authorization: fmt.Sprintf("%s %s", access.TokenType, access.AccessToken),
 	})
 
-	for key, payload := range options.Secrets {
+	for key, payload := range options.Secret.Data {
 
 		switch EntityType(options.EntityDetails["type"].(string)) {
 		case ProjectType:

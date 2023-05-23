@@ -16,5 +16,5 @@ type SyncOptions struct {
 	OrgID         string                 `json:"org_id"`
 	Credentials   map[string]interface{} `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secrets       secretCommons.Secrets  `json:"secrets"`
+	Secret        secretCommons.Secret   `json:"secret"`
 }

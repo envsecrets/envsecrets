@@ -14,7 +14,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 // ---	Flow ---
@@ -121,13 +120,14 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Prepare array of all values
 	var array []map[string]interface{}
-	for key, value := range options.Secrets {
+	for key, value := range options.Secret.Data {
 
 		//	Prepare the secret type
 		var typ string
 		v := value.Value
 
-		if value.Type == secretCommons.Ciphertext {
+		if value.IsExposable() {
+			typ = "plain"
 
 			/* 			//	Create the secret separately in vercel first.
 			   			secret, err := CreateSecret(ctx, client, key, value.Value, &teamID)
@@ -135,10 +135,9 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 			   				return err
 			   			}
 			*/
-			typ = "encrypted"
 
-		} else if value.Type == secretCommons.Plaintext {
-			typ = "plain"
+		} else {
+			typ = "encrypted"
 		}
 
 		array = append(array, map[string]interface{}{

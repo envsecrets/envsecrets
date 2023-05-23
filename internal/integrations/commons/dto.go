@@ -85,5 +85,5 @@ type SyncOptions struct {
 	EventID       string                 `json:"event_id"`
 	IntegrationID string                 `json:"integration_id"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secrets       secretCommons.Secrets  `json:"secrets"`
+	Secret        secretCommons.Secret   `json:"secret"`
 }

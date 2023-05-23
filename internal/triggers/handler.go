@@ -47,13 +47,17 @@ func SecretInserted(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row secretCommons.Row
+	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",
 			Error:   err.Error(),
 		})
 	}
+
+	//	Since the newly inserted secret is already base64 encoded,
+	//	mark it 'encoded'
+	row.MarkEncoded()
 
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
@@ -69,7 +73,6 @@ func SecretInserted(c echo.Context) error {
 	//	--- Flow ---
 	//	1. Get the events linked to this new secret row.
 	//	2. Call the appropriate integration service to sync the secrets.
-
 	events, err := events.GetBySecret(ctx, client, row.ID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -95,8 +98,8 @@ func SecretInserted(c echo.Context) error {
 
 	//	Decrypt the value of every secret.
 	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID:   organisation.ID,
-		Secrets: row.Data,
+		OrgID:  organisation.ID,
+		Secret: row,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -113,7 +116,7 @@ func SecretInserted(c echo.Context) error {
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,
-			Secrets:       *decrypted,
+			Secret:        *decrypted,
 		}); err != nil {
 			log.Printf("failed to push secret with ID %s for %s event: %s", row.ID, event.Integration.Type, event.ID)
 			log.Println(err)
@@ -183,8 +186,8 @@ func EventInserted(c echo.Context) error {
 
 	//	Decrypt the value of every secret.
 	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID:   organisation.ID,
-		Secrets: response.Secrets,
+		OrgID:  organisation.ID,
+		Secret: *response,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -200,7 +203,7 @@ func EventInserted(c echo.Context) error {
 		IntegrationID: row.IntegrationID,
 		EventID:       row.ID,
 		EntityDetails: row.EntityDetails,
-		Secrets:       *decrypted,
+		Secret:        *decrypted,
 	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID),
@@ -225,7 +228,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row secretCommons.Row
+	var row secretCommons.Secret
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",
@@ -274,7 +277,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	only keep the latest 5 version active.
 	if !active {
 
-		cleanupUntilVersion := row.Version - 5
+		cleanupUntilVersion := *row.Version - 5
 		if cleanupUntilVersion > 0 {
 			if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
 				EnvID:   row.EnvID,

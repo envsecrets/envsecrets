@@ -231,50 +231,50 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		return github.Sync(ctx, &github.SyncOptions{
 			InstallationID: integration.InstallationID,
 			EntityDetails:  options.EntityDetails,
-			Secrets:        options.Secrets,
+			Secret:         options.Secret,
 		})
 	case commons.Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			IntegrationID: options.IntegrationID,
 			OrgID:         integration.OrgID,
 		})
 	case commons.Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
 			Credentials:   credentials,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.CircleCI:
 		return circle.Sync(ctx, &circle.SyncOptions{
 			Credentials:   credentials,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Supabase:
 		return supabase.Sync(ctx, &supabase.SyncOptions{
 			Credentials:   credentials,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Netlify:
 		return netlify.Sync(ctx, &netlify.SyncOptions{
 			Credentials:   credentials,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.GSM:
 		return gsm.Sync(ctx, &gsm.SyncOptions{
 			Credentials:   credentials,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.ASM:
 		resp, err := asm.Sync(ctx, &asm.SyncOptions{
 			OrgID:         integration.OrgID,
-			Secrets:       options.Secrets,
+			Secret:        options.Secret,
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
 		})

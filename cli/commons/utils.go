@@ -7,8 +7,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
-
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 // Initialize common GQL Client for the CLI
@@ -26,7 +24,8 @@ var Logger = logrus.New()
 var AccountConfig *commons.Account
 var ProjectConfig *commons.Project
 var KeysConfig *commons.Keys
-var ContingencyConfig *secretCommons.Secrets
+
+//var ContingencyConfig *secretCommons.Secret
 
 func Initialize() {
 
