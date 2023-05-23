@@ -6,12 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/nacl/box"
 )
 
-func generateGithuAppJWT(file []byte) (string, *errors.Error) {
+func generateGithuAppJWT(file []byte) (string, error) {
 
 	// expires in 60 minutes
 	expiration := time.Now().Add(time.Second * 600)
@@ -24,18 +23,18 @@ func generateGithuAppJWT(file []byte) (string, *errors.Error) {
 
 	pkey, err := jwt.ParseRSAPrivateKeyFromPEM(file)
 	if err != nil {
-		return "", errors.New(err, "failed to read private key from PEM file data", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
+		return "", err
 	}
 
 	response, err := token.SignedString(pkey)
 	if err != nil {
-		return "", errors.New(err, "failed to get signed JWT", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
+		return "", err
 	}
 
 	return response, nil
 }
 
-//	Encrypt a secret value using libsodium equivalent NACL secret box method.
+// Encrypt a secret value using libsodium equivalent NACL secret box method.
 func encryptSecret(pk, secret string) (string, error) {
 	var pkBytes [32]byte
 	copy(pkBytes[:], pk)

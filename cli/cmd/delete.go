@@ -84,8 +84,8 @@ var deleteCmd = &cobra.Command{
 		}
 
 		if err := secrets.Delete(commons.DefaultContext, commons.GQLClient, options); err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to delete secret")
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

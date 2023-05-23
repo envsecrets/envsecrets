@@ -5,12 +5,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/machinebox/graphql"
 )
 
-func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_id string) (*commons.Events, *errors.Error) {
+func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_id string) (*commons.Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($secret_id: uuid!) {
@@ -37,13 +36,13 @@ func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_i
 
 	returning, err := json.Marshal(response["events"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp commons.Events
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil

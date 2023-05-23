@@ -81,8 +81,8 @@ var listCmd = &cobra.Command{
 
 		secrets, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to fetch the secrets")
 		}
 
 		for key := range secrets.Secrets {

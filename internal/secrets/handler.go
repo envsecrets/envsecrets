@@ -5,7 +5,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
@@ -35,9 +34,9 @@ func SetHandler(c echo.Context) error {
 	//	Fetch the organisation using environment ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation this environment is associated with",
+			Error:   err.Error(),
 		})
 	}
 
@@ -45,9 +44,9 @@ func SetHandler(c echo.Context) error {
 	var orgKey [32]byte
 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation's encryption key'",
+			Error:   err.Error(),
 		})
 	}
 	copy(orgKey[:], orgKeyBytes)
@@ -67,9 +66,9 @@ func SetHandler(c echo.Context) error {
 		KeyVersion: payload.KeyVersion,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to set the secrets",
+			Error:   err.Error(),
 		})
 	}
 
@@ -105,9 +104,9 @@ func DeleteHandler(c echo.Context) error {
 		Key:     payload.Key,
 		Version: payload.Version,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to delete the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to delete the secret",
+			Error:   err.Error(),
 		})
 	}
 
@@ -153,7 +152,7 @@ func GetHandler(c echo.Context) error {
 	}
 
 	var response *commons.GetResponse
-	var err *errors.Error
+	var err error
 
 	//	If there is a specific key,
 	//	pull the value only for that key.
@@ -166,9 +165,9 @@ func GetHandler(c echo.Context) error {
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get the secret"),
-				Error:   err.Message,
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Failed to get the secrets",
+				Error:   err.Error(),
 			})
 		}
 
@@ -181,9 +180,9 @@ func GetHandler(c echo.Context) error {
 			Version: payload.Version,
 		})
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get the secret"),
-				Error:   err.Message,
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Failed to get the secrets",
+				Error:   err.Error(),
 			})
 		}
 	}
@@ -191,10 +190,9 @@ func GetHandler(c echo.Context) error {
 	//	Fetch the organisation using environment ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation this environment is associated with",
+			Error:   err.Error(),
 		})
 	}
 
@@ -202,9 +200,9 @@ func GetHandler(c echo.Context) error {
 	var orgKey [32]byte
 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation's encryption key'",
+			Error:   err.Error(),
 		})
 	}
 	copy(orgKey[:], orgKeyBytes)
@@ -263,9 +261,9 @@ func ListHandler(c echo.Context) error {
 	//	Call the service function.
 	response, err := List(ctx, client, &payload)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to list the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the list of secrets",
+			Error:   err.Error(),
 		})
 	}
 

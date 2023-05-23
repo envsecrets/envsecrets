@@ -36,18 +36,18 @@ func GetPublicKey(c echo.Context) error {
 	if payload.Email != "" {
 		result, err := graphql.GetPublicKeyByUserEmail(ctx, client, payload.Email)
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get public key using user's UUID"),
-				Error:   err.Error.Error(),
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Failed to get user's public key",
+				Error:   err.Error(),
 			})
 		}
 		key = result
 	} else if payload.UserID != "" {
 		result, err := graphql.GetPublicKeyByUserID(ctx, client, payload.UserID)
 		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get public key using user's UUID"),
-				Error:   err.Error.Error(),
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Failed to get user's public key",
+				Error:   err.Error(),
 			})
 		}
 		key = result

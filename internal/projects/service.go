@@ -5,14 +5,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new workspace
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, *errors.Error) {
-
-	errorMessage := "Failed to create project"
+// Create a new workspace
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
@@ -35,22 +32,20 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_projects"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, *errors.Error) {
-
-	errorMessage := "Failed to fetch project"
+// Get a workspace by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -71,22 +66,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Pro
 
 	returning, err := json.Marshal(response["projects_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	List projects
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, *errors.Error) {
-
-	errorMessage := "Failed to list projects"
+// List projects
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -106,22 +99,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	returning, err := json.Marshal(response["projects"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, *errors.Error) {
-
-	errorMessage := "Failed to update the project"
+// Update a workspace by ID
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -142,19 +133,19 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_projects_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Project
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Delete a project by ID
+// Delete a project by ID
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

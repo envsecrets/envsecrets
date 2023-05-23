@@ -47,7 +47,7 @@ func (s Secrets) Encrypt(key [32]byte) error {
 		if payload.Type == Ciphertext {
 			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), key)
 			if err != nil {
-				return err.Error
+				return err
 			}
 			payload.Value = base64.StdEncoding.EncodeToString(encrypted)
 		} else {
@@ -80,9 +80,9 @@ func (s Secrets) Decrypt(key [32]byte) error {
 			}
 
 			//	Decrypt the value using org-key.
-			decrypted, er := keys.OpenSymmetrically(decoded, key)
-			if er != nil {
-				return er.Error
+			decrypted, err := keys.OpenSymmetrically(decoded, key)
+			if err != nil {
+				return err
 			}
 
 			payload.Value = base64.StdEncoding.EncodeToString(decrypted)

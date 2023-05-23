@@ -3,19 +3,15 @@ package organisations
 import (
 	"encoding/base64"
 	"encoding/json"
-
-	internalErrors "errors"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new organisation
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
-
-	errorMessage := "Failed to create organisation"
+// Create a new organisation
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!) {
@@ -37,22 +33,20 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	Create a new organisation
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, *errors.Error) {
-
-	errorMessage := "Failed to create organisation"
+// Create a new organisation
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $user_id: uuid!) {
@@ -75,22 +69,20 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 
 	returning, err := json.Marshal(response["insert_organisations"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	Get a organisation by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, *errors.Error) {
-
-	errorMessage := "Failed to fetch the organisation"
+// Get a organisation by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -110,22 +102,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Org
 
 	returning, err := json.Marshal(response["organisations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Get an organisation's key copy of the server
-func GetServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, id string) ([]byte, *errors.Error) {
-
-	errorMessage := "Failed to fetch server's copy of org's key"
+// Get an organisation's key copy of the server
+func GetServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, id string) ([]byte, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -144,28 +134,26 @@ func GetServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, id 
 
 	returning, err := json.Marshal(response["organisations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Base64 decode the server's key copy
 	result, err := base64.StdEncoding.DecodeString(resp.ServerKey)
 	if err != nil {
-		return nil, errors.New(internalErrors.New(errorMessage), errorMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return result, nil
 }
 
-//	Get a organisation by ID
-func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, *errors.Error) {
-
-	errorMessage := "Failed to fetch the organisation"
+// Get a organisation by ID
+func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -184,22 +172,20 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 
 	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	List organisations
-func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, *errors.Error) {
-
-	errorMessage := "Failed to list organisations"
+// List organisations
+func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery {
@@ -217,22 +203,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisatio
 
 	returning, err := json.Marshal(response["organisations"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Update a organisation by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Organisation, *errors.Error) {
-
-	errorMessage := "Failed to update the organisation"
+// Update a organisation by ID
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -253,21 +237,19 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_organisations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Organisation
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-func UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) *errors.Error {
-
-	errorMessage := "Failed to update the invite limit"
+func UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $limit: Int!) {
@@ -289,15 +271,13 @@ func UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, op
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("failed to update the invite limit")
 	}
 
 	return nil
 }
 
-func UpdateServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateServerKeyCopyOptions) *errors.Error {
-
-	errorMessage := "Failed to update the invite limit"
+func UpdateServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateServerKeyCopyOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $key: String!) {
@@ -319,13 +299,13 @@ func UpdateServerKeyCopy(ctx context.ServiceContext, client *clients.GQLClient, 
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(internalErrors.New(errorMessage), errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("failed to update the server copy of org's key")
 	}
 
 	return nil
 }
 
-//	Delete a organisation by ID
+// Delete a organisation by ID
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

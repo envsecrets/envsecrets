@@ -2,13 +2,13 @@ package gitlab
 
 import (
 	"encoding/base64"
-	internalErrors "errors"
 	"fmt"
 	"os"
 
+	"errors"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
@@ -16,7 +16,7 @@ import (
 // ---	Flow ---
 // 1. Exchange the `code` received from Vercel for an access token.
 // 2. Save the `refresh_token` as credentials in Hasura.
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Exchange the code for Access Token
 	response, err := GetAccessToken(ctx, &TokenRequestOptions{
@@ -44,7 +44,7 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Refresh access token
 	access, err := RefreshToken(ctx, &TokenRefreshOptions{
@@ -69,10 +69,10 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 		return ListGroups(ctx, client)
 	}
 
-	return nil, errors.New(internalErrors.New("invalid entity type"), "Failed to fetch list of entities", errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+	return nil, errors.New("invalid entity type")
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
+func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Refresh access token
 	access, err := RefreshToken(ctx, &TokenRefreshOptions{

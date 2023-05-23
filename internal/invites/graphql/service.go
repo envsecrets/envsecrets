@@ -5,13 +5,12 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/invites/commons"
 	"github.com/machinebox/graphql"
 )
 
-//	Get a invite by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Invite, *errors.Error) {
+// Get a invite by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Invite, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -35,20 +34,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 
 	returning, err := json.Marshal(response["invites_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp commons.Invite
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	List invites
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListOptions) (*[]commons.Invite, *errors.Error) {
+// List invites
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListOptions) (*[]commons.Invite, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($accepted: Boolean) {
@@ -72,20 +71,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 
 	returning, err := json.Marshal(response["invites"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.Invite
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Update a invite by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *commons.UpdateOptions) (*commons.Invite, *errors.Error) {
+// Update a invite by ID
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *commons.UpdateOptions) (*commons.Invite, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $accepted: Boolean!) {
@@ -110,13 +109,13 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	data, err := json.Marshal(returning[0])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json returning response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp commons.Invite
 	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal json returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil

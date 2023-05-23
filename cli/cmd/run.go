@@ -100,8 +100,8 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		var orgKey [32]byte
 		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the organisation's encryption key")
 		}
 		copy(orgKey[:], decryptedOrgKey)
 
@@ -116,8 +116,9 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to fetch the secrets")
+
 		}
 
 		//	Initialize a new buffer to store key=value lines
@@ -130,9 +131,9 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		for key, item := range secret.Secrets {
 
 			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value)
-			if er != nil {
-				log.Debug(er)
+			decoded, err := base64.StdEncoding.DecodeString(item.Value)
+			if err != nil {
+				log.Debug(err)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
@@ -174,9 +175,9 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		userCmd.Stdout = os.Stdout
 		userCmd.Stderr = os.Stderr
 
-		exitCode, er := internal.ExecCommand(userCmd, false, nil)
-		if er != nil {
-			log.Debug(er)
+		exitCode, err := internal.ExecCommand(userCmd, false, nil)
+		if err != nil {
+			log.Debug(err)
 			log.Fatal("Command execution failed or completed ungracefully")
 		}
 

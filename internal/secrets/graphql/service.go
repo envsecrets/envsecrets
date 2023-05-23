@@ -2,15 +2,15 @@ package graphql
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -30,13 +30,13 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 	returning, err := json.Marshal(response["secrets"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.Row
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var payload commons.GetResponse
@@ -49,7 +49,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	return &payload, nil
 }
 
-func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
+func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $version: Int!) {
@@ -70,13 +70,13 @@ func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options
 
 	returning, err := json.Marshal(response["secrets"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.Row
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var payload commons.GetResponse
@@ -89,7 +89,7 @@ func GetByVersion(ctx context.ServiceContext, client *clients.GQLClient, options
 	return &payload, nil
 }
 
-func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Row, *errors.Error) {
+func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Row, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!) {
@@ -110,7 +110,7 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 
 	returning, err := json.Marshal(response["secrets"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
@@ -119,11 +119,11 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 		Data    commons.Payload `json:"data,omitempty" graphql:"data,omitempty"`
 	}
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	if len(resp) == 0 {
-		return nil, errors.New(nil, "no record found", errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
+		return nil, errors.New("no record found")
 	}
 
 	index := 0
@@ -135,7 +135,7 @@ func GetByKey(ctx context.ServiceContext, client *clients.GQLClient, options *co
 	}, nil
 }
 
-func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Row, *errors.Error) {
+func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.Row, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $key: String!, $version: Int!) {
@@ -157,7 +157,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 
 	returning, err := json.Marshal(response["secrets"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal secrets into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
@@ -166,11 +166,11 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 		Data    commons.Payload `json:"data,omitempty" graphql:"data,omitempty"`
 	}
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarshal secrets into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	if len(resp) == 0 {
-		return nil, errors.New(nil, "no record found", errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
+		return nil, errors.New("no record found")
 	}
 
 	index := 0
@@ -182,7 +182,7 @@ func GetByKeyByVersion(ctx context.ServiceContext, client *clients.GQLClient, op
 	}, nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, *errors.Error) {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, error) {
 
 	//	Fetch the secret of latest version.
 	latestEntry, err := Get(ctx, client, &commons.GetSecretOptions{
@@ -228,23 +228,23 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 	returned := response["insert_secrets"].(map[string]interface{})["returning"].([]interface{})
 
 	if len(returned) == 0 {
-		return nil, errors.New(nil, "failed to save ciphered secret value", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return nil, errors.New("no rows affected")
 	}
 
-	data, er := json.Marshal(returned[0])
-	if er != nil {
-		return nil, errors.New(er, "failed to marshal returned secrets array", errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
+	data, err := json.Marshal(returned[0])
+	if err != nil {
+		return nil, err
 	}
 
 	var secret commons.Row
 	if err := json.Unmarshal(data, &secret); err != nil {
-		return nil, errors.New(err, "failed to unmarshal created secrets", errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
+		return nil, err
 	}
 
 	return &secret, nil
 }
 
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) error {
 
 	//	Fetch the secret of latest version.
 	latestEntry, err := Get(ctx, client, &commons.GetSecretOptions{
@@ -291,13 +291,13 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, "failed to save ciphered secret value", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("no rows affected")
 	}
 
 	return nil
 }
 
-func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
+func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($version: Int!, $env_id: uuid!) {
@@ -320,7 +320,7 @@ func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *com
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, "Failed to cleanup secrets", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("no rows affected")
 	}
 
 	return nil

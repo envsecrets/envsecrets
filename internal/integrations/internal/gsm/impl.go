@@ -9,7 +9,6 @@ import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 	"google.golang.org/api/option"
@@ -21,7 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Encrypt the credentials
 	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, options.Keys)
@@ -37,13 +36,13 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(options.Credentials["region"].(string)),
 	)
 	if err != nil {
-		return nil, errors.New(err, "Failed to push secrets to ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
@@ -57,57 +56,57 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 
 	resp, err := client.ListSecrets(ctx, nil)
 	if err != nil {
-		return nil, errors.New(err, "Failed to list secrets from ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return nil, err
 	}
 
 	return resp, nil
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
+func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	TODO: Inform the user in case of failed synchronization
 	//	Take email from GSM service account credentials.
 	//	Ex: "client_email": "doppler-secret-manager@envsecrets.iam.gserviceaccount.com"
 
 	//	Marshal the credentials
-	creds, er := json.Marshal(options.Credentials)
-	if er != nil {
-		return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	creds, err := json.Marshal(options.Credentials)
+	if err != nil {
+		return err
 	}
 
 	// Create the client.
-	client, er := secretmanager.NewClient(ctx, option.WithCredentialsJSON(creds))
-	if er != nil {
+	client, err := secretmanager.NewClient(ctx, option.WithCredentialsJSON(creds))
+	if err != nil {
 		// The most likely causes of the error are:
 		//     1 - google application creds failed
 		//     2 - secret already exists
-		return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return err
 	}
 	defer client.Close()
 
 	PARENT := fmt.Sprintf("projects/%v", options.Credentials["project_id"])
 
 	//	Prepare the payload
-	payload, er := options.Secrets.ToMap().Marshal()
-	if er != nil {
-		return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	payload, err := options.Secrets.ToMap().Marshal()
+	if err != nil {
+		return err
 	}
 
 	//	Create a new version
-	_, er = AddSecretVersion(ctx, client, fmt.Sprintf("%s/secrets/%s", PARENT, options.EntityDetails["name"].(string)), payload)
-	if er != nil {
+	_, err = AddSecretVersion(ctx, client, fmt.Sprintf("%s/secrets/%s", PARENT, options.EntityDetails["name"].(string)), payload)
+	if err != nil {
 
 		//	Create the secret if it doesn't exist
-		if strings.Contains(er.Error(), "NotFound") {
+		if strings.Contains(err.Error(), "NotFound") {
 
-			if _, er = CreateSecret(ctx, client, PARENT, options.EntityDetails["name"].(string)); er != nil {
-				return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+			if _, err = CreateSecret(ctx, client, PARENT, options.EntityDetails["name"].(string)); err != nil {
+				return err
 			}
 
 			return Sync(ctx, options)
 		}
 
-		return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return err
 	}
 
 	return nil

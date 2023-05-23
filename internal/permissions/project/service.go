@@ -1,15 +1,16 @@
 package project
 
 import (
+	"errors"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/machinebox/graphql"
 )
 
-//	Insert new permissions.
-func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ProjectPermissionsInsertOptions) *errors.Error {
+// Insert new permissions.
+func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ProjectPermissionsInsertOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($project_id: uuid!, $user_id: uuid!, $permissions: jsonb!) {
@@ -23,7 +24,7 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	req.Var("user_id", options.UserID)
 	permissions, err := options.Permissions.Marshal()
 	if err != nil {
-		return errors.New(nil, "failed to marshal permissions", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGraphQL)
+		return err
 	}
 	req.Var("permissions", string(permissions))
 
@@ -36,7 +37,7 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, "failed to insert permissions", errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("failed to insert permission")
 	}
 
 	return nil

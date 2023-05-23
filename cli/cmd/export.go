@@ -119,8 +119,8 @@ var exportCmd = &cobra.Command{
 
 			result, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
 			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to fetch the secrets")
 			}
 
 			secret = *result
@@ -129,8 +129,8 @@ var exportCmd = &cobra.Command{
 
 			decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to decrypt the organisation encryption key")
 			}
 			copy(orgKey[:], decryptedOrgKey)
 
@@ -145,8 +145,8 @@ var exportCmd = &cobra.Command{
 
 			result, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
 			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to fetch the secrets")
 			}
 
 			secret = *result
@@ -158,9 +158,9 @@ var exportCmd = &cobra.Command{
 		for key, item := range secret.Secrets {
 
 			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value)
-			if er != nil {
-				log.Debug(er)
+			decoded, err := base64.StdEncoding.DecodeString(item.Value)
+			if err != nil {
+				log.Debug(err)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
@@ -169,8 +169,8 @@ var exportCmd = &cobra.Command{
 				//	Decrypt the value using org-key.
 				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
 				if err != nil {
-					log.Debug(err.Error)
-					log.Fatal(err.Message)
+					log.Debug(err)
+					log.Fatal("Failed to decrypt the secret")
 				}
 
 				item.Value = string(decrypted)

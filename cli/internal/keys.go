@@ -7,16 +7,13 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 )
 
-func GetPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, email string) ([]byte, *errors.Error) {
-
-	errMessage := "Failed to get public key"
+func GetPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, email string) ([]byte, error) {
 
 	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/keys/public-key", nil)
 	if err != nil {
-		return nil, errors.New(err, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Initialize the query values.
@@ -32,7 +29,7 @@ func GetPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, email 
 
 	result, err := base64.StdEncoding.DecodeString(response.Data.(string))
 	if err != nil {
-		return nil, errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return result, nil

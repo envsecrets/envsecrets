@@ -84,8 +84,8 @@ var getCmd = &cobra.Command{
 		var orgKey [32]byte
 		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the organisation's encryption key")
 		}
 		copy(orgKey[:], decryptedOrgKey)
 
@@ -103,8 +103,8 @@ var getCmd = &cobra.Command{
 		list, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
 
-			log.Debug(err.Error)
-			log.Debug(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to fetch the secrets")
 
 			//	Read the value from Contingency file.
 			if commons.ContingencyConfig != nil {
@@ -118,9 +118,9 @@ var getCmd = &cobra.Command{
 		}
 
 		//	Base64 decode the secret value
-		decoded, er := base64.StdEncoding.DecodeString(result.Value)
-		if er != nil {
-			log.Debug(er)
+		decoded, err := base64.StdEncoding.DecodeString(result.Value)
+		if err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to base64 decode the value for ", key)
 		}
 
@@ -129,8 +129,8 @@ var getCmd = &cobra.Command{
 			//	Decrypt the value using org-key.
 			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
 			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to decrypt the secret")
 			}
 
 			result.Value = string(decrypted)

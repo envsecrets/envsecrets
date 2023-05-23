@@ -9,12 +9,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Encrypt the credentials
 	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
@@ -32,9 +31,7 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
-
-	errMessage := "Failed to fetch list of projects"
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Initialize a new HTTP client.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -42,9 +39,9 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 		Authorization: "Bearer " + options.Credentials["token"].(string),
 	})
 
-	req, er := http.NewRequest(http.MethodGet, "https://api.supabase.com/v1/projects", nil)
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodGet, "https://api.supabase.com/v1/projects", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var response []Project
@@ -55,9 +52,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	return response, nil
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
-
-	errMessage := "Failed to sync secrets"
+func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Initialize a new HTTP client.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -65,14 +60,14 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 		Authorization: "Bearer " + options.Credentials["token"].(string),
 	})
 
-	body, er := json.Marshal(transform(options.Secrets))
-	if er != nil {
-		return errors.New(er, errMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := json.Marshal(transform(options.Secrets))
+	if err != nil {
+		return err
 	}
 
-	req, er := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.supabase.com/v1/projects/%s/secrets", options.EntityDetails["id"].(string)), bytes.NewBuffer(body))
-	if er != nil {
-		return errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://api.supabase.com/v1/projects/%s/secrets", options.EntityDetails["id"].(string)), bytes.NewBuffer(body))
+	if err != nil {
+		return err
 	}
 
 	if err := client.Run(ctx, req, nil); err != nil {

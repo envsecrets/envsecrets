@@ -112,10 +112,10 @@ var initCmd = &cobra.Command{
 		if len(organisationID) == 0 {
 
 			//	Check whether user has access to at least 1 organisation.
-			orgs, er := organisations.List(commons.DefaultContext, commons.GQLClient)
-			if er != nil {
-				log.Debug(er.Error)
-				log.Fatal(er.Message)
+			orgs, err := organisations.List(commons.DefaultContext, commons.GQLClient)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to fetch your organisations")
 			}
 
 			var orgsStringList []string
@@ -147,12 +147,12 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := organisations.Create(commons.DefaultContext, commons.GQLClient, &organisations.CreateOptions{
+				item, err := organisations.Create(commons.DefaultContext, commons.GQLClient, &organisations.CreateOptions{
 					Name: result,
 				})
-				if er != nil {
-					log.Debug(er.Error)
-					log.Fatal(er.Message)
+				if err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to create the organisation")
 				}
 
 				organisation.ID = item.ID
@@ -163,12 +163,12 @@ var initCmd = &cobra.Command{
 		//	Setup project
 		if len(projectID) == 0 {
 
-			projectsList, er := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
+			projectsList, err := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
 				OrgID: organisation.ID,
 			})
-			if er != nil {
-				log.Debug(er.Error)
-				log.Fatal(er.Message)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to fetch yours projects")
 			}
 
 			var projectsStringList []string
@@ -200,13 +200,13 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
+				item, err := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
 					OrgID: organisation.ID,
 					Name:  result,
 				})
-				if er != nil {
-					log.Debug(er.Error)
-					log.Fatal(er.Message)
+				if err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to create the project")
 				}
 
 				project.ID = item.ID
@@ -221,12 +221,12 @@ var initCmd = &cobra.Command{
 		//	Setup environment
 		if len(environmentID) == 0 {
 
-			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
 				ProjectID: project.ID,
 			})
-			if er != nil {
-				log.Debug(er.Error)
-				log.Fatal(er.Message)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to fetch your environments")
 			}
 
 			var environmentsStringList []string
@@ -258,13 +258,13 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, er := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
+				item, err := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
 					ProjectID: project.ID,
 					Name:      result,
 				})
-				if er != nil {
-					log.Debug(er.Error)
-					log.Fatal(er.Message)
+				if err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to create the environment")
 				}
 
 				environment.ID = item.ID
@@ -278,8 +278,8 @@ var initCmd = &cobra.Command{
 			UserID: commons.AccountConfig.User.ID,
 		})
 		if err != nil {
-			log.Debug(err.Error)
-			log.Debug(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to fetch the encryption key")
 		}
 
 		//	Write selected entities to project config

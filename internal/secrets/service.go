@@ -1,21 +1,20 @@
 package secrets
 
 import (
-	internalErrors "errors"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 )
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, *errors.Error) {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, error) {
 	return graphql.Set(ctx, client, options)
 }
 
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) error {
 
 	//	Directly delete the key=value in Hasura.
 	if err := graphql.Delete(ctx, client, options); err != nil {
@@ -26,13 +25,11 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 }
 
 // Cleanup entries from `secrets` table.
-func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) *errors.Error {
+func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) error {
 	return graphql.Cleanup(ctx, client, options)
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
-
-	errMessage := "Failed to fetch value"
+func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
 
 	//	Inittialize our payload
 	var payload commons.Payload
@@ -68,10 +65,10 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		}, nil
 	}
 
-	return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadResponse, errors.ErrorSourceGraphQL)
+	return nil, errors.New("failed to fetch the value")
 }
 
-func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, *errors.Error) {
+func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetSecretOptions) (*commons.GetResponse, error) {
 
 	var data commons.GetResponse
 
@@ -100,7 +97,7 @@ func GetAll(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 }
 
 // Fetches only the keys of a secret row.
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (*commons.GetResponse, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListRequestOptions) (*commons.GetResponse, error) {
 
 	var data commons.GetResponse
 
@@ -143,7 +140,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 // Pulls all secret key=value pairs from the source environment,
 // and overwrites them in the target environment.
 // It creates a new secret version.
-func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Row, *errors.Error) {
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Row, error) {
 
 	//	Fetch all key=value pairs of the source environment.
 	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
@@ -179,7 +176,7 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 	})
 }
 
-func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secrets, *errors.Error) {
+func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secrets, error) {
 
 	//	Get the server's copy of org-key.
 	var orgKey [32]byte
@@ -191,7 +188,7 @@ func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *com
 
 	//	Decrypt the value of every secret.
 	if err := options.Secrets.Decrypt(orgKey); err != nil {
-		return nil, errors.New(err, "Failed to decrypt secrets", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &options.Secrets, nil

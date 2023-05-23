@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -88,10 +88,10 @@ containing original/unedited values.`,
 			projectConfig := projectConfigPayload.(*configCommons.Project)
 
 			//	Fetch environments
-			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
 				ProjectID: projectConfig.Project,
 			})
-			if er != nil {
+			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to fetch list of environments")
 			}
@@ -135,9 +135,9 @@ containing original/unedited values.`,
 		}
 
 		//	Load the project configuration
-		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
-		if er != nil {
-			log.Debug(er)
+		projectConfigData, err := config.GetService().Load(configCommons.ProjectConfig)
+		if err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to load project configuration")
 		}
 
@@ -170,8 +170,9 @@ containing original/unedited values.`,
 
 		var response clients.APIResponse
 		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to merge the secrets")
+
 		}
 
 		if response.Error != "" {

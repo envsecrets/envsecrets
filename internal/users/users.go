@@ -2,17 +2,15 @@ package users
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/machinebox/graphql"
-
-	internalErrors "errors"
 )
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -33,21 +31,19 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 
 	returning, err := json.Marshal(response["users"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.User
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to nmarshal returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, *errors.Error) {
-
-	errMessage := "Failed to fetch the user"
+func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($email: citext!) {
@@ -68,17 +64,17 @@ func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email str
 
 	returning, err := json.Marshal(response["users"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marshal json response", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.User
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to nmarshal returning response", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	if len(resp) == 0 {
-		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGraphQL)
+		return nil, errors.New("no rows affected")
 	}
 
 	return &resp[0], nil

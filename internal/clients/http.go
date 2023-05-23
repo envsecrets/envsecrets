@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"os"
 
+	"errors"
+
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ type HTTPClient struct {
 	Authorization   string
 	CustomHeaders   []CustomHeader
 	log             *logrus.Logger
-	ResponseHandler func(*http.Response) *errors.Error
+	ResponseHandler func(*http.Response) error
 	Type            ClientType
 }
 
@@ -32,7 +33,7 @@ type HTTPConfig struct {
 	Headers         []Header
 	CustomHeaders   []CustomHeader
 	Logger          *logrus.Logger
-	ResponseHandler func(*http.Response) *errors.Error
+	ResponseHandler func(*http.Response) error
 }
 
 func NewHTTPClient(config *HTTPConfig) *HTTPClient {
@@ -76,7 +77,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 	return &response
 }
 
-func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response interface{}) *errors.Error {
+func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response interface{}) error {
 
 	c.log.Debug("Sending request to: ", req.URL.String())
 
@@ -101,14 +102,14 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 	if req.Body != nil {
 		body, err = req.GetBody()
 		if err != nil {
-			return errors.New(err, "Failed to send HTTP request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+			return err
 		}
 	}
 
 	//	Make the request
 	resp, err := c.Do(req)
 	if err != nil {
-		return errors.New(err, "Failed to send HTTP request", errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
+		return err
 	}
 
 	//	If the request failed due to expired JWT,
@@ -119,17 +120,17 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		result, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+			return err
 		}
 
 		var errResponse APIResponse
 		if err := json.Unmarshal(result, &errResponse); err != nil {
-			return errors.New(err, "failed to unmarshal response body in provided interface", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+			return err
 		}
 
 		//	Only attempt the request again if the client has a JWT Authorization header attached.
 		if c.Authorization == "" {
-			return errors.New(nil, errResponse.Message, errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
+			return errors.New(errResponse.Message)
 		}
 
 		c.log.Debug("Refreshing access token to try again")
@@ -137,7 +138,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		//	Fetch account configuration
 		accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)
 		if err != nil {
-			return errors.New(err, "failed to load account configuration", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
+			return err
 		}
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
@@ -147,7 +148,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		})
 
 		if refreshErr != nil {
-			return errors.New(err, "failed to refresh auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceNhost)
+			return err
 		}
 
 		//	Save the refreshed account config
@@ -158,7 +159,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
-			return errors.New(err, "failed to save updated account configuration", errors.ErrorTypeInvalidAccountConfiguration, errors.ErrorSourceGo)
+			return err
 		}
 
 		//	Update the authorization header in client.
@@ -172,7 +173,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		return c.Run(ctx, req, response)
 
 	} else if c.Type == HasuraClientType && resp.StatusCode == http.StatusForbidden {
-		errors.New(nil, "You do not have permissions to perform this action", errors.ErrorTypePermissionDenied, errors.ErrorSourceHTTP)
+		return errors.New("you do not have permission to perform this action")
 	}
 
 	if response != nil {
@@ -181,11 +182,11 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		result, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.New(err, "failed to read response body", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
+			return err
 		}
 
 		if err := json.Unmarshal(result, &response); err != nil {
-			return errors.New(err, "failed to unmarshal response body in provided interface", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+			return err
 		}
 	}
 

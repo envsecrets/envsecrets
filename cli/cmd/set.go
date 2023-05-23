@@ -167,8 +167,8 @@ NOTE: This command auto-capitalizes your keys.`,
 		var orgKey [32]byte
 		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the organisation's encryption key")
 		}
 		copy(orgKey[:], decryptedOrgKey)
 
@@ -184,8 +184,8 @@ NOTE: This command auto-capitalizes your keys.`,
 			Secrets: data,
 		})
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to set the secrets")
 		}
 
 		log.Info("Secrets set! Created version ", result.Version)

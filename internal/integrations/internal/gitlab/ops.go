@@ -4,65 +4,62 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	internalErrors "errors"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
 // Fetches the list of projects from Gitlab.
-func ListProjects(ctx context.ServiceContext, client *clients.HTTPClient) (*ListProjectsResponse, *errors.Error) {
+func ListProjects(ctx context.ServiceContext, client *clients.HTTPClient) (*ListProjectsResponse, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://gitlab.com/api/v4/projects?membership=true&simple=true", nil)
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response ListProjectsResponse
-	er := client.Run(ctx, req, &response)
-	if er != nil {
-		return nil, er
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
 }
 
 // Fetches the list of groups from Gitlab.
-func ListGroups(ctx context.ServiceContext, client *clients.HTTPClient) (*ListGroupsResponse, *errors.Error) {
+func ListGroups(ctx context.ServiceContext, client *clients.HTTPClient) (*ListGroupsResponse, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://gitlab.com/api/v4/groups?owned=true", nil)
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response ListGroupsResponse
-	er := client.Run(ctx, req, &response)
-	if er != nil {
-		return nil, er
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
 }
 
 // Creates a new project variable.
-func CreateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+func CreateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, error) {
 
 	URL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/variables", options.ID)
 
-	body, er := options.Variable.Marshal()
-	if er != nil {
-		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := options.Variable.Marshal()
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response Variable
@@ -81,18 +78,18 @@ func CreateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClien
 }
 
 // Creates a new group variable.
-func CreateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+func CreateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, error) {
 
 	URL := fmt.Sprintf("https://gitlab.com/api/v4/groups/%v/variables", options.ID)
 
-	body, er := options.Variable.Marshal()
-	if er != nil {
-		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := options.Variable.Marshal()
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response Variable
@@ -111,18 +108,18 @@ func CreateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient,
 }
 
 // Updates an existing variable.
-func UpdateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+func UpdateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, error) {
 
 	URL := fmt.Sprintf("https://gitlab.com/api/v4/projects/%v/variables/%s", options.ID, options.Variable.Key)
 
-	body, er := options.Variable.Marshal()
-	if er != nil {
-		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := options.Variable.Marshal()
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, URL, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response Variable
@@ -134,18 +131,18 @@ func UpdateProjectVariable(ctx context.ServiceContext, client *clients.HTTPClien
 }
 
 // Updates an existing variable.
-func UpdateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, *errors.Error) {
+func UpdateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient, options *CreateVariableOptions) (*Variable, error) {
 
 	URL := fmt.Sprintf("https://gitlab.com/api/v4/groups/%v/variables/%s", options.ID, options.Variable.Key)
 
-	body, er := options.Variable.Marshal()
-	if er != nil {
-		return nil, errors.New(er, "failed to marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := options.Variable.Marshal()
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, URL, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	var response Variable
@@ -156,7 +153,7 @@ func UpdateGroupVariable(ctx context.ServiceContext, client *clients.HTTPClient,
 	return &response, nil
 }
 
-func GetAccessToken(ctx context.ServiceContext, options *TokenRequestOptions) (*TokenResponse, *errors.Error) {
+func GetAccessToken(ctx context.ServiceContext, options *TokenRequestOptions) (*TokenResponse, error) {
 
 	//	Initialize a new HTTP client.
 	httpClient := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -181,21 +178,21 @@ func GetAccessToken(ctx context.ServiceContext, options *TokenRequestOptions) (*
 		payload["refresh_token"] = options.RefreshToken
 		payload["grant_type"] = "refresh_token"
 	} else {
-		return nil, errors.New(internalErrors.New("either code or refresh token is required"), "Failed to get access token from Gitlab", errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return nil, errors.New("either code or refresh token is required")
 	}
 
 	if options.RedirectURI != "" {
 		payload["redirect_uri"] = options.RedirectURI
 	}
 
-	body, er := json.Marshal(payload)
-	if er != nil {
-		return nil, errors.New(er, "failed to prepare request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
 	}
 
-	req, er := http.NewRequest(http.MethodPost, "https://gitlab.com/oauth/token", bytes.NewBuffer(body))
-	if er != nil {
-		return nil, errors.New(er, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodPost, "https://gitlab.com/oauth/token", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
 	}
 
 	var response TokenResponse
@@ -206,7 +203,7 @@ func GetAccessToken(ctx context.ServiceContext, options *TokenRequestOptions) (*
 	return &response, nil
 }
 
-func RefreshToken(ctx context.ServiceContext, options *TokenRefreshOptions) (*TokenResponse, *errors.Error) {
+func RefreshToken(ctx context.ServiceContext, options *TokenRefreshOptions) (*TokenResponse, error) {
 
 	//	Generate a fresh pair of tokens
 	tokens, err := GetAccessToken(ctx, &TokenRequestOptions{

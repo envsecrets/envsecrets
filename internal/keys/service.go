@@ -2,16 +2,14 @@ package keys
 
 import (
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/base64"
-	internalErrors "errors"
+	"errors"
 	"io"
 	"os"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/keys/graphql"
 	"github.com/envsecrets/envsecrets/internal/organisations"
@@ -20,38 +18,36 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) *errors.Error {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) error {
 	return graphql.Create(ctx, client, options)
 }
 
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateWithUserIDOptions) *errors.Error {
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateWithUserIDOptions) error {
 	return graphql.CreateWithUserID(ctx, client, options)
 }
 
-func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) (*commons.Key, *errors.Error) {
+func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) (*commons.Key, error) {
 	return graphql.GetByUserID(ctx, client, user_id)
 }
 
-func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, *errors.Error) {
+func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
 	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
 }
 
-func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, error) {
 
 	// You must use a different nonce for each message you encrypt with the
 	// same key. Since the nonce here is 192 bits long, a random value
 	// provides a sufficiently small probability of repeats.
 	var nonce [commons.NONCE_LEN]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		return nil, errors.New(err, "Failed to seal the message with symmetric key", errors.ErrorTypeInvalidKey, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return secretbox.Seal(nonce[:], message, &nonce, &key), nil
 }
 
-func OpenSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
-
-	errMessage := "Failed to open the message from symmetric key"
+func OpenSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, error) {
 
 	// You must use a different nonce for each message you encrypt with the
 	// same key. Since the nonce here is 192 bits long, a random value
@@ -61,34 +57,33 @@ func OpenSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *er
 
 	result, ok := secretbox.Open(nil, message[commons.NONCE_LEN:], &nonce, &key)
 	if !ok {
-		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, errors.New("failed to open the message from symmetric key")
 	}
 
 	return result, nil
 }
 
-func SealAsymmetricallyAnonymous(message []byte, key [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+func SealAsymmetricallyAnonymous(message []byte, key [commons.KEY_BYTES]byte) ([]byte, error) {
 
 	// You must use a different nonce for each message you encrypt with the
 	// same key. Since the nonce here is 192 bits long, a random value
 	// provides a sufficiently small probability of repeats.
 	var nonce [commons.NONCE_LEN]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		return nil, errors.New(err, "Failed to generate nonce", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	// This encrypts msg and appends the result to the nonce.
 	result, err := box.SealAnonymous(nonce[:], message, &key, rand.Reader)
 	if err != nil {
-		return nil, errors.New(err, "Failed to seal the message anonymously", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return result, nil
 }
 
-func OpenAsymmetricallyAnonymous(message []byte, publicKey, privateKey [commons.KEY_BYTES]byte) ([]byte, *errors.Error) {
+func OpenAsymmetricallyAnonymous(message []byte, publicKey, privateKey [commons.KEY_BYTES]byte) ([]byte, error) {
 
-	errMessage := "Failed to open the message from asymmetric keys"
 	// The recipient can decrypt the message using their private key and the
 	// sender's public key. When you decrypt, you must use the same nonce you
 	// used to encrypt the message. One way to achieve this is to store the
@@ -98,37 +93,23 @@ func OpenAsymmetricallyAnonymous(message []byte, publicKey, privateKey [commons.
 	copy(nonce[:], message[:commons.NONCE_LEN])
 	result, ok := box.OpenAnonymous(nil, message[commons.NONCE_LEN:], &publicKey, &privateKey)
 	if !ok {
-		return nil, errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, errors.New("failed to open the message from asymmetric key")
 	}
 
 	return result, nil
 }
 
-func VerifyKeyPair(private, public []byte) (bool, error) {
+func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 
-	key, err := x509.ParsePKCS1PrivateKey(private)
+	publicKeyBytes, privateKeyBytes, err := box.GenerateKey(rand.Reader)
 	if err != nil {
-		return false, err
-	}
-
-	pubKey, err := x509.ParsePKIXPublicKey(public)
-	if err != nil {
-		return false, err
-	}
-	return key.PublicKey.Equal(pubKey), nil
-}
-
-func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Error) {
-
-	publicKeyBytes, privateKeyBytes, er := box.GenerateKey(rand.Reader)
-	if er != nil {
-		return nil, errors.New(er, "Failed to generate public-private key pair", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Generate a separate random symmetric key
-	protectionKeyBytes, er := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
-	if er != nil {
-		return nil, errors.New(er, "Failed to generate protection key", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	protectionKeyBytes, err := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	if err != nil {
+		return nil, err
 	}
 
 	//	Encrypt the private key using protection key
@@ -140,9 +121,9 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Er
 	}
 
 	//	Generate random 32 byte salt
-	saltBytes, er := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
-	if er != nil {
-		return nil, errors.New(er, "Failed to generate salt for protection key", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	saltBytes, err := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	if err != nil {
+		return nil, err
 	}
 
 	//	Safegaurd the protection key using Argon2i password based hashing.
@@ -166,7 +147,7 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, *errors.Er
 }
 
 // Decrypt the org's symmetric key with your local public-private key.
-func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, *errors.Error) {
+func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, error) {
 
 	var publicKey, privateKey [commons.KEY_BYTES]byte
 	copy(publicKey[:], public)
@@ -178,9 +159,7 @@ func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, *e
 	return result, nil
 }
 
-func GetOrgKeyServerCopy(ctx context.ServiceContext, org_id string) ([]byte, *errors.Error) {
-
-	errMessage := "Failed to get server-copy of org's encryption key"
+func GetOrgKeyServerCopy(ctx context.ServiceContext, org_id string) ([]byte, error) {
 
 	//	Initialize new GQL client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
@@ -197,14 +176,14 @@ func GetOrgKeyServerCopy(ctx context.ServiceContext, org_id string) ([]byte, *er
 	}
 
 	//	Decrypt the copy with server's private key (in env vars).
-	serverPrivateKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	serverPrivateKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
+	if err != nil {
+		return nil, err
 	}
 
-	serverPublicKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	serverPublicKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	if err != nil {
+		return nil, err
 	}
 
 	return DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverCopy)

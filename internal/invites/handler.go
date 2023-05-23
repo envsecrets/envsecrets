@@ -38,7 +38,7 @@ func AcceptHandler(c echo.Context) error {
 	//	Fetch the invite
 	invite, err := service.Get(ctx, client, id)
 	if err != nil {
-		return c.String(err.Type.GetStatusCode(), "Invite not found")
+		return c.String(http.StatusNotFound, "Invite not found")
 	}
 
 	//	Validate the key for this invite.
@@ -64,29 +64,29 @@ func AcceptHandler(c echo.Context) error {
 	}
 
 	//	Decrypt the copy with server's private key (in env vars).
-	serverPrivateKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if er != nil {
+	serverPrivateKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
+	if err != nil {
 		return c.String(http.StatusUnauthorized, "Failed to base64 decode server's private key.")
 	}
-	serverPublicKey, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
+	serverPublicKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	if err != nil {
 		return c.String(http.StatusUnauthorized, "Failed to base64 decode server's private key.")
 	}
 
 	result, err := keys.DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverOrgKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to decrypt server's copy of org-key"),
-			Error:   err.Message,
+			Message: "Failed to decrypt server's copy of org-key",
+			Error:   err.Error(),
 		})
 	}
 
 	//	Fetch the invitee's public key.
 	inviteePublicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, user.ID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch invitee's public key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch invitee's public key",
+			Error:   err.Error(),
 		})
 	}
 	var invitePublicKey [32]byte
@@ -96,8 +96,8 @@ func AcceptHandler(c echo.Context) error {
 	result, err = keys.SealAsymmetricallyAnonymous(result, invitePublicKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to decrypt server's copy of org-key"),
-			Error:   err.Message,
+			Message: "Failed to create a copy of org-key for the invitee",
+			Error:   err.Error(),
 		})
 	}
 
@@ -107,9 +107,9 @@ func AcceptHandler(c echo.Context) error {
 		RoleID: invite.RoleID,
 		Key:    base64.StdEncoding.EncodeToString(result),
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to add the invite as a member"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to add the invitee as a member",
+			Error:   err.Error(),
 		})
 	}
 
@@ -117,9 +117,9 @@ func AcceptHandler(c echo.Context) error {
 	if _, err := service.Update(ctx, client, id, &commons.UpdateOptions{
 		Accepted: true,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to accept invite"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to accept the invite",
+			Error:   err.Error(),
 		})
 	}
 
@@ -128,10 +128,9 @@ func AcceptHandler(c echo.Context) error {
 		ID:               invite.OrgID,
 		IncrementLimitBy: -1,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to decrement org's invite limit"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrement org's invite limit",
+			Error:   err.Error(),
 		})
 	}
 

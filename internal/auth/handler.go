@@ -8,7 +8,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/golang-jwt/jwt/v4"
@@ -38,13 +37,11 @@ func SignupHandler(c echo.Context) error {
 
 	//	Call the service handler.
 	if err := Signup(ctx, client, &payload); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.Message,
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to register the user",
+			Error:   err.Error(),
 		})
 	}
-
-	//	TODO: Send welcome email + signup kit to the user.
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "Verification email sent to your inbox!",
@@ -78,17 +75,18 @@ func UpdatePasswordHandler(c echo.Context) error {
 	//	Check whether user has keys.
 	_, err := keys.GetByUserID(ctx, client, claims.Hasura.UserID)
 	if err != nil {
+		apiError := clients.ParseExternal(err)
 
 		//	If key pair does not exist for this user,
 		//	issue them a new key pair.
-		if err.IsType(errors.ErrorTypeDoesNotExist) {
+		if apiError.IsType(clients.ErrorTypeDoesNotExist) {
 
 			//	Generate Key pair
 			pair, err := keys.GenerateKeyPair(payload.NewPassword)
 			if err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-					Message: err.GenerateMessage("Failed to issue a fresh key pair"),
-					Error:   err.Error.Error(),
+				return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+					Message: "Failed to issue a fresh key pair",
+					Error:   err.Error(),
 				})
 			}
 
@@ -99,15 +97,14 @@ func UpdatePasswordHandler(c echo.Context) error {
 				ProtectedKey: base64.StdEncoding.EncodeToString(pair.ProtectedKey),
 				Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
 			}); err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-					Message: err.GenerateMessage("Failed to issue a fresh key pair"),
-					Error:   err.Error.Error(),
+				return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+					Message: "Failed to issue a fresh key pair",
+					Error:   err.Error(),
 				})
 			}
 		} else {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.Message,
-				Error:   err.Error.Error(),
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Error: err.Error(),
 			})
 		}
 	}
@@ -123,9 +120,9 @@ func UpdatePasswordHandler(c echo.Context) error {
 
 	//	Call the service handler.
 	if err := UpdatePassword(ctx, httpClient, &payload); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.Message,
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to update the password",
+			Error:   err.Error(),
 		})
 	}
 
