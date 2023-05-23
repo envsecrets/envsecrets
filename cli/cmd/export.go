@@ -57,7 +57,7 @@ var XTokenHeader string
 // exportCmd represents the export command
 var exportCmd = &cobra.Command{
 	Use:   "export",
-	Short: "Prints decrypted list of your environment's (key-value) secret pairs",
+	Short: "Prints decrypted list of your environment's (key=value) secret pairs",
 	Args:  cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
@@ -152,13 +152,13 @@ var exportCmd = &cobra.Command{
 			secret = *result
 		}
 
-		//	Initialize a new buffer to store key-value lines
+		//	Initialize a new buffer to store key=value lines
 		var buffer bytes.Buffer
 		var variables []string
-		for key, item := range secret.Data {
+		for key, item := range secret.Secrets {
 
 			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
+			decoded, er := base64.StdEncoding.DecodeString(item.Value)
 			if er != nil {
 				log.Debug(er)
 				log.Fatal("Failed to base64 decode the value for ", key)

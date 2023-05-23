@@ -65,7 +65,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 		Authorization: "Bearer " + options.Credentials["token"].(string),
 	})
 
-	body, er := json.Marshal(transform(options.Data))
+	body, er := json.Marshal(transform(options.Secrets))
 	if er != nil {
 		return errors.New(er, errMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}

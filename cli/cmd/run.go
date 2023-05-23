@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -120,32 +120,23 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			log.Fatal(err.Message)
 		}
 
-		//	Initialize a new buffer to store key-value lines
+		//	Initialize a new buffer to store key=value lines
 		var variables []string
-		for key, item := range secret.Data {
+		if err := secret.Secrets.Decrypt(orgKey); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decrypt secrets")
+		}
+
+		for key, item := range secret.Secrets {
 
 			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
+			decoded, er := base64.StdEncoding.DecodeString(item.Value)
 			if er != nil {
 				log.Debug(er)
 				log.Fatal("Failed to base64 decode the value for ", key)
 			}
 
-			if item.Type == secretsCommons.Ciphertext {
-
-				//	Decrypt the value using org-key.
-				decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-				if err != nil {
-					log.Debug(err.Error)
-					log.Fatal(err.Message)
-				}
-
-				item.Value = string(decrypted)
-			} else {
-				item.Value = string(decoded)
-			}
-
-			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
+			variables = append(variables, fmt.Sprintf("%s=%s", key, string(decoded)))
 		}
 
 		log.Info("Injecting secrets version ", *secret.Version, " into your process")

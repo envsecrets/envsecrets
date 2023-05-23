@@ -2,7 +2,6 @@ package asm
 
 import (
 	"encoding/base64"
-	"encoding/json"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -81,7 +80,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.Cre
 	client := secretsmanager.NewFromConfig(cfg)
 
 	//	Marshal the secrets
-	payload, err := json.Marshal(toKVMap(options.Data))
+	payload, err := options.Secrets.ToMap().Marshal()
 	if err != nil {
 		return nil, errors.New(err, "Failed to push secrets to ASM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}

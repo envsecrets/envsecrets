@@ -1,8 +1,6 @@
 package secrets
 
 import (
-	"encoding/base64"
-
 	internalErrors "errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -13,13 +11,13 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 )
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, *errors.Error) {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Row, *errors.Error) {
 	return graphql.Set(ctx, client, options)
 }
 
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) *errors.Error {
 
-	//	Directly delete the key-value in Hasura.
+	//	Directly delete the key=value in Hasura.
 	if err := graphql.Delete(ctx, client, options); err != nil {
 		return err
 	}
@@ -61,11 +59,11 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		options.Version = &resp.Version
 	}
 
-	if payload.Value != nil {
+	if payload.Value != "" {
+		secrets := make(commons.Secrets)
+		secrets.Set(options.Key, payload)
 		return &commons.GetResponse{
-			Data: map[string]commons.Payload{
-				options.Key: payload,
-			},
+			Secrets: secrets,
 			Version: options.Version,
 		}, nil
 	}
@@ -134,20 +132,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 
 	//	Remove the values from payload.
 	//	Only keep the type.
-	for key, item := range data.Data {
-		data.Data[key] = commons.Payload{
+	for key, item := range data.Secrets {
+		data.Secrets[key] = commons.Payload{
 			Type: item.Type,
 		}
 	}
 	return &data, nil
 }
 
-// Pulls all secret key-value pairs from the source environment,
+// Pulls all secret key=value pairs from the source environment,
 // and overwrites them in the target environment.
 // It creates a new secret version.
-func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, *errors.Error) {
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Row, *errors.Error) {
 
-	//	Fetch all key-value pairs of the source environment.
+	//	Fetch all key=value pairs of the source environment.
 	sourceVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
 		EnvID:   options.SourceEnvID,
 		Version: options.SourceVersion,
@@ -156,7 +154,7 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 		return nil, err
 	}
 
-	//	Fetch all key-value pairs of the target environment.
+	//	Fetch all key=value pairs of the target environment.
 	targetVariables, err := GetAll(ctx, client, &commons.GetSecretOptions{
 		EnvID: options.TargetEnvID,
 	})
@@ -166,24 +164,22 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 
 	//	If the target variables is nil,
 	//	then no pairs were fetched.
-	if targetVariables.Data == nil {
-		targetVariables.Data = make(map[string]commons.Payload)
+	if targetVariables.Secrets == nil {
+		targetVariables.Secrets = make(commons.Secrets)
 	}
 
 	//	Iterate through the target pairs,
 	//	and overwrite the matching ones from the source pairs.
-	for key, payload := range sourceVariables.Data {
-		targetVariables.Data[key] = payload
-	}
+	targetVariables.Secrets.Overwrite(sourceVariables.Secrets)
 
 	//	Set the updated pairs in Hasura.
 	return graphql.Set(ctx, client, &commons.SetSecretOptions{
-		EnvID: options.TargetEnvID,
-		Data:  targetVariables.Data,
+		EnvID:   options.TargetEnvID,
+		Secrets: targetVariables.Secrets,
 	})
 }
 
-func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (map[string]commons.Payload, *errors.Error) {
+func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secrets, *errors.Error) {
 
 	//	Get the server's copy of org-key.
 	var orgKey [32]byte
@@ -194,30 +190,9 @@ func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *com
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Decrypt the value of every secret.
-	for key, payload := range options.Data {
-
-		//	Base64 decode the secret value
-		decoded, er := base64.StdEncoding.DecodeString(payload.Value.(string))
-		if er != nil {
-			return nil, errors.New(er, "Failed to base64 decode value for secret "+key, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
-		}
-
-		//	If the secret is of type `ciphertext`,
-		//	we will need to decode it first.
-		if payload.Type == commons.Ciphertext {
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-			if err != nil {
-				return nil, err
-			}
-
-			payload.Value = string(decrypted)
-		} else {
-			payload.Value = string(decoded)
-		}
-
-		options.Data[key] = payload
+	if err := options.Secrets.Decrypt(orgKey); err != nil {
+		return nil, errors.New(err, "Failed to decrypt secrets", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
 	}
-	return options.Data, nil
+
+	return &options.Secrets, nil
 }

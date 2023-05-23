@@ -47,7 +47,7 @@ func SecretInserted(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row secretCommons.Secret
+	var row secretCommons.Row
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",
@@ -84,8 +84,6 @@ func SecretInserted(c echo.Context) error {
 		})
 	}
 
-	var decrypted map[string]secretCommons.Payload
-
 	//	Get the organisation to which these secrets belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
@@ -96,9 +94,9 @@ func SecretInserted(c echo.Context) error {
 	}
 
 	//	Decrypt the value of every secret.
-	decrypted, err = secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID: organisation.ID,
-		Data:  row.Data,
+	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+		OrgID:   organisation.ID,
+		Secrets: row.Data,
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
@@ -115,7 +113,7 @@ func SecretInserted(c echo.Context) error {
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,
-			Data:          decrypted,
+			Secrets:       *decrypted,
 		}); err != nil {
 			log.Printf("failed to push secret with ID %s for %s event: %s", row.ID, event.Integration.Type, event.ID)
 			log.Println(err)
@@ -185,8 +183,8 @@ func EventInserted(c echo.Context) error {
 
 	//	Decrypt the value of every secret.
 	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID: organisation.ID,
-		Data:  response.Data,
+		OrgID:   organisation.ID,
+		Secrets: response.Secrets,
 	})
 	if err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
@@ -202,7 +200,7 @@ func EventInserted(c echo.Context) error {
 		IntegrationID: row.IntegrationID,
 		EventID:       row.ID,
 		EntityDetails: row.EntityDetails,
-		Data:          decrypted,
+		Secrets:       *decrypted,
 	}); err != nil {
 		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
 			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID)),
@@ -227,7 +225,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row secretCommons.Secret
+	var row secretCommons.Row
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",

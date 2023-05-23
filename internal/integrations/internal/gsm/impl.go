@@ -88,7 +88,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 	PARENT := fmt.Sprintf("projects/%v", options.Credentials["project_id"])
 
 	//	Prepare the payload
-	payload, er := json.Marshal(toKVMap(options.Data))
+	payload, er := options.Secrets.ToMap().Marshal()
 	if er != nil {
 		return errors.New(er, "Failed to sync secrets to GSM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
 	}

@@ -59,8 +59,8 @@ var file string
 // setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set KEY=VALUE",
-	Short: "Set new key-value pairs in your current environment's secret.",
-	Long: `Set new key-value pairs in your current environment's secret.
+	Short: "Set new key=value pairs in your current environment's secret.",
+	Long: `Set new key=value pairs in your current environment's secret.
 
 You can also load your variables directly from files: envs set --file .env
 
@@ -84,14 +84,14 @@ NOTE: This command auto-capitalizes your keys.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 
 		if file == "" && len(args) != 1 {
-			return errors.New("either an import file is required to load variables from or at least 1 key-value pair (of secret) is required")
+			return errors.New("either an import file is required to load variables from or at least 1 key=value pair (of secret) is required")
 		}
 
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		data := make(map[string]secretsCommons.Payload)
+		data := make(secretsCommons.Secrets)
 
 		if file != "" {
 			filedata, err := ioutil.ReadFile(file)
@@ -115,8 +115,7 @@ NOTE: This command auto-capitalizes your keys.`,
 						log.Error("Error on line ", index, " of your file")
 						log.Fatal(err)
 					}
-
-					data[key] = *payload
+					data.Set(key, *payload)
 				}
 
 			case ".csv":
@@ -126,40 +125,27 @@ NOTE: This command auto-capitalizes your keys.`,
 
 			case ".json":
 
-				var mapping map[string]interface{}
-				if err := json.Unmarshal(filedata, &mapping); err != nil {
+				var secrets secretsCommons.Secrets
+				if err := json.Unmarshal(filedata, &secrets); err != nil {
 					log.Debug(err)
 					log.Fatal("Failed to read json from file")
 				}
 
-				for key, value := range mapping {
-
-					//	Base64 encode the secret value
-					value = base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
-
-					data[key] = secretsCommons.Payload{
-						Value: value,
-						Type:  secretsCommons.Ciphertext,
-					}
+				for key, value := range data {
+					encoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
+					data.Set(key, secretsCommons.Payload{Value: encoded, Type: secretsCommons.Ciphertext})
 				}
 
 			case ".yaml":
 
-				var mapping map[string]interface{}
-				if err := yaml.Unmarshal(filedata, &mapping); err != nil {
+				if err := yaml.Unmarshal(filedata, &data); err != nil {
 					log.Debug(err)
 					log.Fatal("Failed to read json from file")
 				}
 
-				for key, value := range mapping {
-
-					//	Base64 encode the secret value
-					value = base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
-
-					data[key] = secretsCommons.Payload{
-						Value: value,
-						Type:  secretsCommons.Ciphertext,
-					}
+				for key, value := range data {
+					encoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
+					data.Set(key, secretsCommons.Payload{Value: encoded, Type: secretsCommons.Ciphertext})
 				}
 			}
 
@@ -167,7 +153,7 @@ NOTE: This command auto-capitalizes your keys.`,
 
 			//	Run sanity checks
 			if len(args) < 1 {
-				log.Fatal("Invalid key-value pair")
+				log.Fatal("Invalid key=value pair")
 			}
 
 			key, payload, err := readPair(args[0])
@@ -175,7 +161,7 @@ NOTE: This command auto-capitalizes your keys.`,
 				log.Fatal(err)
 			}
 
-			data[key] = *payload
+			data.Set(key, *payload)
 		}
 
 		var orgKey [32]byte
@@ -187,50 +173,43 @@ NOTE: This command auto-capitalizes your keys.`,
 		copy(orgKey[:], decryptedOrgKey)
 
 		//	Encrypt the secrets
-		for key, payload := range data {
-			if encrypt {
-				encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", payload.Value)), orgKey)
-				if err != nil {
-					log.Debug(err)
-					log.Error(err.Message)
-				}
-				payload.Value = base64.StdEncoding.EncodeToString(encrypted)
-			} else {
-				payload.Value = base64.StdEncoding.EncodeToString([]byte(payload.Value.(string)))
-			}
-			data[key] = payload
+		if err := data.Encrypt(orgKey); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to encrypt secrets")
 		}
 
 		//	Upload the values to Hasura.
-		secret, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetSecretOptions{
-			EnvID: commons.ProjectConfig.Environment,
-			Data:  data,
+		result, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetSecretOptions{
+			EnvID:   commons.ProjectConfig.Environment,
+			Secrets: data,
 		})
 		if err != nil {
 			log.Debug(err.Error)
 			log.Fatal(err.Message)
 		}
 
-		log.Info("Secrets set! Created version ", secret.Version)
+		log.Info("Secrets set! Created version ", result.Version)
 
-		//	Update the Contingency file
-		if err := config.GetService().Save(configCommons.Contingency(data), configCommons.ContingencyConfig); err != nil {
-			log.Debug(err)
-			log.Warn("Failed to save secrets in Contingency file")
-		}
+		/*
+			 		//	Update the Contingency file
+					if err := config.GetService().Save(configCommons.Contingency(data), configCommons.ContingencyConfig); err != nil {
+						log.Debug(err)
+						log.Warn("Failed to save secrets in Contingency file")
+					}
+		*/
 	},
 }
 
 func readPair(data string) (string, *secretsCommons.Payload, error) {
 
 	if !strings.Contains(data, "=") {
-		return "", nil, internalErrors.New("invalid key-value pair")
+		return "", nil, internalErrors.New("invalid key=value pair")
 	}
 
 	pair := strings.Split(data, "=")
 
 	if len(pair) != 2 {
-		return "", nil, internalErrors.New("invalid key-value pair")
+		return "", nil, internalErrors.New("invalid key=value pair")
 	}
 
 	key := pair[0]

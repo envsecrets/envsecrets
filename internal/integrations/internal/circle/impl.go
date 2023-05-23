@@ -103,8 +103,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 		},
 	})
 
-	for key, payload := range options.Data {
-
+	for key, payload := range options.Secrets {
 		body, er := json.Marshal(map[string]interface{}{
 			"name":  key,
 			"value": payload.Value,

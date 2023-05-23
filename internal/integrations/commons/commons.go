@@ -17,7 +17,7 @@ const (
 	Vercel   IntegrationType = "vercel"
 	ASM      IntegrationType = "asm"
 	GSM      IntegrationType = "gsm"
-	CircleCI IntegrationType = "circle"
+	CircleCI IntegrationType = "circleci"
 	Supabase IntegrationType = "supabase"
 	Netlify  IntegrationType = "netlify"
 )

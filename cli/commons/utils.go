@@ -7,6 +7,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
+
+	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 // Initialize common GQL Client for the CLI
@@ -24,7 +26,7 @@ var Logger = logrus.New()
 var AccountConfig *commons.Account
 var ProjectConfig *commons.Project
 var KeysConfig *commons.Keys
-var ContingencyConfig *commons.Contingency
+var ContingencyConfig *secretCommons.Secrets
 
 func Initialize() {
 
@@ -52,14 +54,14 @@ func Initialize() {
 		KeysConfig = keysConfig.(*commons.Keys)
 	}
 
-	//	Fetch the Contingency config
-	ContingencyConfig, err := config.GetService().Load(commons.ContingencyConfig)
-	if err != nil {
-		log.Debug(err)
-	} else {
-		ContingencyConfig = ContingencyConfig.(*commons.Contingency)
-	}
-
+	/* 	//	Fetch the Contingency config
+	   	ContingencyConfig, err := config.GetService().Load(commons.ContingencyConfig)
+	   	if err != nil {
+	   		log.Debug(err)
+	   	} else {
+	   		ContingencyConfig = ContingencyConfig.(*secretCommons.Secrets)
+	   	}
+	*/
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
 		Type:    clients.HasuraClientType,

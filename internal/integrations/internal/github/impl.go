@@ -87,7 +87,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 	//	Extract the slug from entity details
 	slug := options.EntityDetails["full_name"].(string)
 
-	for key, payload := range options.Data {
+	for key, payload := range options.Secrets {
 
 		//	If the payload is of type `ciphertext`,
 		//	we have to encrypt its value and push it to Github action's secrets.
@@ -100,7 +100,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 			}
 
 			//	Encrypt the secret value.
-			encryptedValue, er := encryptSecret(publicKey.Key, payload.Value.(string))
+			encryptedValue, er := encryptSecret(publicKey.Key, payload.Value)
 			if er != nil {
 				return errors.New(er, "failed to encrypt secret", errors.ErrorTypeBadResponse, errors.ErrorSourceGo)
 			}
@@ -137,7 +137,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 						return err
 					}
 
-					return pushRepositoryVariable(ctx, client, slug, key, payload.Value.(string))
+					return pushRepositoryVariable(ctx, client, slug, key, payload.Value)
 				}
 
 				return nil
@@ -145,7 +145,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 			//	If the payload type is `plaintext`,
 			//	save it as a normal variable in Github actions.
-			if err := pushRepositoryVariable(ctx, client, slug, key, payload.Value.(string)); err != nil {
+			if err := pushRepositoryVariable(ctx, client, slug, key, payload.Value); err != nil {
 				return err
 			}
 		}

@@ -1,8 +1,6 @@
 package secrets
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -12,7 +10,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 )
 
 func SetHandler(c echo.Context) error {
@@ -21,7 +18,6 @@ func SetHandler(c echo.Context) error {
 	var payload commons.SetRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -57,26 +53,17 @@ func SetHandler(c echo.Context) error {
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Encrypt the values with decrypted key
-	for key, item := range payload.Data {
-		if item.Type == commons.Ciphertext {
-			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
-			if err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-					Message: err.GenerateMessage("Failed to encrypt the secret: " + key),
-					Error:   err.Message,
-				})
-			}
-			item.Value = base64.StdEncoding.EncodeToString(encrypted)
-		} else {
-			item.Value = base64.StdEncoding.EncodeToString([]byte(item.Value.(string)))
-		}
-		payload.Data[key] = item
+	if err := payload.Secrets.Encrypt(orgKey); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to encrypt the secrets",
+			Error:   err.Error(),
+		})
 	}
 
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
 		EnvID:      payload.EnvID,
-		Data:       payload.Data,
+		Secrets:    payload.Secrets,
 		KeyVersion: payload.KeyVersion,
 	})
 	if err != nil {
@@ -222,28 +209,12 @@ func GetHandler(c echo.Context) error {
 	}
 	copy(orgKey[:], orgKeyBytes)
 
-	//	Encrypt the values with decrypted key
-	for key, item := range response.Data {
-
-		if item.Type == commons.Ciphertext {
-
-			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
-			if er != nil {
-				log.Debug(er)
-				log.Fatal("Failed to base64 decode the value for ", key)
-			}
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
-			}
-
-			item.Value = base64.StdEncoding.EncodeToString(decrypted)
-			response.Data[key] = item
-		}
+	//	Decrypt the values with decrypted key
+	if err := response.Secrets.Decrypt(orgKey); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
