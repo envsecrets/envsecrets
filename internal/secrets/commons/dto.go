@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/envsecrets/envsecrets/internal/secrets/internal/keypayload"
 	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
 	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
 )
@@ -26,7 +27,7 @@ type Secret struct {
 	Version *int `json:"version,omitempty"`
 
 	// Contains the secret mapping.
-	Data map[string]*payload.Payload `json:"data,omitempty"`
+	Data keypayload.KPMap `json:"data,omitempty"`
 }
 
 // Returns the secret's key=value mapping.
@@ -61,9 +62,9 @@ func ParseAndInitialize(data []byte) (*Secret, error) {
 // Sets a key=value pair to the map.
 func (s *Secret) Set(key string, value *payload.Payload) {
 	if s.Data == nil {
-		s.Data = make(map[string]*payload.Payload)
+		s.Data = make(keypayload.KPMap)
 	}
-	s.Data[key] = value
+	s.Data.Set(key, value)
 }
 
 type AddConfig struct {
@@ -85,11 +86,18 @@ func (s *Secret) Add(key string, config *AddConfig) {
 
 // Fetches the value for a specific key from the map.
 func (s *Secret) Get(key string) *payload.Payload {
-	return s.Data[key]
+	return s.Data.Get(key)
 }
 
+// Fetches the value for a specific key from the map.
+func (s *Secret) GetValue(key string) string {
+	return s.Data.GetValue(key)
+}
+
+//	Get formatted string.
+//
 // Fetches key=value representation for a specific key and value from the map.
-func (s *Secret) GetString(key string) string {
+func (s *Secret) GetFmtString(key string) string {
 	return fmt.Sprintf("%s=%s", key, s.Data[key].Value)
 }
 
@@ -100,77 +108,56 @@ func (s *Secret) Delete(key string) {
 
 // Ovewrites or replaces values in the map for respective keys from supplied map.
 func (s *Secret) Overwrite(source map[string]*payload.Payload) {
+	m := make(keypayload.KPMap)
 	for name, payload := range source {
-		s.Set(name, payload)
+		m.Set(name, payload)
 	}
+	s.Data.Overwrite(&m)
 }
 
 // Base64 encodes all the pairs in the map.
 func (s *Secret) Encode() {
-	for name, payload := range s.Data {
-		payload.Encode()
-		s.Set(name, payload)
-	}
+	s.Data.Encode()
 }
 
 // Base64 decodes all the pairs in the map.
 func (s *Secret) Decode() error {
-	for name, payload := range s.Data {
-		if err := payload.Decode(); err != nil {
-			return err
-		}
-		s.Set(name, payload)
-	}
-	return nil
+	return s.Data.Decode()
 }
 
 // Marks all payload values as Base64 encoded.
 func (s *Secret) MarkEncoded() {
-	for _, payload := range s.Data {
-		payload.MarkEncoded()
-	}
+	s.Data.MarkEncoded()
 }
 
 // Encrypts all the key=value pairs with provided encryption key.
 func (s *Secret) Encrypt(key [32]byte) error {
-	for name, payload := range s.Data {
-		if err := payload.Encrypt(key); err != nil {
-			return err
-		}
-		s.Set(name, payload)
-	}
-	return nil
+	return s.Data.Encrypt(key)
 }
 
-// Encrypts all the key=value pairs with provided encryption key
-// and returns a new copy of the secrets payload without mutating the existing one.
-func (s *Secret) Encrypted(key [32]byte) (result *Secret, err error) {
-	copy := s
-	if err := copy.Encrypt(key); err != nil {
+// Encrypts all the key=value pairs with provided key
+// and returns a new deep copy of the secret data without mutating the existing one.
+func (s *Secret) Encrypted(key [32]byte) (*Secret, error) {
+	new := s
+	if err := new.Encrypt(key); err != nil {
 		return nil, err
 	}
-	return copy, nil
+	return new, nil
 }
 
 // Decrypts all the key=value pairs with provided decryption key.
 func (s *Secret) Decrypt(key [32]byte) error {
-	for name, payload := range s.Data {
-		if err := payload.Decrypt(key); err != nil {
-			return err
-		}
-		s.Set(name, payload)
-	}
-	return nil
+	return s.Data.Decrypt(key)
 }
 
-// Decrypts all the key=value pairs with provided decryption key
-// and returns a new copy of the secrets payload without mutating the existing one.
+// Decrypts all the key=value pairs with provided key
+// and returns a new deep copy of the secret data without mutating the existing one.
 func (s *Secret) Decrypted(key [32]byte) (result *Secret, err error) {
-	copy := s
-	if err := copy.Decrypt(key); err != nil {
+	new := s
+	if err := new.Decrypt(key); err != nil {
 		return nil, err
 	}
-	return copy, nil
+	return new, nil
 }
 
 // Empties the values from the payloads of all key=value pairs.

@@ -3,6 +3,7 @@ package payload
 import (
 	"encoding/base64"
 	"encoding/json"
+	"sync"
 
 	"github.com/envsecrets/envsecrets/internal/keys"
 )
@@ -12,6 +13,7 @@ import (
 //type Type string
 
 type Payload struct {
+	sync.Mutex
 	Value string `json:"value,omitempty"`
 
 	//	Allows the value to be synced as an exposable one
@@ -39,7 +41,16 @@ func (p *Payload) ToMap() (result map[string]interface{}, err error) {
 
 // Sets the value of the payload.
 func (p *Payload) Set(value string) {
+	p.Lock()
+	defer p.Unlock()
 	p.Value = value
+}
+
+// Returns the value of the payload.
+func (p *Payload) GetValue() string {
+	p.Lock()
+	defer p.Unlock()
+	return p.Value
 }
 
 // Returns a boolean validating whether a value is exposable or not.
@@ -59,11 +70,15 @@ func (p *Payload) IsEmpty() bool {
 
 // Marks the payload as "encoded."
 func (p *Payload) MarkEncoded() {
+	p.Lock()
+	defer p.Unlock()
 	p.encoded = true
 }
 
 // Marks the payload as "decoded."
 func (p *Payload) MarkDecoded() {
+	p.Lock()
+	defer p.Unlock()
 	p.encoded = false
 }
 
@@ -117,7 +132,16 @@ func (p *Payload) Encrypt(key [32]byte) error {
 	return nil
 }
 
-// Decrypts the value of the payload.
+// Encrypts the value of the payload with the supplied key and returns a new deep copy of the payload.
+func (p *Payload) Encrypted(key [32]byte) (*Payload, error) {
+	new := p
+	if err := new.Encrypt(key); err != nil {
+		return nil, err
+	}
+	return new, nil
+}
+
+// Decrypts the value of the payload with the supplied key.
 func (p *Payload) Decrypt(key [32]byte) error {
 
 	//	Decode the value before decrypting it.
@@ -136,4 +160,13 @@ func (p *Payload) Decrypt(key [32]byte) error {
 	p.Set(string(decrypted))
 
 	return nil
+}
+
+// Decrypts the value of the payload and returns a new deep copy of the payload.
+func (p *Payload) Decrypted(key [32]byte) (*Payload, error) {
+	new := p
+	if err := new.Decrypt(key); err != nil {
+		return nil, err
+	}
+	return new, nil
 }

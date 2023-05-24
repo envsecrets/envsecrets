@@ -157,7 +157,7 @@ var exportCmd = &cobra.Command{
 		var buffer bytes.Buffer
 		var variables []string
 		for key := range secret.Data {
-			variables = append(variables, secret.GetString(key))
+			variables = append(variables, secret.GetFmtString(key))
 		}
 
 		buffer.WriteString(strings.Join(variables, "\n"))
