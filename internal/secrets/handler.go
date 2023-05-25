@@ -157,40 +157,17 @@ func GetHandler(c echo.Context) error {
 		payload.EnvID = c.Get("env_id").(string)
 	}
 
-	var response *commons.Secret
-	var err error
-
-	//	If there is a specific key,
-	//	pull the value only for that key.
-	if payload.Key != "" {
-
-		//	Call the service function.
-		response, err = Get(ctx, client, &commons.GetOptions{
-			Key:     payload.Key,
-			EnvID:   payload.EnvID,
-			Version: payload.Version,
+	//	Call the service function.
+	secret, err := Get(ctx, client, &commons.GetOptions{
+		Key:     payload.Key,
+		EnvID:   payload.EnvID,
+		Version: payload.Version,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get the secrets",
+			Error:   err.Error(),
 		})
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "Failed to get the secrets",
-				Error:   err.Error(),
-			})
-		}
-
-	} else {
-
-		//	Else, pull all values.
-		//	Call the service function.
-		response, err = Get(ctx, client, &commons.GetOptions{
-			EnvID:   payload.EnvID,
-			Version: payload.Version,
-		})
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "Failed to get the secrets",
-				Error:   err.Error(),
-			})
-		}
 	}
 
 	//	Fetch the organisation using environment ID.
@@ -214,7 +191,7 @@ func GetHandler(c echo.Context) error {
 	copy(orgKey[:], orgKeyBytes)
 
 	//	Decrypt the values with decrypted key
-	if err := response.Decrypt(orgKey); err != nil {
+	if err := secret.Decrypt(orgKey); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to decrypt the secrets",
 			Error:   err.Error(),
@@ -223,7 +200,7 @@ func GetHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully got the secret",
-		Data:    response,
+		Data:    secret,
 	})
 }
 

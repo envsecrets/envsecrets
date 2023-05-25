@@ -153,12 +153,12 @@ var exportCmd = &cobra.Command{
 					log.Fatal("Failed to fetch the secrets")
 				}
 			}
-		}
 
-		//	Decrypt the values.
-		if err := secret.Decrypt(orgKey); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decrypt the secret")
+			//	Decrypt the values.
+			if err := secret.Decrypt(orgKey); err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decrypt the secret")
+			}
 		}
 
 		//	Decode the values.

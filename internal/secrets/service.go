@@ -18,7 +18,7 @@ func New() *commons.Secret {
 	version := 1
 	return &commons.Secret{
 		Version: &version,
-		Data:    make(keypayload.KPMap),
+		Data:    keypayload.KPMap{},
 	}
 }
 
@@ -70,30 +70,30 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 
 func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, error) {
 
-	new := New()
-
 	//	Fetch the secret of latest version.
-	existing, err := Get(ctx, client, &commons.GetOptions{
+	secret, err := Get(ctx, client, &commons.GetOptions{
 		EnvID: options.EnvID,
 	})
-	if err != nil && strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) != 0 {
-		return nil, err
+	if err != nil {
+
+		if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
+			secret = New()
+		} else {
+			return nil, err
+		}
 	} else {
 
-		//	Create a shallow copy of the existing secret.
-		new = existing
-
-		//	Set or overwrite values in the secret.
-		new.Overwrite(options.Data)
-
 		//	We need to create an incremented version.
-		new.IncrementVersion()
+		secret.IncrementVersion()
 	}
+
+	//	Set or overwrite values in the secret.
+	secret.Overwrite(options.Data)
 
 	return graphql.Set(ctx, client, &graphql.SetOptions{
 		EnvID:   options.EnvID,
-		Data:    new.Data,
-		Version: new.Version,
+		Data:    secret.Data,
+		Version: secret.Version,
 	})
 }
 

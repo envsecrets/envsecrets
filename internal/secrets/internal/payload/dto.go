@@ -171,7 +171,6 @@ func (p *Payload) Decrypt(key [32]byte) error {
 			return err
 		}
 	}
-
 	//	Decrypt the value using org-key.
 	decrypted, err := keys.OpenSymmetrically([]byte(p.Value), key)
 	if err != nil {

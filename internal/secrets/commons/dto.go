@@ -151,10 +151,8 @@ func (s *Secret) ChangeKey(old, new string) {
 
 // Ovewrites or replaces values in the map for respective keys from supplied map.
 func (s *Secret) Overwrite(source map[string]*payload.Payload) {
-	m := make(keypayload.KPMap)
-	for name, payload := range source {
-		m.Set(name, payload)
-	}
+	m := keypayload.KPMap{}
+	m.Load(source)
 	s.Data.Overwrite(&m)
 }
 

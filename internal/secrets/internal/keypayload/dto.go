@@ -16,10 +16,16 @@ func (m KPMap) IsEmpty() bool {
 	return len(m) == 0
 }
 
+func (m KPMap) Load(value map[string]*payload.Payload) {
+	for name := range value {
+		m.Set(name, value[name])
+	}
+}
+
 // Sets a key=payload pair to the map.
 func (m KPMap) Set(key string, value *payload.Payload) {
 	if m == nil {
-		m = make(KPMap)
+		m = KPMap{}
 	}
 	m[key] = value
 }
