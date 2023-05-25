@@ -36,6 +36,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, options *GetOpti
 	}
 
 	item := resp[0]
+
 	if item.Data == nil {
 		return nil, fmt.Errorf(string(clients.ErrorTypeRecordNotFound))
 	}

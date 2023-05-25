@@ -55,7 +55,6 @@ func (s *Secret) UnmarshalJSON(data []byte) error {
 	var result structureWithMap
 	if err := json.Unmarshal(data, &result); err != nil {
 		if _, ok := err.(*json.UnmarshalTypeError); ok {
-
 			var result structureWithPayload
 			if err := json.Unmarshal(data, &result); err != nil {
 				return err
@@ -88,7 +87,7 @@ func (s *Secret) DataCopy() map[string]*payload.Payload {
 
 // Checks whether the secret contains even a single key=value mapping.
 func (s *Secret) IsEmpty() bool {
-	return len(s.Data) == 0
+	return s.Data == nil || s.Data.IsEmpty()
 }
 
 // Sets a key=value pair to the map.

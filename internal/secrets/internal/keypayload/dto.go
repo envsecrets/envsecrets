@@ -11,6 +11,11 @@ import (
 // Key-Payload Map
 type KPMap map[string]*payload.Payload
 
+// Returns a boolean validating whether the length of the map is 0.
+func (m KPMap) IsEmpty() bool {
+	return len(m) == 0
+}
+
 // Sets a key=payload pair to the map.
 func (m KPMap) Set(key string, value *payload.Payload) {
 	if m == nil {
@@ -67,30 +72,27 @@ func (m KPMap) Overwrite(source *KPMap) {
 
 // Base64 encodes all the pairs in the map.
 func (m KPMap) Encode() {
-	for name, payload := range m {
-		payload.Encode()
-		m.Set(name, payload)
+	for name := range m {
+		m[name].Encode()
 	}
 }
 
 // Base64 decodes all the pairs in the map.
 func (m KPMap) Decode() error {
-	for name, payload := range m {
-		if err := payload.Decode(); err != nil {
+	for name := range m {
+		if err := m[name].Decode(); err != nil {
 			return err
 		}
-		m.Set(name, payload)
 	}
 	return nil
 }
 
 // Encrypts all the key=value pairs with the provided key.
 func (m KPMap) Encrypt(key [32]byte) error {
-	for name, payload := range m {
-		if err := payload.Encrypt(key); err != nil {
+	for name := range m {
+		if err := m[name].Encrypt(key); err != nil {
 			return err
 		}
-		m.Set(name, payload)
 	}
 	return nil
 }
@@ -106,11 +108,10 @@ func (m KPMap) Encrypted(key [32]byte) (KPMap, error) {
 
 // Decrypts all the key=value pairs with the provided key.
 func (m KPMap) Decrypt(key [32]byte) error {
-	for name, payload := range m {
-		if err := payload.Decrypt(key); err != nil {
+	for name := range m {
+		if err := m[name].Decrypt(key); err != nil {
 			return err
 		}
-		m.Set(name, payload)
 	}
 	return nil
 }
