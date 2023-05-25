@@ -95,7 +95,7 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *SetOpti
 	return &item, nil
 }
 
-func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) error {
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *DeleteOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($version: Int!, $env_id: uuid!) {

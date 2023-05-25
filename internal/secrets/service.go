@@ -38,7 +38,10 @@ func ParseAndInitialize(data []byte) (*commons.Secret, error) {
 
 // Cleanup entries from `secrets` table.
 func Cleanup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CleanupSecretOptions) error {
-	return graphql.Cleanup(ctx, client, options)
+	return graphql.Delete(ctx, client, &graphql.DeleteOptions{
+		EnvID:   options.EnvID,
+		Version: options.Version,
+	})
 }
 
 func Get(ctx context.ServiceContext, client *clients.GQLClient, options *commons.GetOptions) (*commons.Secret, error) {

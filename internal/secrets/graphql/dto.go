@@ -53,3 +53,8 @@ func (o *GetOptions) NewRequest() *graphql.Request {
 
 	return req
 }
+
+type DeleteOptions struct {
+	EnvID   string `json:"env_id"`
+	Version int    `json:"version"`
+}
