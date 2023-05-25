@@ -23,5 +23,5 @@ jobs:
 
     - name: Build
       run: go build -v ./...
-      env:
-        GOPATH: /home/runner/work/envsecrets/envsecrets/go/
+      #env:
+        #GOPATH: /home/runner/work/envsecrets/envsecrets/go/
