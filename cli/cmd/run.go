@@ -42,6 +42,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/cli/internal"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
@@ -105,7 +106,7 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		copy(orgKey[:], decryptedOrgKey)
 
 		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetSecretOptions{
+		getOptions := secretsCommons.GetOptions{
 			EnvID: commons.ProjectConfig.Environment,
 		}
 
@@ -113,32 +114,37 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			getOptions.Version = &version
 		}
 
-		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the secrets")
-
-		}
-
 		//	Initialize a new buffer to store key=value lines
 		var variables []string
-		if err := secret.Decrypt(orgKey); err != nil {
+
+		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		if err != nil {
 			log.Debug(err)
-			log.Fatal("Failed to decrypt secrets")
-		}
+			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
+				log.Error("You haven't set any secrets in this environment")
+				log.Info("Use `envs set --help` for more information")
+			} else {
+				log.Fatal("Failed to fetch the secrets")
+			}
+		} else {
 
-		for key, item := range secret.Data {
-
-			//	Base64 decode the secret value
-			if err := item.Decode(); err != nil {
+			if err := secret.Decrypt(orgKey); err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to base64 decode the value for ", key)
+				log.Fatal("Failed to decrypt secrets")
 			}
 
-			variables = append(variables, fmt.Sprintf("%s=%s", key, item.Value))
-		}
+			//	Decode the values.
+			if err := secret.Decode(); err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decode the secret")
+			}
 
-		log.Info("Injecting secrets version ", *secret.Version, " into your process")
+			for key := range secret.Data {
+				variables = append(variables, secret.Data.FmtString(key))
+			}
+
+			log.Infof("Injecting %d secrets in your process from version %d...", len(secret.Data), *secret.Version)
+		}
 
 		//	Overwrite reserved keys
 		reservedKeys := []string{"PATH", "PS1", "HOME"}

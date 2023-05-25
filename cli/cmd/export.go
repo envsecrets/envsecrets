@@ -41,6 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/cli/internal"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
@@ -133,7 +134,7 @@ var exportCmd = &cobra.Command{
 			copy(orgKey[:], decryptedOrgKey)
 
 			//	Get the values from Hasura.
-			getOptions := secretsCommons.GetSecretOptions{
+			getOptions := secretsCommons.GetOptions{
 				EnvID: commons.ProjectConfig.Environment,
 			}
 
@@ -141,16 +142,29 @@ var exportCmd = &cobra.Command{
 				getOptions.Version = &version
 			}
 
-			secret, err = secrets.GetAll(commons.DefaultContext, commons.GQLClient, &getOptions)
+			secret, err = secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 			if err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to fetch the secrets")
+				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
+					log.Error("You haven't set any secrets in this environment")
+					log.Info("Use `envs set --help` for more information")
+					os.Exit(1)
+				} else {
+					log.Fatal("Failed to fetch the secrets")
+				}
 			}
 		}
 
+		//	Decrypt the values.
 		if err := secret.Decrypt(orgKey); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to decrypt the secret")
+		}
+
+		//	Decode the values.
+		if err := secret.Decode(); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decode the secret")
 		}
 
 		//	Initialize a new buffer to store key=value lines

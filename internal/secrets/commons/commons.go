@@ -1,13 +1,6 @@
 package commons
 
-type Header string
-
 const (
-	VAULT_TOKEN Header = "X-Vault-Token"
-
-	ENV_ID = "env_id"
-)
-
-const (
-	VAULT_ROOT_TOKEN = "VAULT_ROOT_TOKEN"
+	ENV_ID        = "env_id"
+	TEMP_KEY_NAME = "key"
 )

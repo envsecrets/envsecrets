@@ -83,13 +83,17 @@ var deleteCmd = &cobra.Command{
 			options.Version = &version
 		}
 
-		if err := secrets.Delete(commons.DefaultContext, commons.GQLClient, options); err != nil {
+		secret, err := secrets.Delete(commons.DefaultContext, commons.GQLClient, options)
+		if err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to delete secret")
 		}
+
+		log.Infoln("Created version", *secret.Version)
+
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("Key deleted and new secret version created")
+		log.Info("Key successfully deleted")
 	},
 }
 

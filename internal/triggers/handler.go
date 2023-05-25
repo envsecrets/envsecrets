@@ -174,7 +174,7 @@ func EventInserted(c echo.Context) error {
 		})
 	}
 
-	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
+	response, err := secrets.Get(ctx, client, &secretCommons.GetOptions{
 		EnvID: row.EnvID,
 	})
 	if err != nil {

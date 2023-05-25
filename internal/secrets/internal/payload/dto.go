@@ -58,8 +58,15 @@ func (p *Payload) IsExposable() bool {
 	return p.Exposable
 }
 
+// Marks the payload as "exportable."
+func (p *Payload) MarkEncoded() {
+	p.Lock()
+	defer p.Unlock()
+	p.encoded = true
+}
+
 // Empties the values from the payload.
-func (p *Payload) Empty() {
+func (p *Payload) DeleteValue() {
 	p.Set("")
 }
 
@@ -68,11 +75,25 @@ func (p *Payload) IsEmpty() bool {
 	return p.Value == ""
 }
 
-// Marks the payload as "encoded."
-func (p *Payload) MarkEncoded() {
+// Marks the "exposable" value of the payload as "true."
+//
+//	Exposability allows the value to be synced as an exposable one
+//	on platforms which differentiate between decryptable and non-decryptable secrets.
+//	For example, Github and Vercel.
+//	In Github actions, this value will be synced as a "variable" and NOT a secret, once it is marked "exposable" over here.
+func (p *Payload) MarkExposable() {
 	p.Lock()
 	defer p.Unlock()
-	p.encoded = true
+	p.Exposable = true
+}
+
+// Marks the "exposable" value of the payload as "false."
+//
+//	Read the documentation of "MarkExposable" function.
+func (p *Payload) MarkNotExposable() {
+	p.Lock()
+	defer p.Unlock()
+	p.Exposable = false
 }
 
 // Marks the payload as "decoded."
@@ -158,6 +179,9 @@ func (p *Payload) Decrypt(key [32]byte) error {
 	}
 
 	p.Set(string(decrypted))
+
+	//	Encode the value once again after saving it.
+	p.Encode()
 
 	return nil
 }

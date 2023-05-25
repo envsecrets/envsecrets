@@ -33,10 +33,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
@@ -71,7 +73,7 @@ var listCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var options secretsCommons.GetSecretOptions
+		var options secretsCommons.GetOptions
 
 		if version > -1 {
 			options.Version = &version
@@ -79,10 +81,17 @@ var listCmd = &cobra.Command{
 
 		options.EnvID = commons.ProjectConfig.Environment
 
-		secrets, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &options)
+		secrets, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
 			log.Debug(err)
-			log.Fatal("Failed to fetch the secrets")
+
+			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
+				log.Error("You haven't set any secrets in this environment")
+				log.Info("Use `envs set --help` for more information")
+				os.Exit(1)
+			} else {
+				log.Fatal("Failed to fetch the secrets")
+			}
 		}
 
 		for key := range secrets.Data {

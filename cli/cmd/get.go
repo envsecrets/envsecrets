@@ -89,7 +89,7 @@ var getCmd = &cobra.Command{
 		copy(orgKey[:], decryptedOrgKey)
 
 		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetSecretOptions{
+		getOptions := secretsCommons.GetOptions{
 			EnvID: commons.ProjectConfig.Environment,
 			Key:   key,
 		}
@@ -116,6 +116,12 @@ var getCmd = &cobra.Command{
 		if err := secret.Decrypt(orgKey); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to decrypt the secret")
+		}
+
+		//	Decode the values.
+		if err := secret.Decode(); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decode the secret")
 		}
 
 		fmt.Printf("%v", secret.Get(key).Value)

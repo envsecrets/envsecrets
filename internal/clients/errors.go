@@ -29,9 +29,10 @@ const (
 	ErrorTypeBadGateway      ErrorType = "BadGateway"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 
-	ErrorTypeDoesNotExist ErrorType = "DoesNotExist"
-	ErrorTypeInvalidKey   ErrorType = "InvalidKey"
-	ErrorTypeKeyNotFound  ErrorType = "KeyNotFound"
+	ErrorTypeDoesNotExist   ErrorType = "DoesNotExist"
+	ErrorTypeInvalidKey     ErrorType = "InvalidKey"
+	ErrorTypeKeyNotFound    ErrorType = "KeyNotFound"
+	ErrorTypeRecordNotFound ErrorType = "RecordNotFound"
 
 	ErrorTypeInvalidToken ErrorType = "InvalidToken"
 
@@ -58,6 +59,7 @@ var ResponseCodeMap = map[ErrorType]int{
 	ErrorTypeDoesNotExist:                http.StatusNotFound,
 	ErrorTypeInvalidKey:                  http.StatusBadRequest,
 	ErrorTypeKeyNotFound:                 http.StatusNotFound,
+	ErrorTypeRecordNotFound:              http.StatusNotFound,
 	ErrorTypeInvalidAccountConfiguration: http.StatusBadRequest,
 	ErrorTypeInvalidProjectConfiguration: http.StatusBadRequest,
 

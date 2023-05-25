@@ -296,7 +296,7 @@ var initCmd = &cobra.Command{
 		}
 
 		/* 		//	Pull environment secrets and populate the contingency file
-		   		secret, err := secrets.GetAll(commons.DefaultContext, commons.GQLClient, &secretsCommons.GetSecretOptions{
+		   		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &secretsCommons.GetOptions{
 		   			EnvID: environment.ID,
 		   		})
 		   		if err != nil {

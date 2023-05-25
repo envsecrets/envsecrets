@@ -2,6 +2,7 @@ package keypayload
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
 	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
@@ -12,6 +13,9 @@ type KPMap map[string]*payload.Payload
 
 // Sets a key=payload pair to the map.
 func (m KPMap) Set(key string, value *payload.Payload) {
+	if m == nil {
+		m = make(KPMap)
+	}
 	m[key] = value
 }
 
@@ -30,9 +34,28 @@ func (m KPMap) GetValue(key string) string {
 	return m[key].GetValue()
 }
 
+// Returns string representation in the form of "key=value"
+func (m KPMap) FmtString(key string) string {
+	return fmt.Sprintf("%s=%s", key, m.GetValue(key))
+}
+
+// Updates a key name in the map from "old" to "new."
+func (m KPMap) ChangeKey(old, new string) {
+	payload := m.Get(old)
+	m.Set(new, payload)
+	m.Delete(old)
+}
+
 // Deletes a key=value pair from the map.
-func (m KPMap) Detele(key string) {
+func (m KPMap) Delete(key string) {
 	delete(m, key)
+}
+
+// Empties the values from the payloads of all key=value pairs.
+func (m KPMap) DeleteValues() {
+	for _, payload := range m {
+		payload.DeleteValue()
+	}
 }
 
 // Ovewrites or replaces values in the map for respective keys from supplied map.
@@ -115,9 +138,40 @@ func (m *KPMap) Marshal() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// Marks payload value for specified key as Base64 encoded.
+func (m KPMap) MarkEncoded(key string) {
+	m[key].MarkEncoded()
+}
+
+// Marks payload value for specified key as Base64 decoded.
+func (m KPMap) MarkDecoded(key string) {
+	m[key].MarkDecoded()
+}
+
 // Marks all payload values as Base64 encoded.
-func (m KPMap) MarkEncoded() {
+func (m KPMap) MarkAllEncoded() {
 	for _, payload := range m {
 		payload.MarkEncoded()
 	}
+}
+
+// Marks all payload values as Base64 decoded.
+func (m KPMap) MarkAllDecoded() {
+	for _, payload := range m {
+		payload.MarkDecoded()
+	}
+}
+
+// Marks the "exposable" value of the payload as "true."
+//
+//	Exposability allows the value to be synced as an exposable one
+//	on platforms which differentiate between decryptable and non-decryptable secrets.
+//	For example, Github and Vercel.
+//	In Github actions, this value will be synced as a "variable" and NOT a secret, once it is marked "exposable" over here.
+func (m KPMap) MarkExposable(key string) {
+	m[key].MarkExposable()
+}
+
+func (m KPMap) MarkNotExposable(key string) {
+	m[key].MarkNotExposable()
 }

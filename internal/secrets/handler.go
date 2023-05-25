@@ -68,9 +68,8 @@ func SetHandler(c echo.Context) error {
 
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
-		EnvID:      payload.EnvID,
-		Data:       vehicle.Data,
-		KeyVersion: payload.KeyVersion,
+		EnvID: payload.EnvID,
+		Data:  vehicle.Data,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -106,7 +105,7 @@ func DeleteHandler(c echo.Context) error {
 	})
 
 	//	Call the service function.
-	if err := Delete(ctx, client, &commons.DeleteSecretOptions{
+	if _, err := Delete(ctx, client, &commons.DeleteSecretOptions{
 		EnvID:   payload.EnvID,
 		Key:     payload.Key,
 		Version: payload.Version,
@@ -166,7 +165,7 @@ func GetHandler(c echo.Context) error {
 	if payload.Key != "" {
 
 		//	Call the service function.
-		response, err = Get(ctx, client, &commons.GetSecretOptions{
+		response, err = Get(ctx, client, &commons.GetOptions{
 			Key:     payload.Key,
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
@@ -182,7 +181,7 @@ func GetHandler(c echo.Context) error {
 
 		//	Else, pull all values.
 		//	Call the service function.
-		response, err = GetAll(ctx, client, &commons.GetSecretOptions{
+		response, err = Get(ctx, client, &commons.GetOptions{
 			EnvID:   payload.EnvID,
 			Version: payload.Version,
 		})

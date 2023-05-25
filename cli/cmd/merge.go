@@ -31,16 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
-	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -144,43 +142,22 @@ containing original/unedited values.`,
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := secretsCommons.MergeRequestOptions{
+		options := secretsCommons.MergeSecretOptions{
 			SourceEnvID: environmentID,
 			TargetEnvID: projectConfig.Environment,
 		}
 
 		if version > -1 {
-			payload.SourceVersion = &version
+			options.SourceVersion = &version
 		}
 
-		reqBody, err := payload.Marshal()
+		secret, err := secrets.Merge(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare request payload")
-		}
-
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets/merge", bytes.NewBuffer(reqBody))
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare the request")
-		}
-
-		//	Set content-type header
-		req.Header.Set("content-type", "application/json")
-
-		var response clients.APIResponse
-		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to merge the secrets")
-
 		}
 
-		if response.Error != "" {
-			log.Debug(response.Error)
-			log.Fatal(response.Message)
-		}
-
-		log.Info("Merge Complete! Created version ", response.Data.(map[string]interface{})["version"])
+		log.Info("Merge Complete! Created version ", *secret.Version)
 	},
 }
 

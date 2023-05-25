@@ -19,7 +19,6 @@ type Secret struct {
 	ID        string    `json:"id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	Name      string    `json:"name,omitempty"`
 	UserID    string    `json:"user_id,omitempty"`
 	EnvID     string    `json:"env_id,omitempty"`
 
@@ -30,8 +29,60 @@ type Secret struct {
 	Data keypayload.KPMap `json:"data,omitempty"`
 }
 
-// Returns the secret's key=value mapping.
-func (s *Secret) GetMap() map[string]*payload.Payload {
+func (s *Secret) UnmarshalJSON(data []byte) error {
+
+	var secret Secret
+
+	type Structure struct {
+		ID        string    `json:"id,omitempty"`
+		CreatedAt time.Time `json:"created_at,omitempty"`
+		UpdatedAt time.Time `json:"updated_at,omitempty"`
+		UserID    string    `json:"user_id,omitempty"`
+		EnvID     string    `json:"env_id,omitempty"`
+		Version   *int      `json:"version,omitempty"`
+	}
+
+	type structureWithPayload struct {
+		*Structure
+		Data *payload.Payload `json:"data,omitempty"`
+	}
+
+	type structureWithMap struct {
+		*Structure
+		Data keypayload.KPMap `json:"data,omitempty"`
+	}
+
+	var result structureWithMap
+	if err := json.Unmarshal(data, &result); err != nil {
+		if _, ok := err.(*json.UnmarshalTypeError); ok {
+
+			var result structureWithPayload
+			if err := json.Unmarshal(data, &result); err != nil {
+				return err
+			}
+
+			secret.Set(TEMP_KEY_NAME, result.Data)
+		} else {
+			return err
+		}
+	} else {
+		secret.Data = make(keypayload.KPMap)
+		secret.Data = result.Data
+	}
+
+	secret.ID = result.ID
+	secret.CreatedAt = result.CreatedAt
+	secret.UpdatedAt = result.UpdatedAt
+	secret.UserID = result.UserID
+	secret.EnvID = result.EnvID
+	secret.Version = result.Version
+
+	*s = secret
+	return nil
+}
+
+// Returns a shallow copy of the secret's key=value mapping.
+func (s *Secret) DataCopy() map[string]*payload.Payload {
 	return s.Data
 }
 
@@ -40,31 +91,19 @@ func (s *Secret) IsEmpty() bool {
 	return len(s.Data) == 0
 }
 
-// Returns a new initialized 'Secret' object.
-func New() *Secret {
-	return &Secret{}
-}
-
-func ParseAndInitialize(data []byte) (*Secret, error) {
-
-	var result Secret
-	if data == nil {
-		return nil, fmt.Errorf("invalid inputs")
-	}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-
-	result.MarkEncoded()
-	return &result, nil
-}
-
 // Sets a key=value pair to the map.
 func (s *Secret) Set(key string, value *payload.Payload) {
 	if s.Data == nil {
 		s.Data = make(keypayload.KPMap)
 	}
 	s.Data.Set(key, value)
+}
+
+// Increases the version of the secret by 1.
+func (s *Secret) IncrementVersion() {
+	if s.Version != nil {
+		*s.Version += 1
+	}
 }
 
 type AddConfig struct {
@@ -103,7 +142,12 @@ func (s *Secret) GetFmtString(key string) string {
 
 // Deletes a key=value pair from the map.
 func (s *Secret) Delete(key string) {
-	delete(s.Data, key)
+	s.Data.Delete(key)
+}
+
+// Updates a key name in the map from "old" to "new."
+func (s *Secret) ChangeKey(old, new string) {
+	s.Data.ChangeKey(old, new)
 }
 
 // Ovewrites or replaces values in the map for respective keys from supplied map.
@@ -127,7 +171,21 @@ func (s *Secret) Decode() error {
 
 // Marks all payload values as Base64 encoded.
 func (s *Secret) MarkEncoded() {
-	s.Data.MarkEncoded()
+	s.Data.MarkAllEncoded()
+}
+
+// Marks the "exposable" value of the payload as "true."
+//
+//	Exposability allows the value to be synced as an exposable one
+//	on platforms which differentiate between decryptable and non-decryptable secrets.
+//	For example, Github and Vercel.
+//	In Github actions, this value will be synced as a "variable" and NOT a secret, once it is marked "exposable" over here.
+func (s *Secret) MarkExposable(key string) {
+	s.Data.MarkExposable(key)
+}
+
+func (s *Secret) MarkNotExposable(key string) {
+	s.Data.MarkExposable(key)
 }
 
 // Encrypts all the key=value pairs with provided encryption key.
@@ -161,13 +219,8 @@ func (s *Secret) Decrypted(key [32]byte) (result *Secret, err error) {
 }
 
 // Empties the values from the payloads of all key=value pairs.
-func (s *Secret) Empty() {
-	s.Lock()
-	defer s.Unlock()
-
-	for _, payload := range s.Data {
-		payload.Empty()
-	}
+func (s *Secret) DeleteValues() {
+	s.Data.DeleteValues()
 }
 
 // Converts all the key=value pairs to a map.
@@ -204,9 +257,8 @@ type VaultResponse struct {
 }
 
 type SetRequestOptions struct {
-	EnvID      string                      `json:"env_id"`
-	Data       map[string]*payload.Payload `json:"data"`
-	KeyVersion *int                        `json:"key_version,omitempty"`
+	EnvID string                      `json:"env_id"`
+	Data  map[string]*payload.Payload `json:"data"`
 }
 
 func (r *SetRequestOptions) Marshal() ([]byte, error) {
@@ -214,9 +266,8 @@ func (r *SetRequestOptions) Marshal() ([]byte, error) {
 }
 
 type SetSecretOptions struct {
-	EnvID      string                      `json:"env_id"`
-	Data       map[string]*payload.Payload `json:"data"`
-	KeyVersion *int                        `json:"key_version,omitempty"`
+	EnvID string                      `json:"env_id"`
+	Data  map[string]*payload.Payload `json:"data"`
 }
 
 func (r *SetSecretOptions) Marshal() ([]byte, error) {
@@ -259,7 +310,7 @@ func (r *GetRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-type GetSecretOptions struct {
+type GetOptions struct {
 	Key     string `json:"key"`
 	EnvID   string `json:"env_id"`
 	Version *int   `json:"version,omitempty"`
@@ -270,16 +321,17 @@ type GetResponse struct {
 	Version *int   `json:"version,omitempty"`
 }
 
-type MergeRequestOptions struct {
-	SourceEnvID   string `json:"source_env_id"`
-	SourceVersion *int   `json:"source_version"`
-	TargetEnvID   string `json:"env_id"`
-}
+/*
+	 type MergeRequestOptions struct {
+		SourceEnvID   string `json:"source_env_id"`
+		SourceVersion *int   `json:"source_version"`
+		TargetEnvID   string `json:"env_id"`
+	}
 
-func (r *MergeRequestOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
+	func (r *MergeRequestOptions) Marshal() ([]byte, error) {
+		return json.Marshal(r)
+	}
+*/
 type MergeSecretOptions struct {
 	SourceEnvID   string `json:"source_env_id"`
 	SourceVersion *int   `json:"source_version"`
