@@ -1,18 +1,14 @@
 package secrets
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 )
 
 func SetHandler(c echo.Context) error {
@@ -21,7 +17,6 @@ func SetHandler(c echo.Context) error {
 	var payload commons.SetRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})
@@ -39,9 +34,9 @@ func SetHandler(c echo.Context) error {
 	//	Fetch the organisation using environment ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation this environment is associated with",
+			Error:   err.Error(),
 		})
 	}
 
@@ -49,40 +44,37 @@ func SetHandler(c echo.Context) error {
 	var orgKey [32]byte
 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation's encryption key'",
+			Error:   err.Error(),
 		})
 	}
 	copy(orgKey[:], orgKeyBytes)
 
+	//	Since, the client is already sending base64 encoded values,
+	//	mark the values as 'encoded'.
+	vehicle := commons.Secret{
+		Data: payload.Data,
+	}
+	vehicle.MarkEncoded()
+
 	//	Encrypt the values with decrypted key
-	for key, item := range payload.Data {
-		if item.Type == commons.Ciphertext {
-			encrypted, err := keys.SealSymmetrically([]byte(fmt.Sprintf("%v", item.Value)), orgKey)
-			if err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-					Message: err.GenerateMessage("Failed to encrypt the secret: " + key),
-					Error:   err.Message,
-				})
-			}
-			item.Value = base64.StdEncoding.EncodeToString(encrypted)
-		} else {
-			item.Value = base64.StdEncoding.EncodeToString([]byte(item.Value.(string)))
-		}
-		payload.Data[key] = item
+	if err := vehicle.Encrypt(orgKey); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to encrypt the secrets",
+			Error:   err.Error(),
+		})
 	}
 
 	//	Call the service function.
 	secret, err := Set(ctx, client, &commons.SetSecretOptions{
-		EnvID:      payload.EnvID,
-		Data:       payload.Data,
-		KeyVersion: payload.KeyVersion,
+		EnvID: payload.EnvID,
+		Data:  vehicle.Data,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to set the secrets",
+			Error:   err.Error(),
 		})
 	}
 
@@ -113,14 +105,14 @@ func DeleteHandler(c echo.Context) error {
 	})
 
 	//	Call the service function.
-	if err := Delete(ctx, client, &commons.DeleteSecretOptions{
+	if _, err := Delete(ctx, client, &commons.DeleteSecretOptions{
 		EnvID:   payload.EnvID,
 		Key:     payload.Key,
 		Version: payload.Version,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to delete the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to delete the secret",
+			Error:   err.Error(),
 		})
 	}
 
@@ -165,49 +157,25 @@ func GetHandler(c echo.Context) error {
 		payload.EnvID = c.Get("env_id").(string)
 	}
 
-	var response *commons.GetResponse
-	var err *errors.Error
-
-	//	If there is a specific key,
-	//	pull the value only for that key.
-	if payload.Key != "" {
-
-		//	Call the service function.
-		response, err = Get(ctx, client, &commons.GetSecretOptions{
-			Key:     payload.Key,
-			EnvID:   payload.EnvID,
-			Version: payload.Version,
+	//	Call the service function.
+	secret, err := Get(ctx, client, &commons.GetOptions{
+		Key:     payload.Key,
+		EnvID:   payload.EnvID,
+		Version: payload.Version,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get the secrets",
+			Error:   err.Error(),
 		})
-		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get the secret"),
-				Error:   err.Message,
-			})
-		}
-
-	} else {
-
-		//	Else, pull all values.
-		//	Call the service function.
-		response, err = GetAll(ctx, client, &commons.GetSecretOptions{
-			EnvID:   payload.EnvID,
-			Version: payload.Version,
-		})
-		if err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to get the secret"),
-				Error:   err.Message,
-			})
-		}
 	}
 
 	//	Fetch the organisation using environment ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, payload.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to fetch the organisation this environment is associated with"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation this environment is associated with",
+			Error:   err.Error(),
 		})
 	}
 
@@ -215,40 +183,24 @@ func GetHandler(c echo.Context) error {
 	var orgKey [32]byte
 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, organisation.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch org's encryption key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation's encryption key'",
+			Error:   err.Error(),
 		})
 	}
 	copy(orgKey[:], orgKeyBytes)
 
-	//	Encrypt the values with decrypted key
-	for key, item := range response.Data {
-
-		if item.Type == commons.Ciphertext {
-
-			//	Base64 decode the secret value
-			decoded, er := base64.StdEncoding.DecodeString(item.Value.(string))
-			if er != nil {
-				log.Debug(er)
-				log.Fatal("Failed to base64 decode the value for ", key)
-			}
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
-			}
-
-			item.Value = base64.StdEncoding.EncodeToString(decrypted)
-			response.Data[key] = item
-		}
+	//	Decrypt the values with decrypted key
+	if err := secret.Decrypt(orgKey); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully got the secret",
-		Data:    response,
+		Data:    secret,
 	})
 }
 
@@ -292,9 +244,9 @@ func ListHandler(c echo.Context) error {
 	//	Call the service function.
 	response, err := List(ctx, client, &payload)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to list the secret"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the list of secrets",
+			Error:   err.Error(),
 		})
 	}
 

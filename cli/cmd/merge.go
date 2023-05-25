@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -31,16 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
-	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -88,10 +86,10 @@ containing original/unedited values.`,
 			projectConfig := projectConfigPayload.(*configCommons.Project)
 
 			//	Fetch environments
-			environmentsList, er := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
 				ProjectID: projectConfig.Project,
 			})
-			if er != nil {
+			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to fetch list of environments")
 			}
@@ -135,51 +133,31 @@ containing original/unedited values.`,
 		}
 
 		//	Load the project configuration
-		projectConfigData, er := config.GetService().Load(configCommons.ProjectConfig)
-		if er != nil {
-			log.Debug(er)
+		projectConfigData, err := config.GetService().Load(configCommons.ProjectConfig)
+		if err != nil {
+			log.Debug(err)
 			log.Fatal("Failed to load project configuration")
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		payload := secretsCommons.MergeRequestOptions{
+		options := secretsCommons.MergeSecretOptions{
 			SourceEnvID: environmentID,
 			TargetEnvID: projectConfig.Environment,
 		}
 
 		if version > -1 {
-			payload.SourceVersion = &version
+			options.SourceVersion = &version
 		}
 
-		reqBody, err := payload.Marshal()
+		secret, err := secrets.Merge(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
 			log.Debug(err)
-			log.Fatal("Failed to prepare request payload")
+			log.Fatal("Failed to merge the secrets")
 		}
 
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/secrets/merge", bytes.NewBuffer(reqBody))
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to prepare the request")
-		}
-
-		//	Set content-type header
-		req.Header.Set("content-type", "application/json")
-
-		var response clients.APIResponse
-		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
-		}
-
-		if response.Error != "" {
-			log.Debug(response.Error)
-			log.Fatal(response.Message)
-		}
-
-		log.Info("Merge Complete! Created version ", response.Data.(map[string]interface{})["version"])
+		log.Info("Merge Complete! Created version ", *secret.Version)
 	},
 }
 

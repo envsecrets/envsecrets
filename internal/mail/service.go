@@ -10,7 +10,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/users"
@@ -30,14 +29,14 @@ var (
 )
 
 type Service interface {
-	Invite(context.ServiceContext, *commons.InvitationOptions) *errors.Error
-	SendKey(context.ServiceContext, *commons.SendKeyOptions) *errors.Error
-	SendWelcomeEmail(context.ServiceContext, *userCommons.User) *errors.Error
+	Invite(context.ServiceContext, *commons.InvitationOptions) error
+	SendKey(context.ServiceContext, *commons.SendKeyOptions) error
+	SendWelcomeEmail(context.ServiceContext, *userCommons.User) error
 }
 
 type DefaultMailService struct{}
 
-func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.InvitationOptions) *errors.Error {
+func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.InvitationOptions) error {
 
 	//	Initialize commons variables
 	FROM = os.Getenv("SMTP_USERNAME")
@@ -100,9 +99,9 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	}
 
 	// Generate an HTML email with the provided contents (for modern clients)
-	body, er := commons.Hermes.GenerateHTML(email)
-	if er != nil {
-		return errors.New(er, "failed to generate html for email", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	body, err := commons.Hermes.GenerateHTML(email)
+	if err != nil {
+		return err
 	}
 
 	// Set E-Mail body. You can set plain text or html with text/html
@@ -117,13 +116,13 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 
 	// Now send E-Mail
 	if err := d.DialAndSend(m); err != nil {
-		return errors.New(err, "failed to send invitation email", errors.ErrorTypeEmailFailed, errors.ErrorSourceMailer)
+		return err
 	}
 
 	return nil
 }
 
-func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.SendKeyOptions) *errors.Error {
+func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.SendKeyOptions) error {
 
 	//	Initialize commons variables
 	FROM = os.Getenv("SMTP_USERNAME")
@@ -162,9 +161,9 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 	}
 
 	// Generate an HTML email with the provided contents (for modern clients)
-	body, er := commons.Hermes.GenerateHTML(email)
-	if er != nil {
-		return errors.New(er, "failed to generate html for email", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	body, err := commons.Hermes.GenerateHTML(email)
+	if err != nil {
+		return err
 	}
 
 	m := gomail.NewMessage()
@@ -190,22 +189,22 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 
 	// This is only needed when SSL/TLS certificate is not valid on server.
 	// In production this should be set to false.
-	isDevEnvironment, er := strconv.ParseBool(os.Getenv("DEV"))
-	if er != nil {
-		return errors.New(er, "failed to parse environment", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	isDevEnvironment, err := strconv.ParseBool(os.Getenv("DEV"))
+	if err != nil {
+		return err
 	}
 
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: isDevEnvironment}
 
 	// Now send E-Mail
 	if err := d.DialAndSend(m); err != nil {
-		return errors.New(err, "failed to send invitation email", errors.ErrorTypeEmailFailed, errors.ErrorSourceMailer)
+		return err
 	}
 
 	return nil
 }
 
-func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *userCommons.User) *errors.Error {
+func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *userCommons.User) error {
 
 	//	Initialize commons variables
 	FROM = os.Getenv("SMTP_USERNAME")
@@ -245,9 +244,9 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 	}
 
 	// Generate an HTML email with the provided contents (for modern clients)
-	body, er := commons.Hermes.GenerateHTML(email)
-	if er != nil {
-		return errors.New(er, "failed to generate html for email", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	body, err := commons.Hermes.GenerateHTML(email)
+	if err != nil {
+		return err
 	}
 
 	m := gomail.NewMessage()
@@ -269,16 +268,16 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 
 	// This is only needed when SSL/TLS certificate is not valid on server.
 	// In production this should be set to false.
-	isDevEnvironment, er := strconv.ParseBool(os.Getenv("DEV"))
-	if er != nil {
-		return errors.New(er, "failed to parse environment", errors.ErrorTypeEmailFailed, errors.ErrorSourceHermes)
+	isDevEnvironment, err := strconv.ParseBool(os.Getenv("DEV"))
+	if err != nil {
+		return err
 	}
 
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: isDevEnvironment}
 
 	// Now send E-Mail
 	if err := d.DialAndSend(m); err != nil {
-		return errors.New(err, "failed to send invitation email", errors.ErrorTypeEmailFailed, errors.ErrorSourceMailer)
+		return err
 	}
 
 	return nil

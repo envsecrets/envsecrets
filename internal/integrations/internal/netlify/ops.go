@@ -5,16 +5,13 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 )
 
-func fetchAccounts(ctx context.ServiceContext, client *clients.HTTPClient) (*User, *errors.Error) {
+func fetchAccounts(ctx context.ServiceContext, client *clients.HTTPClient) (*User, error) {
 
-	errMessage := "Failed to fetch accounts details from Netlify"
-
-	req, er := http.NewRequest(http.MethodGet, "https://api.netlify.com/api/v1/user", nil)
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodGet, "https://api.netlify.com/api/v1/user", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var user User

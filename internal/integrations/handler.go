@@ -104,9 +104,9 @@ func SetupHandler(c echo.Context) error {
 	//	Run the service handler.
 	_, err := service.Setup(ctx, client, serviceType, &payload)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("failed to connect integration"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to connect the integration",
+			Error:   err.Error(),
 		})
 	}
 
@@ -145,9 +145,9 @@ func ListEntitiesHandler(c echo.Context) error {
 	//	Run the service handler.
 	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID), options)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("failed to fetch integration entities"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch integration entities",
+			Error:   err.Error(),
 		})
 	}
 
@@ -181,14 +181,14 @@ func ListSubEntitiesHandler(c echo.Context) error {
 	//	Run the service handler.
 	entities, err := service.ListSubEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID), c.QueryParams())
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("failed to fetch integration entities"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch integration subentities",
+			Error:   err.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Message: "successfully fetched integration entities",
+		Message: "successfully fetched integration subentities",
 		Data:    entities,
 	})
 }

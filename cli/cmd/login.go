@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -39,7 +39,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/errors"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/manifoldco/promptui"
@@ -108,9 +108,9 @@ var loginCmd = &cobra.Command{
 			"password": password,
 		}
 
-		response, er := auth.Login(payload)
-		if er != nil {
-			log.Debug(er)
+		response, err := auth.Login(payload)
+		if err != nil {
+			log.Debug(err)
 			log.Fatal("Authentication failed")
 		}
 
@@ -130,14 +130,16 @@ var loginCmd = &cobra.Command{
 		//	Pull the user's existing key pair saved in their cloud account.
 		keyPair, err := keys.GetByUserID(commons.DefaultContext, commons.GQLClient, response.Session.User.ID)
 		if err != nil {
+			apiError := clients.ParseExternal(err)
 
 			//	If they don't have a key pair, create a new key pair locally, and upload it.
-			if err.IsType(errors.ErrorTypeDoesNotExist) {
+			if apiError.IsType(clients.ErrorTypeDoesNotExist) {
 
 				pair, err := keys.GenerateKeyPair(password)
 				if err != nil {
-					log.Debug(err.Error)
-					log.Fatal(err.Message)
+					log.Debug(err)
+					log.Fatal("Failed to generate fresh encryption key pair for you")
+
 				}
 
 				//	Upload the keys to their cloud account.
@@ -147,8 +149,9 @@ var loginCmd = &cobra.Command{
 					ProtectedKey: base64.StdEncoding.EncodeToString(pair.ProtectedKey),
 					Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
 				}); err != nil {
-					log.Debug(err.Error)
-					log.Fatal(err.Message)
+					log.Debug(err)
+					log.Fatal("Failed to backup your keys")
+
 				}
 
 				//	Save the keys locally for the user
@@ -161,8 +164,8 @@ var loginCmd = &cobra.Command{
 				}
 
 			} else {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to download your encryption keys")
 			}
 		}
 
@@ -171,8 +174,8 @@ var loginCmd = &cobra.Command{
 
 			payload, err := keyPair.DecodePayload()
 			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
+				log.Debug(err)
+				log.Fatal("Failed to decode your encryption keys")
 			}
 
 			//	Regenerate the key from user's password
@@ -183,7 +186,7 @@ var loginCmd = &cobra.Command{
 			copy(passwordDerivedKeyForOpening[:], passwordDerivedKey)
 			protectionKey, err := keys.OpenSymmetrically(payload.ProtectedKey, passwordDerivedKeyForOpening)
 			if err != nil {
-				log.Debug(err.Message)
+				log.Debug(err)
 				log.Fatal("Failed to decrypt the protection key")
 			}
 
@@ -192,7 +195,7 @@ var loginCmd = &cobra.Command{
 			copy(protectionKeyForOpening[:], protectionKey)
 			privateKey, err := keys.OpenSymmetrically(payload.PrivateKey, protectionKeyForOpening)
 			if err != nil {
-				log.Debug(err.Message)
+				log.Debug(err)
 				log.Fatal("Failed to decrypt the private key")
 			}
 

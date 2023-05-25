@@ -52,7 +52,7 @@ func CreateCheckoutSession(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, &clients.APIResponse{
 			Message: "failed to fetch user for this token",
-			Error:   err.Error.Error(),
+			Error:   err.Error(),
 		})
 	}
 
@@ -95,17 +95,15 @@ func CreateCheckoutSession(c echo.Context) error {
 	}
 
 	stripe.Key = os.Getenv("STRIPE_KEY")
-	s, er := session.New(params)
-	if er != nil {
+	s, err := session.New(params)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "Failed to create a checkout session",
-			Error:   er.Error(),
+			Error:   err.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
-
 		Message: "successfully created checkout sessions",
 		Data: map[string]interface{}{
 			"url": s.URL,
@@ -155,7 +153,7 @@ func CheckoutWebhook(c echo.Context) error {
 			OrgID:          session.ClientReferenceID,
 			SubscriptionID: session.Subscription.ID,
 		}); err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", err.Message, err.Error))
+			return c.String(http.StatusBadRequest, fmt.Sprintf("failed to register the new subscription: %s", err.Error))
 		}
 
 	} else if event.Type == "customer.subscription.updated" {
@@ -179,9 +177,9 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Fetch the subscription using ID
-		existingSubscription, er := subscriptions.GetBySubscriptionID(ctx, client, subscription.ID)
-		if er != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("Error fetching subscription from envsecrets database: %v\n", er))
+		existingSubscription, err := subscriptions.GetBySubscriptionID(ctx, client, subscription.ID)
+		if err != nil {
+			return c.String(http.StatusBadRequest, fmt.Sprintf("Error fetching subscription from envsecrets database: %v\n", err))
 		}
 
 		//	Update the invite limit for the organisation.
@@ -189,14 +187,14 @@ func CheckoutWebhook(c echo.Context) error {
 			ID:               existingSubscription.OrgID,
 			IncrementLimitBy: int(quantity),
 		}); err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", err.Message, err.Error))
+			return c.String(http.StatusBadRequest, fmt.Sprintf("failed to update org's invite limit: %s", err.Error()))
 		}
 
 		//	Update subscription status
 		if _, err := subscriptions.Update(ctx, client, existingSubscription.ID, &subscriptions.UpdateOptions{
 			Status: string(subscription.Status),
 		}); err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", err.Message, err.Error))
+			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", "failed to update subscription status", err.Error()))
 		}
 	} else if event.Type == "customer.subscription.deleted" {
 
@@ -208,7 +206,7 @@ func CheckoutWebhook(c echo.Context) error {
 
 		//	Delete the subscription from our database
 		if err := subscriptions.DeleteBySubscriptionID(ctx, client, subscription.ID); err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", err.Message, err.Error))
+			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", "failed to delete the subscription record from db", err.Error()))
 		}
 	}
 

@@ -5,16 +5,16 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-3. Neither the name of the copyright holder nor the names of its contributors
-   may be used to endorse or promote products derived from this software
-   without specific prior written permission.
+ 3. Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -84,13 +83,13 @@ var getCmd = &cobra.Command{
 		var orgKey [32]byte
 		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
 		if err != nil {
-			log.Debug(err.Error)
-			log.Fatal(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the organisation's encryption key")
 		}
 		copy(orgKey[:], decryptedOrgKey)
 
 		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetSecretOptions{
+		getOptions := secretsCommons.GetOptions{
 			EnvID: commons.ProjectConfig.Environment,
 			Key:   key,
 		}
@@ -99,57 +98,42 @@ var getCmd = &cobra.Command{
 			getOptions.Version = &version
 		}
 
-		var result secretsCommons.Payload
-		list, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
 
-			log.Debug(err.Error)
-			log.Debug(err.Message)
+			log.Debug(err)
+			log.Fatal("Failed to fetch the secrets")
 
-			//	Read the value from Contingency file.
-			if commons.ContingencyConfig != nil {
-				log.Warn("Searching value in contingency file")
-				temp := *commons.ContingencyConfig
-				result = temp[key]
-			}
-
-		} else {
-			result = list.Data[key]
+			/* 			//	Read the value from Contingency file.
+			   			if commons.ContingencyConfig != nil {
+			   				log.Warn("Searching value in contingency file")
+			   				temp := *commons.ContingencyConfig
+			   				result = temp[key]
+			   			}
+			*/
 		}
 
-		if result.Value == nil {
-			log.Fatal("Value not found")
+		if err := secret.Decrypt(orgKey); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decrypt the secret")
 		}
 
-		//	Base64 decode the secret value
-		decoded, er := base64.StdEncoding.DecodeString(result.Value.(string))
-		if er != nil {
-			log.Debug(er)
-			log.Fatal("Failed to base64 decode the value for ", key)
+		//	Decode the values.
+		if err := secret.Decode(); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to decode the secret")
 		}
 
-		if result.Type == secretsCommons.Ciphertext {
-
-			//	Decrypt the value using org-key.
-			decrypted, err := keys.OpenSymmetrically(decoded, orgKey)
-			if err != nil {
-				log.Debug(err.Error)
-				log.Fatal(err.Message)
-			}
-
-			result.Value = string(decrypted)
-		} else {
-			result.Value = string(decoded)
-		}
-
-		fmt.Printf("%v", result.Value)
+		fmt.Printf("%v", secret.Get(key).Value)
 		fmt.Println()
 
-		//	Update the Contingency file
-		if err := config.GetService().Save(configCommons.Contingency(list.Data), configCommons.ContingencyConfig); err != nil {
-			log.Debug(err)
-			log.Warn("Failed to save secrets in Contingency file")
-		}
+		/*
+			 		//	Update the Contingency file
+					if err := config.GetService().Save(configCommons.Contingency(list.Data), configCommons.ContingencyConfig); err != nil {
+						log.Debug(err)
+						log.Warn("Failed to save secrets in Contingency file")
+					}
+		*/
 	},
 }
 

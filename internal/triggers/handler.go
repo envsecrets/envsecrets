@@ -55,6 +55,10 @@ func SecretInserted(c echo.Context) error {
 		})
 	}
 
+	//	Since the newly inserted secret is already base64 encoded,
+	//	mark it 'encoded'
+	row.MarkEncoded()
+
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
@@ -69,12 +73,11 @@ func SecretInserted(c echo.Context) error {
 	//	--- Flow ---
 	//	1. Get the events linked to this new secret row.
 	//	2. Call the appropriate integration service to sync the secrets.
-
 	events, err := events.GetBySecret(ctx, client, row.ID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: "failed to get events associated with this secret",
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get events associated with this secret",
+			Error:   err.Error(),
 		})
 	}
 
@@ -84,26 +87,24 @@ func SecretInserted(c echo.Context) error {
 		})
 	}
 
-	var decrypted map[string]secretCommons.Payload
-
 	//	Get the organisation to which these secrets belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get organisation to which these secrets are associated"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get organisation to which these secrets are associated",
+			Error:   err.Error(),
 		})
 	}
 
 	//	Decrypt the value of every secret.
-	decrypted, err = secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID: organisation.ID,
-		Data:  row.Data,
+	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+		OrgID:  organisation.ID,
+		Secret: row,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to  decrypt secrets"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
 		})
 	}
 
@@ -115,7 +116,7 @@ func SecretInserted(c echo.Context) error {
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,
-			Data:          decrypted,
+			Secret:        *decrypted,
 		}); err != nil {
 			log.Printf("failed to push secret with ID %s for %s event: %s", row.ID, event.Integration.Type, event.ID)
 			log.Println(err)
@@ -167,31 +168,31 @@ func EventInserted(c echo.Context) error {
 	//	Get the organisation to which this event's environment belong to.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get the organisation to which this event is associated"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get organisation to which this event are associated",
+			Error:   err.Error(),
 		})
 	}
 
-	response, err := secrets.GetAll(ctx, client, &secretCommons.GetSecretOptions{
+	response, err := secrets.Get(ctx, client, &secretCommons.GetOptions{
 		EnvID: row.EnvID,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get secrets associated with this event"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get secrets associated with this event",
+			Error:   err.Error(),
 		})
 	}
 
 	//	Decrypt the value of every secret.
 	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
-		OrgID: organisation.ID,
-		Data:  response.Data,
+		OrgID:  organisation.ID,
+		Secret: *response,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to  decrypt secrets"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
 		})
 	}
 
@@ -202,11 +203,11 @@ func EventInserted(c echo.Context) error {
 		IntegrationID: row.IntegrationID,
 		EventID:       row.ID,
 		EntityDetails: row.EntityDetails,
-		Data:          decrypted,
+		Secret:        *decrypted,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID)),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID),
+			Error:   err.Error(),
 		})
 	}
 
@@ -249,18 +250,18 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	Get the organisation ID.
 	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get the organisation to which this environment is associated"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get the organisation to which this environment is associated",
+			Error:   err.Error(),
 		})
 	}
 
 	//	Get subscriptions for this organisation
 	orgSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to get the subscriptions for this organisation"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get the subscriptions for this organisation",
+			Error:   err.Error(),
 		})
 	}
 
@@ -276,15 +277,15 @@ func SecretDeleteLegacy(c echo.Context) error {
 	//	only keep the latest 5 version active.
 	if !active {
 
-		cleanupUntilVersion := row.Version - 5
+		cleanupUntilVersion := *row.Version - 5
 		if cleanupUntilVersion > 0 {
 			if err := secrets.Cleanup(ctx, client, &secretCommons.CleanupSecretOptions{
 				EnvID:   row.EnvID,
 				Version: cleanupUntilVersion,
 			}); err != nil {
-				return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-					Message: err.GenerateMessage("Failed to delete older versions of this secret"),
-					Error:   err.Error.Error(),
+				return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+					Message: "Failed to delete older versions of this secret",
+					Error:   err.Error(),
 				})
 			}
 		}
@@ -333,9 +334,9 @@ func UserInserted(c echo.Context) error {
 
 	//	Shoot a welcome email to the user
 	if err := mail.GetService().SendWelcomeEmail(ctx, &user); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to send welcome email"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to send welcome email",
+			Error:   err.Error(),
 		})
 	}
 
@@ -387,9 +388,9 @@ func OrganisationCreated(c echo.Context) error {
 		},
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "viewer")),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: fmt.Sprintf("Failed to create role: %s", "viewer"),
+			Error:   err.Error(),
 		})
 	}
 
@@ -411,9 +412,9 @@ func OrganisationCreated(c echo.Context) error {
 		},
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "editor")),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: fmt.Sprintf("Failed to create role: %s", "editor"),
+			Error:   err.Error(),
 		})
 	}
 
@@ -447,18 +448,18 @@ func OrganisationCreated(c echo.Context) error {
 		},
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage(fmt.Sprintf("Failed to create role: %s", "admin")),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: fmt.Sprintf("Failed to create role: %s", "admin"),
+			Error:   err.Error(),
 		})
 	}
 
 	//	Generate a symmetric key for cryptographic operations in this organisation.
-	keyBytes, er := globalCommons.GenerateRandomBytes(KEY_BYTES)
-	if er != nil {
+	keyBytes, err := globalCommons.GenerateRandomBytes(KEY_BYTES)
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: "Failed to generate symmetric key for this org",
-			Error:   er.Error(),
+			Error:   err.Error(),
 		})
 	}
 
@@ -466,8 +467,8 @@ func OrganisationCreated(c echo.Context) error {
 	publicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, row.UserID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch owner's public key"),
-			Error:   err.Message,
+			Message: "Failed to fetch owner's public key",
+			Error:   err.Error(),
 		})
 	}
 
@@ -475,9 +476,9 @@ func OrganisationCreated(c echo.Context) error {
 	copy(publicKey[:], publicKeyBytes)
 	result, err := keys.SealAsymmetricallyAnonymous(keyBytes, publicKey)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to seal org's symmetric key with owner's public key"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to seal org's symmetric key with owner's public key",
+			Error:   err.Error(),
 		})
 	}
 
@@ -487,18 +488,18 @@ func OrganisationCreated(c echo.Context) error {
 		RoleID: adminRole.ID,
 		Key:    base64.StdEncoding.EncodeToString(result),
 	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to add the owner as an admin member"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to add the owner as an admin member",
+			Error:   err.Error(),
 		})
 	}
 
 	//	Add envsecrets as a bot
-	botPublicKeyBytes, er := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if er != nil {
+	botPublicKeyBytes, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: "Failed to base64 decode server's public key",
-			Error:   er.Error(),
+			Error:   err.Error(),
 		})
 	}
 
@@ -507,8 +508,8 @@ func OrganisationCreated(c echo.Context) error {
 	result, err = keys.SealAsymmetricallyAnonymous(keyBytes, botPublicKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to seal org's symmetric key with bot's public key"),
-			Error:   err.Message,
+			Message: "Failed to seal org's symmetric key with bot's public key",
+			Error:   err.Error(),
 		})
 	}
 
@@ -517,8 +518,8 @@ func OrganisationCreated(c echo.Context) error {
 		Key:   base64.StdEncoding.EncodeToString(result),
 	}); err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to set server's key copy"),
-			Error:   err.Message,
+			Message: "Failed to save server's key copy",
+			Error:   err.Error(),
 		})
 	}
 
@@ -566,9 +567,9 @@ func ProjectInserted(c echo.Context) error {
 			ProjectID: row.ID,
 			UserID:    row.UserID,
 		}); err != nil {
-			return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-				Message: err.GenerateMessage("Failed to create the environment: " + item),
-				Error:   err.Error.Error(),
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Failed to create the environment: " + item,
+				Error:   err.Error(),
 			})
 		}
 	}
@@ -612,9 +613,9 @@ func InviteInserted(c echo.Context) error {
 		OrgID:         row.OrgID,
 		SenderID:      row.UserID,
 	}); err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.Message,
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+			Message: "Failed to send the invitation email",
+			Error:   err.Error(),
 		})
 	}
 

@@ -20,7 +20,7 @@ var (
 	CONFIG_LOC = filepath.Join(CONFIG_DIR, CONFIG_FILENAME)
 )
 
-//	Save the provided config in its default location in the project root.
+// Save the provided config in its default location in the project root.
 func Save(config *commons.Project) error {
 
 	//	Create the configuration directory, if it doesn't already exist
@@ -38,7 +38,7 @@ func Save(config *commons.Project) error {
 	return ioutil.WriteFile(CONFIG_LOC, data, 0644)
 }
 
-//	Load, parse and return the available project config.
+// Load, parse and return the available project config.
 func Load() (*commons.Project, error) {
 
 	//	Read the file
@@ -57,7 +57,7 @@ func Load() (*commons.Project, error) {
 	return config.Unstringify()
 }
 
-//	Validate whether project config exists in file system or not
+// Validate whether project config exists in file system or not
 func Exists() bool {
 	_, err := os.Stat(CONFIG_LOC)
 	return !errors.Is(err, os.ErrNotExist)

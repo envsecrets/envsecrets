@@ -2,11 +2,9 @@ package asm
 
 import (
 	"encoding/base64"
-	"encoding/json"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 
@@ -17,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Encrypt the credentials
 	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
@@ -36,13 +34,13 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(options.Credentials["region"].(string)),
 	)
 	if err != nil {
-		return nil, errors.New(err, "Failed to push secrets to ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
@@ -56,19 +54,19 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 
 	resp, err := client.ListSecrets(ctx, nil)
 	if err != nil {
-		return nil, errors.New(err, "Failed to list secrets from ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return nil, err
 	}
 
 	return resp, nil
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.CreateSecretOutput, *errors.Error) {
+func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.CreateSecretOutput, error) {
 
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(options.Credentials["region"].(string)),
 	)
 	if err != nil {
-		return nil, errors.New(err, "Failed to push secrets to ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	stsClient := sts.NewFromConfig(cfg)
@@ -81,9 +79,9 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.Cre
 	client := secretsmanager.NewFromConfig(cfg)
 
 	//	Marshal the secrets
-	payload, err := json.Marshal(toKVMap(options.Data))
+	payload, err := options.Secret.ToMap().Marshal()
 	if err != nil {
-		return nil, errors.New(err, "Failed to push secrets to ASM", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	resp, err := client.CreateSecret(ctx, &secretsmanager.CreateSecretInput{
@@ -100,7 +98,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.Cre
 			SecretString: aws.String(string(payload)),
 		})
 		if err != nil {
-			return nil, errors.New(err, "Failed to create new secret version in ASM", errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+			return nil, err
 		}
 	}
 	return resp, nil

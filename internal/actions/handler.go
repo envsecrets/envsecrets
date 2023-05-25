@@ -47,17 +47,17 @@ func EnvironmentCreate(c echo.Context) error {
 	//	Fetch the org_id by using project_id.
 	project, err := projects.Get(ctx, client, options.ProjectID)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch the project details"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the project details",
+			Error:   err.Error(),
 		})
 	}
 
 	activeSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: project.OrgID})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to fetch the subscription details"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the subscription details",
+			Error:   err.Error(),
 		})
 	}
 
@@ -78,10 +78,9 @@ func EnvironmentCreate(c echo.Context) error {
 	//	Create the environment
 	environment, err := environments.Create(ctx, client, &options)
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-
-			Message: err.GenerateMessage("Failed to create the environment"),
-			Error:   err.Message,
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to create the environment",
+			Error:   err.Error(),
 		})
 	}
 

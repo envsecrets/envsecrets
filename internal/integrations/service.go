@@ -3,13 +3,12 @@ package integrations
 import (
 	"encoding/base64"
 	"encoding/json"
-	internalErrors "errors"
+	"errors"
 	"fmt"
 	"net/url"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/asm"
@@ -23,22 +22,20 @@ import (
 )
 
 type Service interface {
-	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, *errors.Error)
-	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, *errors.Error)
-	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, *errors.Error)
-	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, *errors.Error)
-	Sync(context.ServiceContext, *clients.GQLClient, *commons.SyncOptions) *errors.Error
+	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, error)
+	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, error)
+	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, error)
+	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, error)
+	Sync(context.ServiceContext, *clients.GQLClient, *commons.SyncOptions) error
 }
 
 type DefaultIntegrationService struct{}
 
-func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, *errors.Error) {
+func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, error) {
 	return graphql.Get(ctx, client, id)
 }
 
-func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, options map[string]interface{}) (interface{}, *errors.Error) {
-
-	errMessage := "Failed to list entities"
+func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, options map[string]interface{}) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -49,9 +46,9 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	//	Decrypt the credentials.
 	var credentials map[string]interface{}
 	if integration.Credentials != "" {
-		payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
-		if er != nil {
-			return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		payload, err := base64.StdEncoding.DecodeString(integration.Credentials)
+		if err != nil {
+			return nil, err
 		}
 
 		decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
@@ -60,7 +57,7 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 		}
 
 		if err := json.Unmarshal(decryptedCredentials, &credentials); err != nil {
-			return nil, errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+			return nil, err
 		}
 	}
 
@@ -101,12 +98,10 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 			OrgID:       integration.OrgID,
 		})
 	default:
-		return nil, errors.New(internalErrors.New("invalid integration type"), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return nil, errors.New("invalid integration type")
 	}
 }
-func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, params url.Values) (interface{}, *errors.Error) {
-
-	errMessage := "Failed to list sub entities"
+func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, params url.Values) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -117,9 +112,9 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 	//	Decrypt the credentials.
 	var credentials map[string]interface{}
 	if integration.Credentials != "" {
-		payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
-		if er != nil {
-			return nil, errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		payload, err := base64.StdEncoding.DecodeString(integration.Credentials)
+		if err != nil {
+			return nil, err
 		}
 
 		decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
@@ -128,7 +123,7 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 		}
 
 		if err := json.Unmarshal(decryptedCredentials, &credentials); err != nil {
-			return nil, errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+			return nil, err
 		}
 	}
 
@@ -140,11 +135,11 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 			OrgSlug:     params.Get("org-slug"),
 		})
 	default:
-		return nil, errors.New(internalErrors.New("invalid integration type"), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return nil, errors.New("invalid integration type")
 	}
 }
 
-func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, options *commons.SetupOptions) (*commons.Integration, *errors.Error) {
+func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, options *commons.SetupOptions) (*commons.Integration, error) {
 
 	switch integrationType {
 	case commons.Github:
@@ -183,7 +178,7 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 
 		var keys map[string]interface{}
 		if err := json.Unmarshal([]byte(options.Options["keys"].(string)), &keys); err != nil {
-			return nil, errors.New(err, "Failed to setup the GSM integration", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+			return nil, err
 		}
 
 		return gsm.Setup(ctx, client, &gsm.SetupOptions{
@@ -202,12 +197,10 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 		})
 	}
 
-	return nil, errors.New(nil, "invalid integration type", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	return nil, errors.New("invalid integration type")
 }
 
-func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) *errors.Error {
-
-	errMessage := "Failed to sync secrets"
+func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) error {
 
 	//	Get the integration to which this event belong to.
 	integration, err := graphql.Get(ctx, client, options.IntegrationID)
@@ -218,9 +211,9 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 	//	Decrypt the credentials.
 	var credentials map[string]interface{}
 	if integration.Credentials != "" {
-		payload, er := base64.StdEncoding.DecodeString(integration.Credentials)
-		if er != nil {
-			return errors.New(er, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		payload, err := base64.StdEncoding.DecodeString(integration.Credentials)
+		if err != nil {
+			return err
 		}
 
 		decryptedCredentials, err := commons.DecryptCredentials(ctx, integration.OrgID, payload)
@@ -229,7 +222,7 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		}
 
 		if err := json.Unmarshal(decryptedCredentials, &credentials); err != nil {
-			return errors.New(err, errMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+			return err
 		}
 	}
 
@@ -238,50 +231,50 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		return github.Sync(ctx, &github.SyncOptions{
 			InstallationID: integration.InstallationID,
 			EntityDetails:  options.EntityDetails,
-			Data:           options.Data,
+			Secret:         options.Secret,
 		})
 	case commons.Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			IntegrationID: options.IntegrationID,
 			OrgID:         integration.OrgID,
 		})
 	case commons.Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
 			Credentials:   credentials,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.CircleCI:
 		return circle.Sync(ctx, &circle.SyncOptions{
 			Credentials:   credentials,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Supabase:
 		return supabase.Sync(ctx, &supabase.SyncOptions{
 			Credentials:   credentials,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Netlify:
 		return netlify.Sync(ctx, &netlify.SyncOptions{
 			Credentials:   credentials,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.GSM:
 		return gsm.Sync(ctx, &gsm.SyncOptions{
 			Credentials:   credentials,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.ASM:
 		resp, err := asm.Sync(ctx, &asm.SyncOptions{
 			OrgID:         integration.OrgID,
-			Data:          options.Data,
+			Secret:        options.Secret,
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
 		})
@@ -307,6 +300,6 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		return nil
 
 	default:
-		return errors.New(internalErrors.New(errMessage), errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceHTTP)
+		return errors.New("failed to sync secrets")
 	}
 }

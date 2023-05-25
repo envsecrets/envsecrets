@@ -2,17 +2,15 @@ package subscriptions
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new workspace
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Subscription, *errors.Error) {
-
-	errorMessage := "Failed to create subscription"
+// Create a new workspace
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($subscription_id: String!, $org_id: uuid!) {
@@ -34,22 +32,20 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_subscriptions"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Subscription
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	Get a workspace by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Subscription, *errors.Error) {
-
-	errorMessage := "Failed to fetch subscription"
+// Get a workspace by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -71,21 +67,19 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Sub
 
 	returning, err := json.Marshal(response["subscriptions_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Subscription
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-func GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, subscription_id string) (*Subscription, *errors.Error) {
-
-	errorMessage := "Failed to fetch subscription"
+func GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, subscription_id string) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($subscription_id: String!) {
@@ -106,22 +100,20 @@ func GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, 
 
 	returning, err := json.Marshal(response["subscriptions"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Subscription
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	List subscriptions
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Subscription, *errors.Error) {
-
-	errorMessage := "Failed to list subscriptions"
+// List subscriptions
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!) {
@@ -140,22 +132,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	returning, err := json.Marshal(response["subscriptions"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Subscription
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Update a workspace by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Subscription, *errors.Error) {
-
-	errorMessage := "Failed to update the subscription"
+// Update a workspace by ID
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $status: String!) {
@@ -176,22 +166,20 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_subscriptions_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Subscription
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Delete a subscription by ID
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) *errors.Error {
-
-	errorMessage := "Failed to delete the subscription"
+// Delete a subscription by ID
+func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!) {
@@ -212,16 +200,14 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) *e
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("no rows affected")
 	}
 
 	return nil
 }
 
-//	Delete a subscription by Stripe Subscription ID
-func DeleteBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, id string) *errors.Error {
-
-	errorMessage := "Failed to delete the subscription"
+// Delete a subscription by Stripe Subscription ID
+func DeleteBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!) {
@@ -242,7 +228,7 @@ func DeleteBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClien
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("no rows affected")
 	}
 
 	return nil

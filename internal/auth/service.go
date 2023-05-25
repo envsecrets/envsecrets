@@ -3,21 +3,20 @@ package auth
 import (
 	"bytes"
 	"encoding/base64"
-	internalErrors "errors"
+	"errors"
 	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/nhost"
 	"github.com/envsecrets/envsecrets/internal/users"
 )
 
-func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SignupOptions) *errors.Error {
+func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SignupOptions) error {
 
 	//	Signup on Nhost
 	if err := nhost.Signup(ctx, &nhost.SignupOptions{
@@ -27,7 +26,7 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 			"displayName": options.Name,
 		},
 	}); err != nil {
-		return errors.New(internalErrors.New(err.Message), "Failed to signup the user", errors.ErrorTypeBadResponse, errors.ErrorSourceNhost)
+		return errors.New(err.Message)
 	}
 
 	//	Fetch the user with their email.
@@ -56,18 +55,17 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return nil
 }
 
-func UpdatePassword(ctx context.ServiceContext, client *clients.HTTPClient, options *commons.UpdatePasswordOptions) *errors.Error {
+func UpdatePassword(ctx context.ServiceContext, client *clients.HTTPClient, options *commons.UpdatePasswordOptions) error {
 
-	errMessage := "Failed to update password"
 	body, err := options.Marshal()
 	if err != nil {
-		return errors.New(err, errMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return err
 	}
 
 	//	Initialize a new request
 	req, err := http.NewRequest(http.MethodPost, os.Getenv("NHOST_AUTH_URL")+"/user/password", bytes.NewBuffer(body))
 	if err != nil {
-		return errors.New(err, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return err
 	}
 
 	return client.Run(ctx, req, nil)

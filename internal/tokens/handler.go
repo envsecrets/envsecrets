@@ -16,7 +16,6 @@ func CreateHandler(c echo.Context) error {
 	var payload commons.CreateRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -31,11 +30,11 @@ func CreateHandler(c echo.Context) error {
 	})
 
 	//	Create the token
-	expiry, er := time.ParseDuration(payload.Expiry)
-	if er != nil {
+	expiry, err := time.ParseDuration(payload.Expiry)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to parse expiry duration",
-			Error:   er.Error(),
+			Error:   err.Error(),
 		})
 	}
 
@@ -45,9 +44,9 @@ func CreateHandler(c echo.Context) error {
 		Name:   payload.Name,
 	})
 	if err != nil {
-		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-			Message: err.GenerateMessage("Failed to create the token"),
-			Error:   err.Error.Error(),
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to create the token",
+			Error:   err.Error(),
 		})
 	}
 

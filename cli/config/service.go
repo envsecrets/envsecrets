@@ -5,7 +5,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/cli/config/account"
 	"github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/cli/config/contingency"
 	"github.com/envsecrets/envsecrets/cli/config/keys"
 	"github.com/envsecrets/envsecrets/cli/config/project"
 )
@@ -45,13 +44,15 @@ func (*DefaultConfigService) Save(payload interface{}, configType commons.Config
 		}
 		return keys.Save(&config)
 
-	case commons.ContingencyConfig:
+		/*
+			 	case commons.ContingencyConfig:
 
-		config, ok := payload.(commons.Contingency)
-		if !ok {
-			return errors.New("failed type assertion to contingency config")
-		}
-		return contingency.Save(&config)
+					config, ok := payload.(secretCommons.Secrets)
+					if !ok {
+						return errors.New("failed type assertion to contingency config")
+					}
+					return contingency.Save(&config)
+		*/
 	}
 	return nil
 }
@@ -64,8 +65,10 @@ func (*DefaultConfigService) Load(configType commons.ConfigType) (interface{}, e
 		return account.Load()
 	case commons.KeysConfig:
 		return keys.Load()
-	case commons.ContingencyConfig:
-		return contingency.Load()
+		/*
+			 	case commons.ContingencyConfig:
+					return contingency.Load()
+		*/
 	}
 
 	return nil, nil
@@ -79,8 +82,10 @@ func (*DefaultConfigService) Delete(configType commons.ConfigType) error {
 		return account.Delete()
 	case commons.KeysConfig:
 		return keys.Delete()
-	case commons.ContingencyConfig:
-		return contingency.Delete()
+		/*
+			 	case commons.ContingencyConfig:
+					return contingency.Delete()
+		*/
 	}
 
 	return nil
@@ -94,8 +99,10 @@ func (*DefaultConfigService) Exists(configType commons.ConfigType) bool {
 		return account.Exists()
 	case commons.KeysConfig:
 		return keys.Exists()
-	case commons.ContingencyConfig:
-		return contingency.Exists()
+		/*
+			 	case commons.ContingencyConfig:
+					return contingency.Exists()
+		*/
 	}
 
 	return false

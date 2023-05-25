@@ -13,8 +13,8 @@ type ListOptions struct {
 }
 
 type SyncOptions struct {
-	OrgID         string                           `json:"org_id"`
-	Credentials   map[string]interface{}           `json:"credentials"`
-	EntityDetails map[string]interface{}           `json:"entity_details"`
-	Data          map[string]secretCommons.Payload `json:"data"`
+	OrgID         string                 `json:"org_id"`
+	Credentials   map[string]interface{} `json:"credentials"`
+	EntityDetails map[string]interface{} `json:"entity_details"`
+	Secret        secretCommons.Secret   `json:"secret"`
 }

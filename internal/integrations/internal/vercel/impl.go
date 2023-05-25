@@ -12,16 +12,14 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
 // ---	Flow ---
 // 1. Exchange the `code` received from Vercel for an access token: https://api.vercel.com/v2/oauth/access_token
 // 2. Save the `access_token` and `installation_id` in Hasura.
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Initialize a new HTTP client for Vercel.
 	httpClient := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -40,9 +38,9 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	data.Set("code", options.Code)
 	data.Set("redirect_uri", os.Getenv("REDIRECT_DOMAIN")+"/v1/integrations/vercel/setup")
 
-	req, er := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
-	if er != nil {
-		return nil, errors.New(er, "failed to prepare http request", errors.ErrorTypeRequestFailed, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
 	}
 
 	var response CodeExchangeResponse
@@ -70,7 +68,7 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -80,7 +78,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.vercel.com/v9/projects", nil)
 	if err != nil {
-		return nil, errors.New(err, "failed prepare oauth access token request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	If the user had integrated a team account,
@@ -92,9 +90,9 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	}
 
 	var response ListProjectsResponse
-	er := client.Run(ctx, req, &response)
-	if er != nil {
-		return nil, er
+
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	for index, project := range response.Projects {
@@ -109,7 +107,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	return &response.Projects, nil
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
+func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -122,13 +120,14 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 	//	Prepare array of all values
 	var array []map[string]interface{}
-	for key, value := range options.Data {
+	for key, value := range options.Secret.Data {
 
 		//	Prepare the secret type
 		var typ string
 		v := value.Value
 
-		if value.Type == secretCommons.Ciphertext {
+		if value.IsExposable() {
+			typ = "plain"
 
 			/* 			//	Create the secret separately in vercel first.
 			   			secret, err := CreateSecret(ctx, client, key, value.Value, &teamID)
@@ -136,10 +135,9 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 			   				return err
 			   			}
 			*/
-			typ = "encrypted"
 
-		} else if value.Type == secretCommons.Plaintext {
-			typ = "plain"
+		} else {
+			typ = "encrypted"
 		}
 
 		array = append(array, map[string]interface{}{
@@ -153,12 +151,12 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 	//	Prepare the request body
 	body, err := json.Marshal(array)
 	if err != nil {
-		return errors.New(err, "failed marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://api.vercel.com/v10/projects/%s/env", options.EntityDetails["id"].(string)), bytes.NewBuffer(body))
 	if err != nil {
-		return errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return err
 	}
 
 	//	Prepare Queries
@@ -175,13 +173,13 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 	//	Make the request
 	var response VercelResponse
-	er := client.Run(ctx, req, &response)
-	if er != nil {
-		return er
+
+	if err := client.Run(ctx, req, &response); err != nil {
+		return err
 	}
 
 	if response.Error != nil {
-		return errors.New(fmt.Errorf(response.Error["message"].(string)), "vercel returned errors", errors.ErrorTypeBadResponse, errors.ErrorSourceVercel)
+		return fmt.Errorf(response.Error["message"].(string))
 	}
 
 	return nil
@@ -189,7 +187,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 
 // Creates a new Secret on Vercel.
 // Docs: https://vercel.com/docs/rest-api/endpoints#create-a-new-secret
-func CreateSecret(ctx context.ServiceContext, client *clients.HTTPClient, name string, value interface{}, teamID *string) (*VercelSecret, *errors.Error) {
+func CreateSecret(ctx context.ServiceContext, client *clients.HTTPClient, name string, value interface{}, teamID *string) (*VercelSecret, error) {
 
 	//	Prepare the request body
 	body, err := json.Marshal(map[string]interface{}{
@@ -198,12 +196,12 @@ func CreateSecret(ctx context.ServiceContext, client *clients.HTTPClient, name s
 		"decryptable": true,
 	})
 	if err != nil {
-		return nil, errors.New(err, "failed marshal request body", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.vercel.com/v2/secrets/name", bytes.NewBuffer(body))
 	if err != nil {
-		return nil, errors.New(err, "failed prepare http request", errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	If the user had integrated a team account,
@@ -216,13 +214,13 @@ func CreateSecret(ctx context.ServiceContext, client *clients.HTTPClient, name s
 
 	//	Make the request
 	var response VercelSecret
-	er := client.Run(ctx, req, &response)
-	if er != nil {
-		return nil, er
+
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	if response.Error != nil {
-		return nil, errors.New(fmt.Errorf(response.Error["message"].(string)), "vercel returned errors", errors.ErrorTypeBadResponse, errors.ErrorSourceVercel)
+		return nil, fmt.Errorf(response.Error["message"].(string))
 	}
 
 	return &response, nil

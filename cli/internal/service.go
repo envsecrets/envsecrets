@@ -8,17 +8,14 @@ import (
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 )
 
-func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.GetResponse, *errors.Error) {
-
-	errMessage := "Failed to get values"
+func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.Secret, error) {
 
 	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets/values", nil)
 	if err != nil {
-		return nil, errors.New(err, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Initialize the query values.
@@ -60,9 +57,9 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 		return nil, err
 	}
 
-	var data secretCommons.GetResponse
+	var data secretCommons.Secret
 	if err := globalCommons.MapToStruct(response.Data, &data); err != nil {
-		return nil, errors.New(err, errMessage, errors.ErrorTypeBadResponse, errors.ErrorSourceHTTP)
+		return nil, err
 	}
 
 	return &data, nil

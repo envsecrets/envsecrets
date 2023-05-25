@@ -71,9 +71,9 @@ func TokenHeader() echo.MiddlewareFunc {
 			})
 
 			//	Decode the token
-			payload, er := hex.DecodeString(key)
-			if er != nil {
-				return false, er
+			payload, err := hex.DecodeString(key)
+			if err != nil {
+				return false, err
 			}
 
 			//	Generate token's hash.
@@ -82,7 +82,7 @@ func TokenHeader() echo.MiddlewareFunc {
 			//	Verify the token.
 			token, err := tokens.GetByHash(ctx, client, hash)
 			if err != nil {
-				return false, err.Error
+				return false, err
 			}
 
 			if token.EnvID == "" {

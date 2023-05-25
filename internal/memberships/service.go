@@ -3,18 +3,16 @@ package memberships
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/errors"
 
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new membership
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) *errors.Error {
-
-	errorMessage := "Failed to create membership"
+// Create a new membership
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!, $role_id: uuid!, $key: String!) {
@@ -37,16 +35,14 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("failed to create membership")
 	}
 
 	return nil
 }
 
-//	Create a new membership
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) *errors.Error {
-
-	errorMessage := "Failed to create membership"
+// Create a new membership
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($user_id: uuid!, $org_id: uuid!, $role_id: uuid!, $key: String!) {
@@ -70,16 +66,14 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New("failed to create membership")
 	}
 
 	return nil
 }
 
-//	Get a membership by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Membership, *errors.Error) {
-
-	errorMessage := "Failed to fetch the membership"
+// Get a membership by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Membership, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -99,22 +93,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Mem
 
 	returning, err := json.Marshal(response["org_has_user_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Get a membership by ID
-func GetKey(ctx context.ServiceContext, client *clients.GQLClient, options *GetKeyOptions) ([]byte, *errors.Error) {
-
-	errorMessage := "Failed to fetch the membership"
+// Get a membership by ID
+func GetKey(ctx context.ServiceContext, client *clients.GQLClient, options *GetKeyOptions) ([]byte, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($user_id: uuid!, $org_id: uuid!) {
@@ -134,18 +126,18 @@ func GetKey(ctx context.ServiceContext, client *clients.GQLClient, options *GetK
 
 	returning, err := json.Marshal(response["org_has_user"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Membership
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	result, err := base64.StdEncoding.DecodeString(resp[0].Key)
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return result, nil

@@ -3,7 +3,6 @@ package commons
 import (
 	"encoding/base64"
 
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
 
@@ -12,8 +11,6 @@ type Account struct {
 	RefreshToken string           `json:"refresh_token" yaml:"refreshToken"`
 	User         userCommons.User `json:"user" yaml:"user"`
 }
-
-type Contingency map[string]secretCommons.Payload
 
 type ProjectStringified struct {
 	Version        int    `json:"version" yaml:"version"`

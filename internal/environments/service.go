@@ -5,14 +5,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/machinebox/graphql"
 )
 
-//	Create a new environment
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, *errors.Error) {
-
-	errorMessage := "Failed to create the environment"
+// Create a new environment
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!) {
@@ -35,21 +32,19 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 
 	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, *errors.Error) {
-
-	errorMessage := "Failed to create the environment"
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!, $user_id: uuid) {
@@ -75,22 +70,20 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 
 	returning, err := json.Marshal(response["insert_environments"].(map[string]interface{})["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-//	Get a environment by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, *errors.Error) {
-
-	errorMessage := "Failed to fetch the environment"
+// Get a environment by ID
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -110,22 +103,20 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 
 	returning, err := json.Marshal(response["environments_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	List environments
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, *errors.Error) {
-
-	errorMessage := "Failed to list the environments"
+// List environments
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -145,22 +136,20 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	returning, err := json.Marshal(response["environments"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Update a environment by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, *errors.Error) {
-
-	errorMessage := "Failed to update the environment"
+// Update a environment by ID
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -181,19 +170,19 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 	returning, err := json.Marshal(response["update_environments_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, errorMessage, errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-//	Delete a environment by ID
+// Delete a environment by ID
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

@@ -15,9 +15,9 @@ type SetupOptions struct {
 }
 
 type SyncOptions struct {
-	InstallationID string                           `json:"installation_id"`
-	EntityDetails  map[string]interface{}           `json:"entity_details"`
-	Data           map[string]secretCommons.Payload `json:"data"`
+	InstallationID string                 `json:"installation_id"`
+	EntityDetails  map[string]interface{} `json:"entity_details"`
+	Secret         secretCommons.Secret   `json:"secret"`
 }
 
 type InstallationAccessTokenResponse struct {

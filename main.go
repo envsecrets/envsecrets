@@ -98,7 +98,7 @@ func main() {
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }
 
-//	Healthcheck endpoint
+// Healthcheck endpoint
 func healthz(c echo.Context) error {
 	return c.String(http.StatusOK, "API is healthy")
 }

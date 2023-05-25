@@ -3,8 +3,6 @@ package commons
 import (
 	"encoding/base64"
 	"time"
-
-	"github.com/envsecrets/envsecrets/internal/errors"
 )
 
 type Key struct {
@@ -19,26 +17,26 @@ type Key struct {
 	Salt         string `json:"salt,omitempty"`
 }
 
-func (k *Key) DecodePayload() (*Payload, *errors.Error) {
+func (k *Key) DecodePayload() (*Payload, error) {
 
-	salt, er := base64.StdEncoding.DecodeString(k.Salt)
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode salt", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	salt, err := base64.StdEncoding.DecodeString(k.Salt)
+	if err != nil {
+		return nil, err
 	}
 
-	protectedKey, er := base64.StdEncoding.DecodeString(k.ProtectedKey)
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode protection key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	protectedKey, err := base64.StdEncoding.DecodeString(k.ProtectedKey)
+	if err != nil {
+		return nil, err
 	}
 
-	privateKey, er := base64.StdEncoding.DecodeString(k.PrivateKey)
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode private key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	privateKey, err := base64.StdEncoding.DecodeString(k.PrivateKey)
+	if err != nil {
+		return nil, err
 	}
 
-	publicKey, er := base64.StdEncoding.DecodeString(k.PublicKey)
-	if er != nil {
-		return nil, errors.New(er, "Failed to base64 decode public key", errors.ErrorTypeBase64Decode, errors.ErrorSourceGo)
+	publicKey, err := base64.StdEncoding.DecodeString(k.PublicKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Payload{
@@ -56,7 +54,7 @@ type Payload struct {
 	Salt         []byte
 }
 
-func (p *Payload) Validate() *errors.Error {
+func (p *Payload) Validate() error {
 
 	return nil
 }

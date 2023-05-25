@@ -7,7 +7,6 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/machinebox/graphql"
@@ -61,7 +60,7 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 	return &response
 }
 
-func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) *errors.Error {
+func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) error {
 
 	//	Set Authorization Header
 	if c.Authorization != "" {
@@ -83,19 +82,19 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 	//	Parse the error
 	if err := c.Run(ctx, req, &resp); err != nil {
-		apiError := errors.Parse(err)
+		apiError := ParseExternal(err)
 
 		//	If it's a JWTExpired error,
 		//	refresh the JWT and re-call the request.
 		switch apiError.Type {
-		case errors.ErrorTypeJWTExpired:
+		case ErrorTypeJWTExpired:
 
 			c.log.Debug("Request failed due to expired token. Refreshing access token to try again.")
 
 			//	Fetch account configuration
 			accountConfigPayload, err := config.GetService().Load(configCommons.AccountConfig)
 			if err != nil {
-				return errors.New(err, "failed to load account configuration", errors.ErrorTypeDoesNotExist, errors.ErrorSourceGo)
+				return New(err, "Failed to load account config", ErrorTypeInvalidAccountConfiguration, ErrorSourceSystem).ToError()
 			}
 
 			accountConfig := accountConfigPayload.(*configCommons.Account)
@@ -105,7 +104,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 			})
 
 			if refreshErr != nil {
-				return errors.New(err, "failed to refresh auth token", errors.ErrorTypeBadResponse, errors.ErrorSourceNhost)
+				return New(refreshErr, "Failed to refresh access token", ErrorTypeInvalidToken, ErrorSourceNhost).ToError()
 			}
 
 			//	Save the refreshed account config
@@ -116,7 +115,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 			}
 
 			if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
-				return errors.New(err, "failed to save updated account configuration", errors.ErrorTypeInvalidAccountConfiguration, errors.ErrorSourceGo)
+				return New(err, "Failed to save account config", ErrorTypeInvalidAccountConfiguration, ErrorSourceSystem).ToError()
 			}
 
 			//	Update the authorization header in client.
@@ -127,7 +126,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 			return c.Do(ctx, req, &resp)
 
 		default:
-			return apiError
+			return apiError.ToError()
 		}
 	}
 

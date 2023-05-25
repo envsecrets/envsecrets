@@ -1,6 +1,8 @@
-package errors
+package clients
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,9 +29,10 @@ const (
 	ErrorTypeBadGateway      ErrorType = "BadGateway"
 	ErrorTypeRequestFailed   ErrorType = "RequestFailed"
 
-	ErrorTypeDoesNotExist ErrorType = "DoesNotExist"
-	ErrorTypeInvalidKey   ErrorType = "InvalidKey"
-	ErrorTypeKeyNotFound  ErrorType = "KeyNotFound"
+	ErrorTypeDoesNotExist   ErrorType = "DoesNotExist"
+	ErrorTypeInvalidKey     ErrorType = "InvalidKey"
+	ErrorTypeKeyNotFound    ErrorType = "KeyNotFound"
+	ErrorTypeRecordNotFound ErrorType = "RecordNotFound"
 
 	ErrorTypeInvalidToken ErrorType = "InvalidToken"
 
@@ -56,6 +59,7 @@ var ResponseCodeMap = map[ErrorType]int{
 	ErrorTypeDoesNotExist:                http.StatusNotFound,
 	ErrorTypeInvalidKey:                  http.StatusBadRequest,
 	ErrorTypeKeyNotFound:                 http.StatusNotFound,
+	ErrorTypeRecordNotFound:              http.StatusNotFound,
 	ErrorTypeInvalidAccountConfiguration: http.StatusBadRequest,
 	ErrorTypeInvalidProjectConfiguration: http.StatusBadRequest,
 
@@ -82,19 +86,25 @@ const (
 	ErrorSourceHermes  ErrorSource = "hermes"
 	ErrorSourceMailer  ErrorSource = "mailer"
 
-	ErrorSourceVault ErrorSource = "vault"
-	ErrorSourceNhost ErrorSource = "nhost"
-	ErrorSourceGo    ErrorSource = "go"
+	ErrorSourceVault  ErrorSource = "vault"
+	ErrorSourceNhost  ErrorSource = "nhost"
+	ErrorSourceGo     ErrorSource = "go"
+	ErrorSourceSystem ErrorSource = "system"
 
 	ErrorSourceGithub ErrorSource = "github"
 	ErrorSourceVercel ErrorSource = "vercel"
 )
 
 type Error struct {
-	Error   error
-	Message string
-	Type    ErrorType
-	Source  ErrorSource
+	Error   error       `json:"error"`
+	Message string      `json:"message"`
+	Type    ErrorType   `json:"type"`
+	Source  ErrorSource `json:"source"`
+}
+
+func (e *Error) ToError() error {
+	result, _ := json.Marshal(e)
+	return fmt.Errorf(string(result))
 }
 
 func New(err error, message string, typ ErrorType, source ErrorSource) *Error {
@@ -107,6 +117,11 @@ func New(err error, message string, typ ErrorType, source ErrorSource) *Error {
 }
 
 func Parse(err error) *Error {
+	var result Error
+	_ = json.Unmarshal([]byte(err.Error()), &result)
+	return &result
+}
+func ParseExternal(err error) *Error {
 	payload := strings.Split(err.Error(), ":")
 	var response Error
 	response.Error = err

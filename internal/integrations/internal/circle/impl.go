@@ -9,12 +9,11 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, *errors.Error) {
+func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
 
 	//	Encrypt the credentials
 	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
@@ -32,9 +31,7 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 	})
 }
 
-func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
-
-	errMessage := "Failed to fetch list of organisations"
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Initialize a new HTTP client.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -47,9 +44,9 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 		},
 	})
 
-	req, er := http.NewRequest(http.MethodGet, "https://circleci.com/api/v2/me/collaborations", nil)
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodGet, "https://circleci.com/api/v2/me/collaborations", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var response interface{}
@@ -60,9 +57,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	return response, nil
 }
 
-func ListSubEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, *errors.Error) {
-
-	errMessage := "Failed to fetch list of projects"
+func ListSubEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Initialize a new HTTP client.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -75,9 +70,9 @@ func ListSubEntities(ctx context.ServiceContext, options *ListOptions) (interfac
 		},
 	})
 
-	req, er := http.NewRequest(http.MethodGet, "https://circleci.com/api/v2/pipeline"+"?org-slug="+options.OrgSlug, nil)
-	if er != nil {
-		return nil, errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+	req, err := http.NewRequest(http.MethodGet, "https://circleci.com/api/v2/pipeline"+"?org-slug="+options.OrgSlug, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var response interface{}
@@ -88,9 +83,7 @@ func ListSubEntities(ctx context.ServiceContext, options *ListOptions) (interfac
 	return response, nil
 }
 
-func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
-
-	errMessage := "Failed to sync secrets"
+func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Initialize a new HTTP client.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -103,19 +96,18 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) *errors.Error {
 		},
 	})
 
-	for key, payload := range options.Data {
-
-		body, er := json.Marshal(map[string]interface{}{
+	for key, payload := range options.Secret.Data {
+		body, err := json.Marshal(map[string]interface{}{
 			"name":  key,
 			"value": payload.Value,
 		})
-		if er != nil {
-			return errors.New(er, errMessage, errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		if err != nil {
+			return err
 		}
 
-		req, er := http.NewRequest(http.MethodPost, fmt.Sprintf("https://circleci.com/api/v2/project/%s/envvar", options.EntityDetails["project_slug"].(string)), bytes.NewBuffer(body))
-		if er != nil {
-			return errors.New(er, errMessage, errors.ErrorTypeBadRequest, errors.ErrorSourceGo)
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("https://circleci.com/api/v2/project/%s/envvar", options.EntityDetails["project_slug"].(string)), bytes.NewBuffer(body))
+		if err != nil {
+			return err
 		}
 
 		if err := client.Run(ctx, req, nil); err != nil {

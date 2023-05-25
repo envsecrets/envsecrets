@@ -3,14 +3,15 @@ package graphql
 import (
 	"encoding/json"
 
+	"errors"
+
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/errors"
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) (*commons.Integration, *errors.Error) {
+func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) (*commons.Integration, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!, $installation_id: String, $type: String!, $credentials: String) {
@@ -41,19 +42,19 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	returning, err := json.Marshal(returned["returning"].([]interface{}))
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal integration into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp []commons.Integration
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal integration into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp[0], nil
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, *errors.Error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -77,19 +78,19 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 
 	returning, err := json.Marshal(response["integrations_by_pk"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal integration into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp commons.Integration
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal integration into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListIntegrationFilters) (*commons.Integrations, *errors.Error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListIntegrationFilters) (*commons.Integrations, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!, $type: String!) {
@@ -111,19 +112,19 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 
 	returning, err := json.Marshal(response["integrations"])
 	if err != nil {
-		return nil, errors.New(err, "failed to marhshal integration into json", errors.ErrorTypeJSONMarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	//	Unmarshal the response from "returning"
 	var resp commons.Integrations
 	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, errors.New(err, "failed to unmarhshal integration into json", errors.ErrorTypeJSONUnmarshal, errors.ErrorSourceGo)
+		return nil, err
 	}
 
 	return &resp, nil
 }
 
-func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateDetailsOptions) *errors.Error {
+func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateDetailsOptions) error {
 
 	errorMessage := "Failed to update entity details"
 
@@ -147,13 +148,13 @@ func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, option
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New(errorMessage)
 	}
 
 	return nil
 }
 
-func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateCredentialsOptions) *errors.Error {
+func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateCredentialsOptions) error {
 
 	errorMessage := "Failed to update integration credentials"
 
@@ -177,7 +178,7 @@ func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, op
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {
-		return errors.New(nil, errorMessage, errors.ErrorTypeInvalidResponse, errors.ErrorSourceGraphQL)
+		return errors.New(errorMessage)
 	}
 
 	return nil
