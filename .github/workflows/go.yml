@@ -9,10 +9,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  GOPATH: ${{ github.workspace }}/go
-  GOBIN: ${{ github.workspace }}/bin
-
 jobs:
 
   build:
