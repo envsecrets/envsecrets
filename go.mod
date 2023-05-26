@@ -21,7 +21,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stripe/stripe-go/v74 v74.18.0
 	golang.org/x/crypto v0.9.0
-	google.golang.org/api v0.122.0
+	google.golang.org/api v0.124.0
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -49,7 +49,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/s2a-go v0.1.3 // indirect
+	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.8.0 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/vanng822/go-premailer v0.0.0-20191214114701-be27abe028fe // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
