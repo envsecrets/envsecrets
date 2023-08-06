@@ -1,7 +1,7 @@
 package graphql
 
 import (
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 	"github.com/machinebox/graphql"
 )
 

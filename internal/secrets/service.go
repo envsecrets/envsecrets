@@ -7,10 +7,13 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/internal/events"
+	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
+	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/keypayload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 // Returns a new initialized 'Secret' object.
@@ -68,7 +71,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	return result, nil
 }
 
-func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetSecretOptions) (*commons.Secret, error) {
+func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SetOptions) (*commons.Secret, error) {
 
 	//	Fetch the secret of latest version.
 	secret, err := Get(ctx, client, &commons.GetOptions{
@@ -95,6 +98,45 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		Data:    secret.Data,
 		Version: secret.Version,
 	})
+}
+
+func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) error {
+
+	var allEvents *eventCommons.Events
+	var err error
+
+	// Fetch the integration event for the environment
+	if options.IntegrationType != "" {
+
+		allEvents, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)
+		if err != nil {
+			return err
+		}
+
+	} else {
+
+		allEvents, err = events.GetByEnvironment(ctx, client, options.EnvID)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	//	Get the integration service
+	integrationService := integrations.GetService()
+
+	for _, event := range *allEvents {
+		if err := integrationService.Sync(ctx, client, &integrationCommons.SyncOptions{
+			IntegrationID: event.Integration.ID,
+			EventID:       event.ID,
+			EntityDetails: event.EntityDetails,
+			Data:          options.Data,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DeleteSecretOptions) (*commons.Secret, error) {
@@ -127,7 +169,7 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 // Pulls all secret key=value pairs from the source environment,
 // and overwrites them in the target environment.
 // It creates a new secret version.
-func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeSecretOptions) (*commons.Secret, error) {
+func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commons.MergeOptions) (*commons.Secret, error) {
 
 	//	Fetch all key=value pairs of the target environment.
 	target, err := Get(ctx, client, &commons.GetOptions{
@@ -165,20 +207,22 @@ func Merge(ctx context.ServiceContext, client *clients.GQLClient, options *commo
 	})
 }
 
-func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptSecretOptions) (*commons.Secret, error) {
+func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptOptions) (*commons.Secret, error) {
 
 	//	Get the server's copy of org-key.
-	var orgKey [32]byte
-	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, options.OrgID)
-	if err != nil {
-		return nil, err
-	}
-	copy(orgKey[:], orgKeyBytes)
+	var k [32]byte
+	/*
+		 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, options.OrgID)
+			if err != nil {
+				return nil, err
+			}
+	*/
+	copy(k[:], options.Key)
 
 	//	Decrypt the value of every secret.
-	if err := options.Secret.Decrypt(orgKey); err != nil {
+	if err := options.Secret.Decrypt(k); err != nil {
 		return nil, err
 	}
 
-	return &options.Secret, nil
+	return options.Secret, nil
 }

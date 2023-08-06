@@ -12,6 +12,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/keys/graphql"
+	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/nacl/box"
@@ -146,6 +147,70 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 	}, nil
 }
 
+func DecryptPayload(payload *commons.Payload, password string) error {
+
+	//	Regenerate the key from user's password
+	passwordDerivedKey := argon2.Key([]byte(password), payload.Salt, 3, commons.KEY_BYTES*1024, 4, commons.KEY_BYTES)
+
+	//	Use the password derived key to decrypt protection key.
+	var passwordDerivedKeyForOpening [32]byte
+	copy(passwordDerivedKeyForOpening[:], passwordDerivedKey)
+	protectionKey, err := OpenSymmetrically(payload.ProtectedKey, passwordDerivedKeyForOpening)
+	if err != nil {
+		return err
+	}
+
+	payload.ProtectedKey = protectionKey
+
+	//	Decrypt the private key using the decrypted protection key.
+	var protectionKeyForOpening [32]byte
+	copy(protectionKeyForOpening[:], protectionKey)
+	privateKey, err := OpenSymmetrically(payload.PrivateKey, protectionKeyForOpening)
+	if err != nil {
+		return err
+	}
+
+	payload.PrivateKey = privateKey
+
+	return nil
+}
+
+func DecryptMemberKey(ctx context.ServiceContext, client *clients.GQLClient, user_id string, options *commons.DecryptOptions) ([]byte, error) {
+
+	//	Get the user's key pair.
+	keyPair, err := GetByUserID(ctx, client, user_id)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Base64 decode the key pair.
+	payload, err := keyPair.Decode()
+	if err != nil {
+		return nil, err
+	}
+
+	//	Decrypt the user's private key.
+	if err := DecryptPayload(payload, options.Password); err != nil {
+		return nil, err
+	}
+
+	//	Pull the user's copy of organisation's encryption key.
+	userKey, err := memberships.GetKey(ctx, client, &memberships.GetKeyOptions{
+		OrgID:  options.OrgID,
+		UserID: user_id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	decryptedKey, err := DecryptAsymmetricallyAnonymous(payload.PublicKey, payload.PrivateKey, userKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return decryptedKey, nil
+}
+
 // Decrypt the org's symmetric key with your local public-private key.
 func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, error) {
 
@@ -170,7 +235,7 @@ func GetOrgKeyServerCopy(ctx context.ServiceContext, org_id string) ([]byte, err
 	})
 
 	//	Get the server's key copy
-	serverCopy, err := organisations.GetServerKeyCopy(ctx, client, org_id)
+	serverCopy, err := organisations.GetService().GetServerKeyCopy(ctx, client, org_id)
 	if err != nil {
 		return nil, err
 	}

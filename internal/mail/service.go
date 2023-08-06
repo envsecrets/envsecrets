@@ -70,7 +70,7 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	}
 
 	//	Fetch the organisation for which the invite has been sent.
-	organisation, err := organisations.Get(ctx, client, options.OrgID)
+	organisation, err := organisations.GetService().Get(ctx, client, options.OrgID)
 	if err != nil {
 		return err
 	}

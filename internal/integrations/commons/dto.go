@@ -3,7 +3,7 @@ package commons
 import (
 	"time"
 
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 type OauthAuthResponse struct {
@@ -85,5 +85,5 @@ type SyncOptions struct {
 	EventID       string                 `json:"event_id"`
 	IntegrationID string                 `json:"integration_id"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secret        secretCommons.Secret   `json:"secret"`
+	Data          *keypayload.KPMap      `json:"data"`
 }

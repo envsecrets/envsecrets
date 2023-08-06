@@ -1,6 +1,6 @@
 package circle
 
-import secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+import "github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 
 type SetupOptions struct {
 	Token string
@@ -17,5 +17,5 @@ type SyncOptions struct {
 	OrgID         string                 `json:"org_id"`
 	Credentials   map[string]interface{} `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secret        secretCommons.Secret   `json:"secret"`
+	Data          *keypayload.KPMap      `json:"data"`
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
@@ -45,8 +45,8 @@ type OrgnisationPermissions struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 
-	OrgID        string                     `json:"org_id,omitempty"`
-	Organisation organisations.Organisation `json:"organisation,omitempty"`
+	OrgID        string                           `json:"org_id,omitempty"`
+	Organisation organisationCommons.Organisation `json:"organisation,omitempty"`
 
 	User   userCommons.User `json:"user,omitempty"`
 	UserID string           `json:"user_id,omitempty"`
@@ -55,8 +55,8 @@ type OrgnisationPermissions struct {
 	Permissions string `json:"permissions,omitempty"`
 }
 
-//	Org's permissions structure will also have to be manually unmarshalled.
-//	Because Hasura sends stringified JSON.
+// Org's permissions structure will also have to be manually unmarshalled.
+// Because Hasura sends stringified JSON.
 func (o *OrgnisationPermissions) GetPermissions() (*Permissions, error) {
 	var response Permissions
 	err := json.Unmarshal([]byte(o.Permissions), &response)

@@ -170,7 +170,7 @@ NOTE: This command auto-capitalizes your keys.`,
 		}
 
 		//	Upload the values to Hasura.
-		result, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetSecretOptions{
+		result, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetOptions{
 			EnvID: commons.ProjectConfig.Environment,
 			Data:  data.Data,
 		})

@@ -2,9 +2,14 @@ package environments
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/events"
+	"github.com/envsecrets/envsecrets/internal/events/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
+	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/machinebox/graphql"
 )
 
@@ -184,5 +189,43 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 
 // Delete a environment by ID
 func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+	return nil
+}
+
+// This function syncs the secrets of an environment with it's connected integrations.
+// This function assumed that the secrets being supplied are already decrypted.
+func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
+
+	var eventList *commons.Events
+	var err error
+	if options.IntegrationType != "" {
+		eventList, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)
+		if err != nil {
+			return err
+		}
+	} else {
+		eventList, err = events.GetByEnvironment(ctx, client, options.EnvID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if eventList == nil || len(*eventList) == 0 {
+		return errors.New("there are no events in this environment to sync this secret with")
+	}
+
+	//	Get the integration service
+	integrationService := integrations.GetService()
+	for _, event := range *eventList {
+		if err := integrationService.Sync(ctx, client, &integrationCommons.SyncOptions{
+			IntegrationID: event.Integration.ID,
+			EventID:       event.ID,
+			EntityDetails: event.EntityDetails,
+			Data:          options.Secrets,
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 	"github.com/labstack/echo/v4"
 )
@@ -58,7 +59,7 @@ func AcceptHandler(c echo.Context) error {
 	}
 
 	//	Get the server's copy of org-key.
-	serverOrgKey, err := organisations.GetServerKeyCopy(ctx, client, invite.OrgID)
+	serverOrgKey, err := organisations.GetService().GetServerKeyCopy(ctx, client, invite.OrgID)
 	if err != nil {
 		return c.String(http.StatusUnauthorized, "Failed to fetch server's copy of org-key")
 	}
@@ -124,7 +125,7 @@ func AcceptHandler(c echo.Context) error {
 	}
 
 	//	Reduce the invite limit in organisation by 1.
-	if err := organisations.UpdateInviteLimit(ctx, client, &organisations.UpdateInviteLimitOptions{
+	if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisationCommons.UpdateInviteLimitOptions{
 		ID:               invite.OrgID,
 		IncrementLimitBy: -1,
 	}); err != nil {

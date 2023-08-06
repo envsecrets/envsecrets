@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -13,6 +15,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/nhost"
+	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 )
 
@@ -49,6 +53,15 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 		Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
 		UserID:       user.ID,
 	}); err != nil {
+		return err
+	}
+
+	//	Create a new `default` organisation for the new user.
+	_, err = organisations.GetService().Create(ctx, client, &organisationCommons.CreateOptions{
+		Name:   fmt.Sprintf("%s's Org", strings.Split(options.Name, " ")[0]),
+		UserID: user.ID,
+	})
+	if err != nil {
 		return err
 	}
 

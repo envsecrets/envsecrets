@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 type EntityType string
@@ -48,7 +48,7 @@ type ListOptions struct {
 type SyncOptions struct {
 	Credentials   map[string]interface{} `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secret        secretCommons.Secret   `json:"secret"`
+	Data          *keypayload.KPMap      `json:"data"`
 	IntegrationID string                 `json:"integration_id"`
 	OrgID         string                 `json:"org_id"`
 }

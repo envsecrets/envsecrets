@@ -96,7 +96,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		},
 	})
 
-	for key, payload := range options.Secret.Data {
+	for key, payload := range *options.Data {
 		body, err := json.Marshal(map[string]interface{}{
 			"name":  key,
 			"value": payload.Value,

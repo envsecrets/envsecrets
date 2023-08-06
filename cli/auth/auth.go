@@ -35,7 +35,7 @@ func Login(payload map[string]interface{}) (*LoginResponse, error) {
 
 	req, err := http.NewRequest(
 		http.MethodPost,
-		configCommons.NHOST_AUTH_URL+"/signin/email-password",
+		configCommons.NHOST_AUTH_URL+"/v1"+"/signin/email-password",
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -68,7 +68,7 @@ func Login(payload map[string]interface{}) (*LoginResponse, error) {
 	return &response, nil
 }
 
-//	To logout the user, simply delete account config
+// To logout the user, simply delete account config
 func Logout() error {
 	return config.GetService().Delete(configCommons.AccountConfig)
 }
@@ -86,7 +86,7 @@ func RefreshToken(payload map[string]interface{}) (*LoginResponse, error) {
 
 	req, err := http.NewRequest(
 		http.MethodPost,
-		configCommons.NHOST_AUTH_URL+"/token",
+		configCommons.NHOST_AUTH_URL+"/v1/token",
 		bytes.NewBuffer(body),
 	)
 	if err != nil {

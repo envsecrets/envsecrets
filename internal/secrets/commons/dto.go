@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/keypayload"
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keyvalue"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 )
 
 type Secret struct {
@@ -262,12 +262,23 @@ func (r *SetRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-type SetSecretOptions struct {
+type SetOptions struct {
 	EnvID string                      `json:"env_id"`
 	Data  map[string]*payload.Payload `json:"data"`
 }
 
-func (r *SetSecretOptions) Marshal() ([]byte, error) {
+func (r *SetOptions) Marshal() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+type SyncOptions struct {
+	EnvID           string            `json:"env_id"`
+	IntegrationType string            `json:"integration_type"`
+	Version         *int              `json:"version"`
+	Data            *keypayload.KPMap `json:"data"`
+}
+
+func (r *SyncOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
@@ -292,9 +303,12 @@ func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-type DecryptSecretOptions struct {
-	Secret Secret `json:"secret"`
-	OrgID  string `json:"org"`
+type DecryptOptions struct {
+	Secret *Secret `json:"secret"`
+	OrgID  string  `json:"org"`
+
+	// Private key of the user to decrypt the secret with.
+	Key []byte `json:"key"`
 }
 
 type GetRequestOptions struct {
@@ -329,7 +343,7 @@ type GetResponse struct {
 		return json.Marshal(r)
 	}
 */
-type MergeSecretOptions struct {
+type MergeOptions struct {
 	SourceEnvID   string `json:"source_env_id"`
 	SourceVersion *int   `json:"source_version"`
 	TargetEnvID   string `json:"target_env_id"`

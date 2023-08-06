@@ -42,6 +42,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -94,7 +95,7 @@ var initCmd = &cobra.Command{
 		//
 		//	Call APIs to pull existing entities
 		//
-		var organisation organisations.Organisation
+		var organisation organisationCommons.Organisation
 		var project projects.Project
 		var environment environments.Environment
 
@@ -112,7 +113,7 @@ var initCmd = &cobra.Command{
 		if len(organisationID) == 0 {
 
 			//	Check whether user has access to at least 1 organisation.
-			orgs, err := organisations.List(commons.DefaultContext, commons.GQLClient)
+			orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient)
 			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to fetch your organisations")
@@ -147,7 +148,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, err := organisations.Create(commons.DefaultContext, commons.GQLClient, &organisations.CreateOptions{
+				item, err := organisations.GetService().Create(commons.DefaultContext, commons.GQLClient, &organisationCommons.CreateOptions{
 					Name: result,
 				})
 				if err != nil {

@@ -142,7 +142,7 @@ containing original/unedited values.`,
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Send the secrets to vault
-		options := secretsCommons.MergeSecretOptions{
+		options := secretsCommons.MergeOptions{
 			SourceEnvID: environmentID,
 			TargetEnvID: projectConfig.Environment,
 		}

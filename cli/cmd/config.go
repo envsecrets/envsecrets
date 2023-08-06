@@ -63,22 +63,21 @@ var configCmd = &cobra.Command{
 		if err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to load project configuration")
-
 		}
 
 		projectConfig := projectConfigData.(*configCommons.Project)
 
 		//	Get the organisation name.
-		organisation, err := organisations.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Organisation)
+		organisation, err := organisations.GetService().Get(commons.DefaultContext, commons.GQLClient, projectConfig.Organisation)
 		if err != nil {
-			log.Debug(err.Error)
+			log.Debug(err)
 			log.Fatal("Failed to fetch organisation.")
 		}
 
 		//	Get the project name.
 		project, err := projects.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Project)
 		if err != nil {
-			log.Debug(err.Error)
+			log.Debug(err)
 			log.Fatal("Failed to fetch project.")
 
 		}
@@ -86,7 +85,7 @@ var configCmd = &cobra.Command{
 		//	Get the environment name.
 		environment, err := environments.Get(commons.DefaultContext, commons.GQLClient, projectConfig.Environment)
 		if err != nil {
-			log.Debug(err.Error)
+			log.Debug(err)
 			log.Fatal("Failed to fetch environment.")
 
 		}

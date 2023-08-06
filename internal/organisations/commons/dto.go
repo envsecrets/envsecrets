@@ -1,4 +1,4 @@
-package organisations
+package commons
 
 import (
 	"encoding/json"

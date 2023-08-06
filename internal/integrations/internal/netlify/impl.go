@@ -65,7 +65,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	}
 
 	var result []map[string]interface{}
-	for key, payload := range options.Secret.Data {
+	for key, payload := range *options.Data {
 		result = append(result, map[string]interface{}{
 			"key":    key,
 			"scopes": []string{"builds", "functions", "runtime", "post-processing"},

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keyvalue"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 )
 
 // Key-Payload Map

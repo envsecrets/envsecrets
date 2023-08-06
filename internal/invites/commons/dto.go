@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 )
 
 type Invite struct {
@@ -14,8 +14,8 @@ type Invite struct {
 
 	UserID string `json:"user_id,omitempty"`
 
-	OrgID        string                     `json:"org_id,omitempty"`
-	Organisation organisations.Organisation `json:"organisation,omitempty"`
+	OrgID        string                           `json:"org_id,omitempty"`
+	Organisation organisationCommons.Organisation `json:"organisation,omitempty"`
 
 	Key   string `json:"key,omitempty"`
 	Email string `json:"email,omitempty"`

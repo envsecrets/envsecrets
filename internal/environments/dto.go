@@ -3,6 +3,8 @@ package environments
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 type Environment struct {
@@ -34,4 +36,19 @@ type UpdateOptions struct {
 
 type ListOptions struct {
 	ProjectID string `json:"project_id" graphql:"project_id"`
+}
+
+type SyncRequestOptions struct {
+	IntegrationType string `json:"integration_type,omitempty"`
+	Password        string `json:"password" validate:"required"`
+	Version         *int   `json:"version,omitempty"`
+
+	// Name of the secret to sync.
+	Key string `json:"key,omitempty"`
+}
+
+type SyncOptions struct {
+	EnvID           string            `json:"env_id"`
+	IntegrationType string            `json:"integration_type,omitempty"`
+	Secrets         *keypayload.KPMap `json:"secrets"`
 }

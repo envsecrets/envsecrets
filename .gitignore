@@ -1,7 +1,7 @@
 .nhost
 web/node_modules
 node_modules
-functions/node_modules
+functions
 .env
 .envsecrets
 .envs
@@ -11,7 +11,6 @@ functions/node_modules
 variables.sh
 web/node_modules
 node_modules
-functions/node_modules
 .env.development
 cli/.envs
 variables.sh
@@ -20,3 +19,4 @@ cli/build.sh
 cli/bin
 secret.json
 cli/test*
+.secrets

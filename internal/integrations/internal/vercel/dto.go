@@ -1,6 +1,6 @@
 package vercel
 
-import secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+import "github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 
 type SetupOptions struct {
 	ConfigurationID string
@@ -44,7 +44,7 @@ type ListOptions struct {
 type SyncOptions struct {
 	Credentials   map[string]interface{} `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
-	Secret        secretCommons.Secret   `json:"secret"`
+	Data          *keypayload.KPMap      `json:"data"`
 }
 
 type ListProjectsResponse struct {

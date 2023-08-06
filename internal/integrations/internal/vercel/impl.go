@@ -120,7 +120,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Prepare array of all values
 	var array []map[string]interface{}
-	for key, value := range options.Secret.Data {
+	for key, value := range *options.Data {
 
 		//	Prepare the secret type
 		var typ string
