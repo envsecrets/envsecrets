@@ -1,12 +1,18 @@
 package tokens
 
 import (
+	"encoding/hex"
 	"net/http"
 	"time"
 
+	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/tokens/commons"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
 
@@ -29,6 +35,31 @@ func CreateHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
+	//	Fetch the organisation using environment ID.
+	organisation, err := organisations.GetService().GetByEnvironment(ctx, client, payload.EnvID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to fetch the organisation this environment is associated with",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Extract the user's email from JWT
+	jwt := c.Get("user").(*jwt.Token)
+	claims := jwt.Claims.(*auth.Claims)
+
+	//	Decrypt and get the bytes of user's own copy of organisation's encryption key.
+	orgKey, err := keys.DecryptMemberKey(ctx, client, claims.Hasura.UserID, &keysCommons.DecryptOptions{
+		OrgID:    organisation.ID,
+		Password: payload.Password,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Create the token
 	expiry, err := time.ParseDuration(payload.Expiry)
 	if err != nil {
@@ -38,7 +69,8 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
-	token, err := Create(ctx, client, &commons.CreateServiceOptions{
+	token, err := GetService().Create(ctx, client, &commons.CreateOptions{
+		OrgKey: orgKey,
 		EnvID:  payload.EnvID,
 		Expiry: expiry,
 		Name:   payload.Name,
@@ -50,10 +82,13 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
+	//	Encode the token
+	hash := hex.EncodeToString(token)
+
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully generated token",
 		Data: map[string]interface{}{
-			"token": token.Hash,
+			"token": hash,
 		},
 	})
 }

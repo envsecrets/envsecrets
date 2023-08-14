@@ -43,6 +43,7 @@ insert_permissions:
         - env_id
         - expiry
         - hash
+        - key
         - name
 select_permissions:
   - role: user
@@ -51,7 +52,9 @@ select_permissions:
         - created_at
         - env_id
         - expiry
+        - hash
         - id
+        - key
         - name
         - updated_at
         - user_id

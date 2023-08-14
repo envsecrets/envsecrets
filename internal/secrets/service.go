@@ -211,12 +211,6 @@ func Decrypt(ctx context.ServiceContext, client *clients.GQLClient, options *com
 
 	//	Get the server's copy of org-key.
 	var k [32]byte
-	/*
-		 	orgKeyBytes, err := keys.GetOrgKeyServerCopy(ctx, options.OrgID)
-			if err != nil {
-				return nil, err
-			}
-	*/
 	copy(k[:], options.Key)
 
 	//	Decrypt the value of every secret.

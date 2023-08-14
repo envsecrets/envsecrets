@@ -62,18 +62,6 @@ func SyncHandler(c echo.Context) error {
 		})
 	}
 
-	response, err := secrets.Get(ctx, client, &secretCommons.GetOptions{
-		EnvID:   envID,
-		Key:     payload.Key,
-		Version: payload.Version,
-	})
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to get secrets associated with this event",
-			Error:   err.Error(),
-		})
-	}
-
 	//	Extract the user's email from JWT
 	token := c.Get("user").(*jwt.Token)
 	claims := token.Claims.(*auth.Claims)
@@ -86,6 +74,19 @@ func SyncHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to decrypt the secrets",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Fetch the secrets.
+	response, err := secrets.Get(ctx, client, &secretCommons.GetOptions{
+		EnvID:   envID,
+		Key:     payload.Key,
+		Version: payload.Version,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get secrets associated with this event",
 			Error:   err.Error(),
 		})
 	}

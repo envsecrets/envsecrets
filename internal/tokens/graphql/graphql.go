@@ -1,6 +1,8 @@
 package graphql
 
 import (
+	"encoding/base64"
+
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -12,8 +14,8 @@ import (
 func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateGraphQLOptions) (*commons.Token, error) {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($name: String!, $hash: String!, $env_id: uuid!, $expiry: timestamptz) {
-		insert_tokens_one(object: {name: $name, hash: $hash, env_id: $env_id, expiry: $expiry}) {
+	mutation MyMutation($name: String!, $key: String!, $hash: String!, $env_id: uuid!, $expiry: timestamptz) {
+		insert_tokens_one(object: {name: $name, key: $key, hash: $hash, env_id: $env_id, expiry: $expiry}) {
 		  id
 		}
 	  }
@@ -21,6 +23,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 
 	req.Var("env_id", options.EnvID)
 	req.Var("name", options.Name)
+	req.Var("key", base64.StdEncoding.EncodeToString(options.Key))
 	req.Var("hash", options.Hash)
 	if !options.Expiry.IsZero() {
 		req.Var("expiry", options.Expiry)
@@ -45,7 +48,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
 		tokens_by_pk(id: $id) {
-		  hash
+		  key
 		}
 	  }				  
 	`)
@@ -93,7 +96,7 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	return &resp[0], nil
 }
 
-// Fetch a token by it's hash.
+// Fetch a token by it's key.
 func GetByHash(ctx context.ServiceContext, client *clients.GQLClient, hash string) (*commons.Token, error) {
 
 	req := graphql.NewRequest(`
@@ -101,6 +104,7 @@ func GetByHash(ctx context.ServiceContext, client *clients.GQLClient, hash strin
 		tokens(where: {hash: {_eq: $hash}}) {
 		  env_id
 		  expiry
+		  key
 		}
 	  }			
 	`)

@@ -307,7 +307,7 @@ type DecryptOptions struct {
 	Secret *Secret `json:"secret"`
 	OrgID  string  `json:"org"`
 
-	// Private key of the user to decrypt the secret with.
+	// Organisation's encryption key to decrypt the secret with.
 	Key []byte `json:"key"`
 }
 
