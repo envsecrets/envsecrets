@@ -20,3 +20,5 @@ cli/build.sh
 cli/bin
 secret.json
 cli/test*
+.secrets
+functions
