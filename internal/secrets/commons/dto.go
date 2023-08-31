@@ -305,7 +305,7 @@ func (r *DeleteRequestOptions) Marshal() ([]byte, error) {
 
 type DecryptOptions struct {
 	Secret *Secret `json:"secret"`
-	OrgID  string  `json:"org"`
+	//OrgID  string  `json:"org"`
 
 	// Organisation's encryption key to decrypt the secret with.
 	Key []byte `json:"key"`

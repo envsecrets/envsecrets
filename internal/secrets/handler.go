@@ -5,7 +5,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/labstack/echo/v4"
 )
@@ -140,19 +139,9 @@ func GetHandler(c echo.Context) error {
 		})
 	}
 
-	//	Fetch the organisation using environment ID.
-	organisation, err := organisations.GetService().GetByEnvironment(ctx, client, payload.EnvID)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to fetch the organisation this environment is associated with",
-			Error:   err.Error(),
-		})
-	}
-
 	//	Decrypt the values with decrypted key
 	secret, err = Decrypt(ctx, client, &commons.DecryptOptions{
 		Secret: secret,
-		OrgID:  organisation.ID,
 		Key:    orgKey,
 	})
 	if err != nil {

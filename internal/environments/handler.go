@@ -93,7 +93,6 @@ func SyncHandler(c echo.Context) error {
 
 	//	Decrypt the value of every secret.
 	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptOptions{
-		OrgID:  organisation.ID,
 		Secret: response,
 		Key:    key,
 	})
