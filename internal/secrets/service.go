@@ -78,7 +78,6 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 		EnvID: options.EnvID,
 	})
 	if err != nil {
-
 		if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
 			secret = New()
 		} else {

@@ -51,6 +51,8 @@ func main() {
 		"invites",
 		"/secrets",
 		"/payments/server/webhook",
+		"/auth/signin",
+		"/auth/logout",
 		"/auth/signup",
 		"/auth/validate-password",
 	}

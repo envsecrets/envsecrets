@@ -2,7 +2,9 @@ package auth
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/auth/commons"
@@ -13,6 +15,47 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
+
+func SigninHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.SigninOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize a new HTTP client
+	client := clients.NewHTTPClient(&clients.HTTPConfig{
+		Type: clients.HTTPClientType,
+	})
+
+	//	Call the service handler.
+	response, err := Signin(ctx, client, &payload)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to login the user",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Marshal the response.
+	body, err := json.Marshal(response)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to login the user",
+			Error:   err.Error(),
+		})
+	}
+
+	return c.String(http.StatusOK, string(body))
+
+	//return writeCookie(c, string(body))
+}
 
 func SignupHandler(c echo.Context) error {
 
@@ -129,4 +172,15 @@ func UpdatePasswordHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "password successfuly updated",
 	})
+}
+
+//	---	Helpers ---
+
+func writeCookie(c echo.Context, value string) error {
+	cookie := new(http.Cookie)
+	cookie.Name = "session"
+	cookie.Value = value
+	cookie.Expires = time.Now().Add(24 * time.Hour)
+	c.SetCookie(cookie)
+	return c.String(http.StatusOK, value)
 }
