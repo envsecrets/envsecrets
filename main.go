@@ -9,6 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/actions"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
+	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
@@ -99,6 +100,9 @@ func main() {
 
 	//	Tokens group
 	tokens.AddRoutes(v1Group)
+
+	//	Events group
+	events.AddRoutes(v1Group)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))

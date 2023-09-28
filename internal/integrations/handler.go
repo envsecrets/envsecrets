@@ -48,7 +48,7 @@ func SetupCallbackHandler(c echo.Context) error {
 		CustomHeaders: []clients.CustomHeader{
 			{
 				Key:   string(clients.AuthorizationHeader),
-				Value: "Bearer " + token,
+				Value: token,
 			},
 		},
 	})

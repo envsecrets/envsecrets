@@ -1,9 +1,23 @@
+type Query {
+  events_transformed(
+    args: GetEventsInput!
+  ): GetEventsOutput
+}
+
 input EnvironmentCreateInput {
   name: String!
   project_id: String!
 }
 
+input GetEventsInput {
+  env_id: String!
+}
+
 type EnvironmentCreateOutput {
   id: String!
+}
+
+type GetEventsOutput {
+  data: jsonb
 }
 

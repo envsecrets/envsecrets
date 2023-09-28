@@ -31,19 +31,11 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
-	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/events"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -75,81 +67,81 @@ to quickly create a Cobra application.`,
 		}
 
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		var err error
+	   		var err error
 
-		options := environments.SyncRequestOptions{}
+	   		options := environmentCommons.SyncRequestOptions{}
 
-		if version > -1 {
-			options.Version = &version
-		}
+	   		if version > -1 {
+	   			options.Version = &version
+	   		}
 
-		options.IntegrationType = integrationType
+	   		options.IntegrationType = integrationType
 
-		//	Fetch the list of events with their respective type of integrations.
-		if options.IntegrationType == "" {
+	   		//	Fetch the list of events with their respective type of integrations.
+	   		if options.IntegrationType == "" {
 
-			events, err := events.GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.ProjectConfig.Environment)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("failed to fetch active integrations for your environment")
-			}
+	   			events, err := events.GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.ProjectConfig.Environment)
+	   			if err != nil {
+	   				log.Debug(err)
+	   				log.Fatal("failed to fetch active integrations for your environment")
+	   			}
 
-			var types []string
-			for _, item := range *events {
-				types = append(types, string(item.Integration.Type))
-			}
+	   			var types []string
+	   			for _, item := range *events {
+	   				types = append(types, string(item.Integration.Type))
+	   			}
 
-			selection := promptui.Select{
-				Label: "Platform to sync your secrets to",
-				Items: types,
-			}
+	   			selection := promptui.Select{
+	   				Label: "Platform to sync your secrets to",
+	   				Items: types,
+	   			}
 
-			index, _, err := selection.Run()
-			if err != nil {
-				os.Exit(1)
-			}
+	   			index, _, err := selection.Run()
+	   			if err != nil {
+	   				os.Exit(1)
+	   			}
 
-			options.IntegrationType = types[index]
-		}
+	   			options.IntegrationType = types[index]
+	   		}
 
-		if len(password) == 0 {
+	   		if len(password) == 0 {
 
-			//	Take password input
-			passwordPrompt := promptui.Prompt{
-				Label: "Account Password",
-				Mask:  '*',
-			}
+	   			//	Take password input
+	   			passwordPrompt := promptui.Prompt{
+	   				Label: "Account Password",
+	   				Mask:  '*',
+	   			}
 
-			password, err = passwordPrompt.Run()
-			if err != nil {
-				os.Exit(1)
-			}
-		}
+	   			password, err = passwordPrompt.Run()
+	   			if err != nil {
+	   				os.Exit(1)
+	   			}
+	   		}
 
-		options.Password = password
+	   		options.Password = password
 
-		body, err := json.Marshal(&options)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("failed to marshal your HTTP request body")
-		}
+	   		body, err := json.Marshal(&options)
+	   		if err != nil {
+	   			log.Debug(err)
+	   			log.Fatal("failed to marshal your HTTP request body")
+	   		}
 
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.ProjectConfig.Environment+"/sync", bytes.NewBuffer(body))
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("failed to create your HTTP request")
-		}
+	   		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.ProjectConfig.Environment+"/sync-password", bytes.NewBuffer(body))
+	   		if err != nil {
+	   			log.Debug(err)
+	   			log.Fatal("failed to create your HTTP request")
+	   		}
 
-		var response clients.APIResponse
-		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-			log.Fatal(err)
-		}
+	   		var response clients.APIResponse
+	   		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
+	   			log.Fatal(err)
+	   		}
 
-		log.Info("Successfully synced secrets")
-	},
-}
+	   		log.Info("Successfully synced secrets")
+	   	},
+	*/}
 
 func init() {
 	rootCmd.AddCommand(syncCmd)

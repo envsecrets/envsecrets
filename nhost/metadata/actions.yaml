@@ -1,8 +1,17 @@
-actions: []
+actions:
+  - name: events_transformed
+    definition:
+      kind: ""
+      handler: '{{API}}/v1/events/actions/get'
+      forward_client_headers: true
+    permissions:
+      - role: user
 custom_types:
   enums: []
   input_objects:
     - name: EnvironmentCreateInput
+    - name: GetEventsInput
   objects:
     - name: EnvironmentCreateOutput
+    - name: GetEventsOutput
   scalars: []

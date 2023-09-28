@@ -6,15 +6,16 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/environments/commons"
 	"github.com/envsecrets/envsecrets/internal/events"
-	"github.com/envsecrets/envsecrets/internal/events/commons"
+	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/machinebox/graphql"
 )
 
 // Create a new environment
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
+func Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) (*commons.Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!) {
@@ -41,7 +42,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Environment
+	var resp []commons.Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	return &resp[0], nil
 }
 
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
+func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) (*commons.Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!, $user_id: uuid) {
@@ -79,7 +80,7 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Environment
+	var resp []commons.Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 }
 
 // Get a environment by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -112,7 +113,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Environment
+	var resp commons.Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 }
 
 // List environments
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListOptions) (*[]commons.Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -145,7 +146,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []Environment
+	var resp []commons.Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 }
 
 // Update a environment by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, error) {
+func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *commons.UpdateOptions) (*commons.Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -179,7 +180,7 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp Environment
+	var resp commons.Environment
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -194,9 +195,9 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) er
 
 // This function syncs the secrets of an environment with it's connected integrations.
 // This function assumed that the secrets being supplied are already decrypted.
-func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
+func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) error {
 
-	var eventList *commons.Events
+	var eventList *eventCommons.Events
 	var err error
 	if options.IntegrationType != "" {
 		eventList, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)

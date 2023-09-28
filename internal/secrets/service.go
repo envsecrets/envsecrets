@@ -107,7 +107,7 @@ func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	// Fetch the integration event for the environment
 	if options.IntegrationType != "" {
 
-		allEvents, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)
+		allEvents, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, integrationCommons.IntegrationType(options.IntegrationType))
 		if err != nil {
 			return err
 		}

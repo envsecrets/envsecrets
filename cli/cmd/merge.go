@@ -34,13 +34,8 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
-	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -72,94 +67,94 @@ containing original/unedited values.`,
 
 	},
 	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
+	/* 	Run: func(cmd *cobra.Command, args []string) {
 
-		if environmentID == "" {
+	   		if environmentID == "" {
 
-			//	Load the project config
-			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to read local project configuration")
-			}
+	   			//	Load the project config
+	   			projectConfigPayload, err := config.GetService().Load(configCommons.ProjectConfig)
+	   			if err != nil {
+	   				log.Debug(err)
+	   				log.Fatal("Failed to read local project configuration")
+	   			}
 
-			projectConfig := projectConfigPayload.(*configCommons.Project)
+	   			projectConfig := projectConfigPayload.(*configCommons.Project)
 
-			//	Fetch environments
-			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
-				ProjectID: projectConfig.Project,
-			})
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch list of environments")
-			}
+	   			//	Fetch environments
+	   			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+	   				ProjectID: projectConfig.Project,
+	   			})
+	   			if err != nil {
+	   				log.Debug(err)
+	   				log.Fatal("Failed to fetch list of environments")
+	   			}
 
-			//	Remove the existing environment
-			var envs []environments.Environment
-			for _, item := range *environmentsList {
-				if item.ID != projectConfig.Environment {
-					envs = append(envs, item)
-				}
-			}
+	   			//	Remove the existing environment
+	   			var envs []environments.Environment
+	   			for _, item := range *environmentsList {
+	   				if item.ID != projectConfig.Environment {
+	   					envs = append(envs, item)
+	   				}
+	   			}
 
-			if len(envs) == 0 {
-				log.Error("You have no other environment in this project to merge from")
-				log.Info("First create a new environment using `init` command")
-				os.Exit(1)
-			}
+	   			if len(envs) == 0 {
+	   				log.Error("You have no other environment in this project to merge from")
+	   				log.Info("First create a new environment using `init` command")
+	   				os.Exit(1)
+	   			}
 
-			var environmentsStringList []string
-			for _, item := range envs {
-				environmentsStringList = append(environmentsStringList, item.Name)
-			}
+	   			var environmentsStringList []string
+	   			for _, item := range envs {
+	   				environmentsStringList = append(environmentsStringList, item.Name)
+	   			}
 
-			selection := promptui.Select{
-				Label: "Source Environment To Merge From",
-				Items: environmentsStringList,
-			}
+	   			selection := promptui.Select{
+	   				Label: "Source Environment To Merge From",
+	   				Items: environmentsStringList,
+	   			}
 
-			index, _, err := selection.Run()
-			if err != nil {
-				os.Exit(1)
-			}
+	   			index, _, err := selection.Run()
+	   			if err != nil {
+	   				os.Exit(1)
+	   			}
 
-			for itemIndex, item := range envs {
-				if itemIndex == index {
-					environmentID = item.ID
-					break
-				}
-			}
+	   			for itemIndex, item := range envs {
+	   				if itemIndex == index {
+	   					environmentID = item.ID
+	   					break
+	   				}
+	   			}
 
-		}
+	   		}
 
-		//	Load the project configuration
-		projectConfigData, err := config.GetService().Load(configCommons.ProjectConfig)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to load project configuration")
-		}
+	   		//	Load the project configuration
+	   		projectConfigData, err := config.GetService().Load(configCommons.ProjectConfig)
+	   		if err != nil {
+	   			log.Debug(err)
+	   			log.Fatal("Failed to load project configuration")
+	   		}
 
-		projectConfig := projectConfigData.(*configCommons.Project)
+	   		projectConfig := projectConfigData.(*configCommons.Project)
 
-		//	Send the secrets to vault
-		options := secretsCommons.MergeOptions{
-			SourceEnvID: environmentID,
-			TargetEnvID: projectConfig.Environment,
-		}
+	   		//	Send the secrets to vault
+	   		options := secretsCommons.MergeOptions{
+	   			SourceEnvID: environmentID,
+	   			TargetEnvID: projectConfig.Environment,
+	   		}
 
-		if version > -1 {
-			options.SourceVersion = &version
-		}
+	   		if version > -1 {
+	   			options.SourceVersion = &version
+	   		}
 
-		secret, err := secrets.Merge(commons.DefaultContext, commons.GQLClient, &options)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to merge the secrets")
-		}
+	   		secret, err := secrets.Merge(commons.DefaultContext, commons.GQLClient, &options)
+	   		if err != nil {
+	   			log.Debug(err)
+	   			log.Fatal("Failed to merge the secrets")
+	   		}
 
-		log.Info("Merge Complete! Created version ", *secret.Version)
-	},
-}
+	   		log.Info("Merge Complete! Created version ", *secret.Version)
+	   	},
+	*/}
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)

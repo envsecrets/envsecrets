@@ -25,6 +25,78 @@ type Integration struct {
 	Credentials    string          `json:"credentials,omitempty"`
 }
 
+// Get the title of the integration by it's type.
+func (i *Integration) GetTitle() string {
+	switch i.Type {
+	case Github:
+		return "Github Actions"
+	case Gitlab:
+		return "Gitlab CI"
+	case Vercel:
+		return "Vercel"
+	case ASM:
+		return "AWS Secrets Manager"
+	case GSM:
+		return "Google Secrets Manager"
+	case CircleCI:
+		return "CircleCI"
+	case Supabase:
+		return "Supabase"
+	case Netlify:
+		return "Netlify"
+	default:
+		return ""
+	}
+}
+
+// Get the subtitle of the integration by it's type.
+func (i *Integration) GetSubtitle() string {
+	switch i.Type {
+	case Github:
+		return "Your Github repository where we sync this environment's secrets."
+	case Gitlab:
+		return "Your Gitlab project/group where we sync this environment's secrets."
+	case Vercel:
+		return "Your Vercel project where we sync this environment's secrets."
+	case ASM:
+		return "Your ASM where we sync this environment's secrets."
+	case GSM:
+		return "Your GSM where we sync this environment's secrets."
+	case CircleCI:
+		return "Your CircleCI project where we sync this environment's secrets."
+	case Supabase:
+		return "Your Supabase project where we sync this environment's secrets."
+	case Netlify:
+		return "Your Netlify project where we sync this environment's secrets."
+	default:
+		return ""
+	}
+}
+
+// Get the description of the integration by it's type.
+func (i *Integration) GetDescription() string {
+	switch i.Type {
+	case Github:
+		return "Make your secrets natively available in your repository's actions and workflows."
+	case Gitlab:
+		return "Make your secrets natively available in your repository's CI/CD pipelines."
+	case Vercel:
+		return "Make your secrets natively available in your project's environment variables."
+	case ASM:
+		return "Make your secrets natively available in your AWS Lambda functions."
+	case GSM:
+		return "Make your secrets natively available in your Google Cloud Functions."
+	case CircleCI:
+		return "Make your secrets natively available in your repository's CI/CD pipelines."
+	case Supabase:
+		return "Make your secrets natively available in your Supabase project's environment variables."
+	case Netlify:
+		return "Make your secrets natively available in your Netlify project's environment variables."
+	default:
+		return ""
+	}
+}
+
 type Integrations []Integration
 
 type AddIntegrationOptions struct {

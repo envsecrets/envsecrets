@@ -1,9 +1,10 @@
-package environments
+package commons
 
 import (
 	"encoding/json"
 	"time"
 
+	intergrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
@@ -38,17 +39,22 @@ type ListOptions struct {
 	ProjectID string `json:"project_id" graphql:"project_id"`
 }
 
-type SyncRequestOptions struct {
-	IntegrationType string `json:"integration_type,omitempty"`
-	Password        string `json:"password" validate:"required"`
-	Version         *int   `json:"version,omitempty"`
+type SyncWithPasswordRequestOptions struct {
+	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
+	Password        string                              `json:"password" validate:"required"`
+	Version         *int                                `json:"version,omitempty"`
 
 	// Name of the secret to sync.
 	Key string `json:"key,omitempty"`
 }
 
+type SyncRequestOptions struct {
+	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
+	Data            *keypayload.KPMap                   `json:"data"`
+}
+
 type SyncOptions struct {
-	EnvID           string            `json:"env_id"`
-	IntegrationType string            `json:"integration_type,omitempty"`
-	Secrets         *keypayload.KPMap `json:"secrets"`
+	EnvID           string                              `json:"env_id"`
+	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
+	Secrets         *keypayload.KPMap                   `json:"secrets"`
 }

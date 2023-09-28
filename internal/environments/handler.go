@@ -6,13 +6,14 @@ import (
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/environments/commons"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/labstack/echo/v4"
+	echo "github.com/labstack/echo/v4"
 )
 
 // --- Flow ---
@@ -24,10 +25,10 @@ import (
 //  4. Decrypt the secrets using organisation's encryption key.
 //  5. Fetch the events linked to this environment.
 //  6. Call the integration service for each of the events to sync the secrets.
-func SyncHandler(c echo.Context) error {
+func SyncWithPasswordHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	envID := c.Param(ENV_ID)
+	envID := c.Param(commons.ENV_ID)
 	if envID == "" {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "invalid environment ID",
@@ -36,7 +37,7 @@ func SyncHandler(c echo.Context) error {
 	}
 
 	//	Unmarshal the incoming payload
-	var payload SyncRequestOptions
+	var payload commons.SyncWithPasswordRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -104,10 +105,56 @@ func SyncHandler(c echo.Context) error {
 	}
 
 	//	Call the service function.
-	if err := Sync(ctx, client, &SyncOptions{
+	if err := Sync(ctx, client, &commons.SyncOptions{
 		EnvID:           envID,
 		IntegrationType: payload.IntegrationType,
 		Secrets:         &decrypted.Data,
+	}); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to sync the secrets",
+			Error:   err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+		Message: "successfully synced secrets",
+	})
+}
+
+func SyncHandler(c echo.Context) error {
+
+	//	Extract the entity type
+	envID := c.Param(commons.ENV_ID)
+	if envID == "" {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "invalid environment ID",
+			Error:   "invalid environment ID",
+		})
+	}
+
+	//	Unmarshal the incoming payload
+	var payload commons.SyncRequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to parse the body",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize new Hasura client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type:          clients.HasuraClientType,
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+	})
+
+	//	Call the service function.
+	if err := Sync(ctx, client, &commons.SyncOptions{
+		EnvID:           envID,
+		Secrets:         payload.Data,
+		IntegrationType: payload.IntegrationType,
 	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to sync the secrets",

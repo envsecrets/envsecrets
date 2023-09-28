@@ -31,24 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"errors"
-	"fmt"
-	"os"
-	"regexp"
-	"time"
-
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/memberships"
-	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
-	"github.com/envsecrets/envsecrets/internal/projects"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	projectConfig "github.com/envsecrets/envsecrets/cli/config/project"
 )
 
 var (
@@ -76,242 +61,228 @@ var initCmd = &cobra.Command{
 
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	/*
+		 	Run: func(cmd *cobra.Command, args []string) {
 
-		//
-		//	---	Flow ---
-		//
-		//	1. Check whether user is part of at least 1 organisation.
-		//		-> Yes = Show option to choose from existing organisations or create a new one.
-		//		-> No = Start the flow to create a new organisation.
-		//	2. Check whether user has access to at least 1 project in the choosen organisation.
-		//		-> Yes = Show option to choose from existing projects or create a new one.
-		//		-> No = Start the flow to create a new project.
-		//	3. Check whether user has access to at least 1 environment in the choosen project.
-		//		-> Yes = Show option to choose from existing environments or create a new one.
-		//		-> No = Start the flow to create a new environment.
-		//
+				//
+				//	---	Flow ---
+				//
+				//	1. Check whether user is part of at least 1 organisation.
+				//		-> Yes = Show option to choose from existing organisations or create a new one.
+				//		-> No = Start the flow to create a new organisation.
+				//	2. Check whether user has access to at least 1 project in the choosen organisation.
+				//		-> Yes = Show option to choose from existing projects or create a new one.
+				//		-> No = Start the flow to create a new project.
+				//	3. Check whether user has access to at least 1 environment in the choosen project.
+				//		-> Yes = Show option to choose from existing environments or create a new one.
+				//		-> No = Start the flow to create a new environment.
+				//
 
-		//
-		//	Call APIs to pull existing entities
-		//
-		var organisation organisationCommons.Organisation
-		var project projects.Project
-		var environment environments.Environment
+				//
+				//	Call APIs to pull existing entities
+				//
+				var organisation organisationCommons.Organisation
+				var project projects.Project
+				var environment environments.Environment
 
-		//	All names entered by the user must be slugs.
-		var re = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
-		validate := func(input string) error {
-			if len(re.FindAllString(input, -1)) == 0 {
-				return errors.New("should be a slug; example: my-new-idea")
-			}
+				//	All names entered by the user must be slugs.
+				var re = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+				validate := func(input string) error {
+					if len(re.FindAllString(input, -1)) == 0 {
+						return errors.New("should be a slug; example: my-new-idea")
+					}
 
-			return nil
-		}
+					return nil
+				}
 
-		//	Setup organisation first
-		if len(organisationID) == 0 {
+				//	Setup organisation first
+				if len(organisationID) == 0 {
 
-			//	Check whether user has access to at least 1 organisation.
-			orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch your organisations")
-			}
+					//	Check whether user has access to at least 1 organisation.
+					orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient)
+					if err != nil {
+						log.Debug(err)
+						log.Fatal("Failed to fetch your organisations")
+					}
 
-			var orgsStringList []string
-			for _, item := range *orgs {
-				orgsStringList = append(orgsStringList, item.Name)
-			}
+					var orgsStringList []string
+					for _, item := range *orgs {
+						orgsStringList = append(orgsStringList, item.Name)
+					}
 
-			selection := promptui.SelectWithAdd{
-				Label:    "Choose Your Organisation",
-				Items:    orgsStringList,
-				AddLabel: "Create New Organisation",
-				Validate: validate,
-			}
+					selection := promptui.SelectWithAdd{
+						Label:    "Choose Your Organisation",
+						Items:    orgsStringList,
+						AddLabel: "Create New Organisation",
+						Validate: validate,
+					}
 
-			index, result, err := selection.Run()
-			if err != nil {
-				os.Exit(1)
-			}
+					index, result, err := selection.Run()
+					if err != nil {
+						os.Exit(1)
+					}
 
-			if index > -1 {
+					if index > -1 {
 
-				for itemIndex, item := range *orgs {
-					if itemIndex == index {
-						organisation = item
-						break
+						for itemIndex, item := range *orgs {
+							if itemIndex == index {
+								organisation = item
+								break
+							}
+						}
+
+					} else {
+
+						//	Create new item
+						item, err := organisations.GetService().Create(commons.DefaultContext, commons.GQLClient, &organisationCommons.CreateOptions{
+							Name: result,
+						})
+						if err != nil {
+							log.Debug(err)
+							log.Fatal("Failed to create the organisation")
+						}
+
+						organisation.ID = item.ID
+						organisation.Name = fmt.Sprint(item.Name)
 					}
 				}
 
-			} else {
+				//	Setup project
+				if len(projectID) == 0 {
 
-				//	Create new item
-				item, err := organisations.GetService().Create(commons.DefaultContext, commons.GQLClient, &organisationCommons.CreateOptions{
-					Name: result,
-				})
-				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to create the organisation")
-				}
+					projectsList, err := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
+						OrgID: organisation.ID,
+					})
+					if err != nil {
+						log.Debug(err)
+						log.Fatal("Failed to fetch yours projects")
+					}
 
-				organisation.ID = item.ID
-				organisation.Name = fmt.Sprint(item.Name)
-			}
-		}
+					var projectsStringList []string
+					for _, item := range *projectsList {
+						projectsStringList = append(projectsStringList, item.Name)
+					}
 
-		//	Setup project
-		if len(projectID) == 0 {
+					selection := promptui.SelectWithAdd{
+						Label:    "Choose Your Project",
+						Items:    projectsStringList,
+						AddLabel: "Create New Project",
+						Validate: validate,
+					}
 
-			projectsList, err := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
-				OrgID: organisation.ID,
-			})
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch yours projects")
-			}
+					index, result, err := selection.Run()
+					if err != nil {
+						os.Exit(1)
+					}
 
-			var projectsStringList []string
-			for _, item := range *projectsList {
-				projectsStringList = append(projectsStringList, item.Name)
-			}
+					if index > -1 {
 
-			selection := promptui.SelectWithAdd{
-				Label:    "Choose Your Project",
-				Items:    projectsStringList,
-				AddLabel: "Create New Project",
-				Validate: validate,
-			}
+						for itemIndex, item := range *projectsList {
+							if itemIndex == index {
+								project = item
+								break
+							}
+						}
 
-			index, result, err := selection.Run()
-			if err != nil {
-				os.Exit(1)
-			}
+					} else {
 
-			if index > -1 {
+						//	Create new item
+						item, err := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
+							OrgID: organisation.ID,
+							Name:  result,
+						})
+						if err != nil {
+							log.Debug(err)
+							log.Fatal("Failed to create the project")
+						}
 
-				for itemIndex, item := range *projectsList {
-					if itemIndex == index {
-						project = item
-						break
+						project.ID = item.ID
+						project.Name = fmt.Sprint(item.Name)
+
+						//	Wait until default environments are not created.
+						log.Info("Creating your default environments. Wait for 5 seconds...")
+						time.Sleep(5 * time.Second)
 					}
 				}
 
-			} else {
+				//	Setup environment
+				if len(environmentID) == 0 {
 
-				//	Create new item
-				item, err := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
-					OrgID: organisation.ID,
-					Name:  result,
-				})
-				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to create the project")
-				}
+					environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
+						ProjectID: project.ID,
+					})
+					if err != nil {
+						log.Debug(err)
+						log.Fatal("Failed to fetch your environments")
+					}
 
-				project.ID = item.ID
-				project.Name = fmt.Sprint(item.Name)
+					var environmentsStringList []string
+					for _, item := range *environmentsList {
+						environmentsStringList = append(environmentsStringList, item.Name)
+					}
 
-				//	Wait until default environments are not created.
-				log.Info("Creating your default environments. Wait for 5 seconds...")
-				time.Sleep(5 * time.Second)
-			}
-		}
+					selection := promptui.SelectWithAdd{
+						Label:    "Choose Your Environment",
+						Items:    environmentsStringList,
+						AddLabel: "Create New Environment",
+						Validate: validate,
+					}
 
-		//	Setup environment
-		if len(environmentID) == 0 {
+					index, result, err := selection.Run()
+					if err != nil {
+						os.Exit(1)
+					}
 
-			environmentsList, err := environments.List(commons.DefaultContext, commons.GQLClient, &environments.ListOptions{
-				ProjectID: project.ID,
-			})
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch your environments")
-			}
+					if index > -1 {
 
-			var environmentsStringList []string
-			for _, item := range *environmentsList {
-				environmentsStringList = append(environmentsStringList, item.Name)
-			}
+						for itemIndex, item := range *environmentsList {
+							if itemIndex == index {
+								environment = item
+								break
+							}
+						}
 
-			selection := promptui.SelectWithAdd{
-				Label:    "Choose Your Environment",
-				Items:    environmentsStringList,
-				AddLabel: "Create New Environment",
-				Validate: validate,
-			}
+					} else {
 
-			index, result, err := selection.Run()
-			if err != nil {
-				os.Exit(1)
-			}
+						//	Create new item
+						item, err := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
+							ProjectID: project.ID,
+							Name:      result,
+						})
+						if err != nil {
+							log.Debug(err)
+							log.Fatal("Failed to create the environment")
+						}
 
-			if index > -1 {
-
-				for itemIndex, item := range *environmentsList {
-					if itemIndex == index {
-						environment = item
-						break
+						environment.ID = item.ID
+						environment.Name = fmt.Sprint(item.Name)
 					}
 				}
 
-			} else {
-
-				//	Create new item
-				item, err := environments.Create(commons.DefaultContext, commons.GQLClient, &environments.CreateOptions{
-					ProjectID: project.ID,
-					Name:      result,
+				//	Pull the user's copy of organisation key.
+				key, err := memberships.GetKey(commons.DefaultContext, commons.GQLClient, &memberships.GetKeyOptions{
+					OrgID:  organisation.ID,
+					UserID: commons.AccountConfig.User.ID,
 				})
 				if err != nil {
 					log.Debug(err)
-					log.Fatal("Failed to create the environment")
+					log.Fatal("Failed to fetch the encryption key")
 				}
 
-				environment.ID = item.ID
-				environment.Name = fmt.Sprint(item.Name)
-			}
-		}
-
-		//	Pull the user's copy of organisation key.
-		key, err := memberships.GetKey(commons.DefaultContext, commons.GQLClient, &memberships.GetKeyOptions{
-			OrgID:  organisation.ID,
-			UserID: commons.AccountConfig.User.ID,
-		})
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the encryption key")
-		}
-
-		//	Write selected entities to project config
-		if err := projectConfig.Save(&configCommons.Project{
-			Version:        1,
-			Organisation:   organisation.ID,
-			Project:        project.ID,
-			Environment:    environment.ID,
-			OrgKey:         key,
-			AutoCapitalize: true,
-		}); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to save new project configuration locally")
-		}
-
-		/* 		//	Pull environment secrets and populate the contingency file
-		   		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &secretsCommons.GetOptions{
-		   			EnvID: environment.ID,
-		   		})
-		   		if err != nil {
-		   			log.Debug(err.Error)
-		   			log.Warn(err.Message)
-		   		}
-
-		   		if err := config.GetService().Save(configCommons.Contingency(secret.Data), configCommons.ContingencyConfig); err != nil {
-		   			log.Debug(err)
-		   			log.Error("Failed to save secrets in Contingency file")
-		   		}
-		*/
-	},
-	PostRun: func(cmd *cobra.Command, args []string) {
+				//	Write selected entities to project config
+				if err := projectConfig.Save(&configCommons.Project{
+					Version:        1,
+					Organisation:   organisation.ID,
+					Project:        project.ID,
+					Environment:    environment.ID,
+					OrgKey:         key,
+					AutoCapitalize: true,
+				}); err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to save new project configuration locally")
+				}
+			},
+	*/PostRun: func(cmd *cobra.Command, args []string) {
 		log.Info("You can now set your secrets using `envs set`")
 	},
 }
