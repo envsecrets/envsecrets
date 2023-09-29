@@ -52,9 +52,6 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 	// Set E-Mail receivers
 	m.SetHeader("To", options.ReceiverEmail)
 
-	// Set E-Mail subject
-	m.SetHeader("Subject", "Invitation to Join Organisation")
-
 	//	Initialize Hasura client with admin privileges
 	client := clients.NewGQLClient(&clients.GQLConfig{
 		Type: clients.HasuraClientType,
@@ -75,6 +72,9 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 		return err
 	}
 
+	// Set E-Mail subject
+	m.SetHeader("Subject", fmt.Sprintf("Invitation to Join %s", organisation.Name))
+
 	email := hermes.Email{
 		Body: hermes.Body{
 			Greeting: "Hey",
@@ -91,7 +91,7 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 					Button: hermes.Button{
 						Color: "#222", // Optional action button color
 						Text:  "Accept Invite",
-						Link:  fmt.Sprintf("%s/v1/invites/accept?key=%s&id=%s", os.Getenv("API"), options.Key, options.ID),
+						Link:  fmt.Sprintf("%s/account", os.Getenv("FE_URL")),
 					},
 				},
 			},

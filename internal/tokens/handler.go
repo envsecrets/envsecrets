@@ -55,7 +55,7 @@ func CreateHandler(c echo.Context) error {
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to decrypt the secrets",
+			Message: "Failed to decrypt the organisation's encryption key. Maybe, entered password is invalid.",
 			Error:   err.Error(),
 		})
 	}

@@ -51,3 +51,28 @@ type CreateResponse struct {
 type UpdateOptions struct {
 	Accepted bool `json:"accepted,omitempty"`
 }
+
+type SendRequestOptions struct {
+	OrgID           string `json:"org_id,omitempty"`
+	RoleID          string `json:"role_id,omitempty"`
+	InviteeEmail    string `json:"invitee_email,omitempty"`
+	InviterPassword string `json:"inviter_password,omitempty"`
+}
+
+type SendOptions struct {
+	OrgID     string
+	RoleID    string
+	InviterID string
+
+	//	Decrypted organisation key.
+	Key          []byte
+	InviteeEmail string
+}
+
+type InsertOptions struct {
+	UserID string `json:"user_id,omitempty"`
+	OrgID  string `json:"org_id,omitempty"`
+	Key    string `json:"key,omitempty"`
+	Email  string `json:"email,omitempty"`
+	RoleID string `json:"role_id,omitempty"`
+}

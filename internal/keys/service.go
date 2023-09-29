@@ -35,6 +35,10 @@ func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient,
 	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
 }
 
+func GetPublicKeyByUserEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) ([]byte, error) {
+	return graphql.GetPublicKeyByUserEmail(ctx, client, email)
+}
+
 func SealSymmetrically(message []byte, key [commons.KEY_BYTES]byte) ([]byte, error) {
 
 	// You must use a different nonce for each message you encrypt with the

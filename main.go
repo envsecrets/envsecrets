@@ -49,7 +49,7 @@ func main() {
 		"/triggers",
 		"integrations",
 		"healthz",
-		"invites",
+		"/invites/accept",
 		"/secrets",
 		"/payments/server/webhook",
 		"/auth/signin",

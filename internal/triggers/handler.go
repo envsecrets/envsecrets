@@ -544,7 +544,7 @@ func ProjectInserted(c echo.Context) error {
 	})
 
 	//	Create default environments for this new project.
-	envs := []string{"development", "test", "staging", "production"}
+	envs := []string{"dev", "test", "staging", "prod"}
 	for _, item := range envs {
 		if _, err := environments.CreateWithUserID(ctx, client, &environmentCommons.CreateOptions{
 			Name:      item,
@@ -592,7 +592,6 @@ func InviteInserted(c echo.Context) error {
 	//	Send the invitation email.
 	if err := service.Invite(ctx, &commons.InvitationOptions{
 		ID:            row.ID,
-		Key:           row.Key,
 		ReceiverEmail: row.Email,
 		OrgID:         row.OrgID,
 		SenderID:      row.UserID,

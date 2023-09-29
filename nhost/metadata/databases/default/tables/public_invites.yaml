@@ -66,6 +66,8 @@ select_permissions:
                         _contains:
                           permissions:
                             read: true
+          - email:
+              _eq: X-Hasura-User-Email
       allow_aggregations: true
 delete_permissions:
   - role: user

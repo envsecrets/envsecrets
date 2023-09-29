@@ -36,7 +36,7 @@ type UpdateOptions struct {
 }
 
 type ListOptions struct {
-	ProjectID string `json:"project_id" graphql:"project_id"`
+	ProjectID string `json:"project_id"`
 }
 
 type SyncWithPasswordRequestOptions struct {
@@ -54,7 +54,7 @@ type SyncRequestOptions struct {
 }
 
 type SyncOptions struct {
-	EnvID           string                              `json:"env_id"`
-	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
-	Secrets         *keypayload.KPMap                   `json:"secrets"`
+	EnvID           string
+	IntegrationType intergrationCommons.IntegrationType
+	Secrets         *keypayload.KPMap
 }
