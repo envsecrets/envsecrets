@@ -48,7 +48,15 @@ type CreateResponse struct {
 	ID string `json:"id,omitempty" graphql:"id,omitempty"`
 }
 
+type AcceptRequestOptions struct {
+	ID string `json:"id,omitempty"`
+}
+
 type UpdateOptions struct {
+	Set SetUpdateOptions
+}
+
+type SetUpdateOptions struct {
 	Accepted bool `json:"accepted,omitempty"`
 }
 

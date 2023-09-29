@@ -9,5 +9,5 @@ func AddRoutes(sg *echo.Group) {
 	group := sg.Group("/invites")
 
 	group.POST("", SendHandler)
-	group.GET("/accept", AcceptHandler)
+	group.POST("/accept", AcceptHandler)
 }

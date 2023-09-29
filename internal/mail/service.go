@@ -91,7 +91,7 @@ func (*DefaultMailService) Invite(ctx context.ServiceContext, options *commons.I
 					Button: hermes.Button{
 						Color: "#222", // Optional action button color
 						Text:  "Accept Invite",
-						Link:  fmt.Sprintf("%s/account", os.Getenv("FE_URL")),
+						Link:  fmt.Sprintf("%s/account/invites", os.Getenv("FE_URL")),
 					},
 				},
 			},

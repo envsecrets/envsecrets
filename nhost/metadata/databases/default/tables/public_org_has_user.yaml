@@ -30,6 +30,7 @@ insert_permissions:
                           permissions:
                             create: true
       columns:
+        - key
         - org_id
         - role_id
         - user_id

@@ -49,7 +49,6 @@ func main() {
 		"/triggers",
 		"integrations",
 		"healthz",
-		"/invites/accept",
 		"/secrets",
 		"/payments/server/webhook",
 		"/auth/signin",
