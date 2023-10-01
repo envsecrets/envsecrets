@@ -3,24 +3,20 @@ package triggers
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/events"
-	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations"
-	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
 	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/mail"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/roles"
@@ -35,6 +31,7 @@ const (
 	KEY_BYTES = 32
 )
 
+/*
 // Called when a new row is inserted inside the `secrets` table.
 func SecretInserted(c echo.Context) error {
 
@@ -88,7 +85,7 @@ func SecretInserted(c echo.Context) error {
 	}
 
 	//	Get the organisation to which these secrets belong to.
-	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	organisation, err := organisations.GetService().GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to get organisation to which these secrets are associated",
@@ -97,9 +94,9 @@ func SecretInserted(c echo.Context) error {
 	}
 
 	//	Decrypt the value of every secret.
-	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptOptions{
 		OrgID:  organisation.ID,
-		Secret: row,
+		Secret: &row,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -116,7 +113,7 @@ func SecretInserted(c echo.Context) error {
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,
-			Secret:        *decrypted,
+			Data:          &decrypted.Data,
 		}); err != nil {
 			log.Printf("failed to push secret with ID %s for %s event: %s", row.ID, event.Integration.Type, event.ID)
 			log.Println(err)
@@ -166,7 +163,7 @@ func EventInserted(c echo.Context) error {
 	//	4. Call the appropriate integration service to sync the secrets.
 
 	//	Get the organisation to which this event's environment belong to.
-	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	organisation, err := organisations.GetService().GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to get organisation to which this event are associated",
@@ -185,9 +182,9 @@ func EventInserted(c echo.Context) error {
 	}
 
 	//	Decrypt the value of every secret.
-	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptSecretOptions{
+	decrypted, err := secrets.Decrypt(ctx, client, &secretCommons.DecryptOptions{
 		OrgID:  organisation.ID,
-		Secret: *response,
+		Secret: response,
 	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -203,7 +200,7 @@ func EventInserted(c echo.Context) error {
 		IntegrationID: row.IntegrationID,
 		EventID:       row.ID,
 		EntityDetails: row.EntityDetails,
-		Secret:        *decrypted,
+		Data:          &decrypted.Data,
 	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: fmt.Sprintf("Failed to push secret with ID %s for event: %s", row.ID, row.ID),
@@ -216,7 +213,7 @@ func EventInserted(c echo.Context) error {
 	})
 }
 
-// Called when a new row is inserted inside the `secrets` table.
+*/ // Called when a new row is inserted inside the `secrets` table.
 func SecretDeleteLegacy(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
@@ -248,7 +245,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	})
 
 	//	Get the organisation ID.
-	organisation, err := organisations.GetByEnvironment(ctx, client, row.EnvID)
+	organisation, err := organisations.GetService().GetByEnvironment(ctx, client, row.EnvID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to get the organisation to which this environment is associated",
@@ -319,19 +316,6 @@ func UserInserted(c echo.Context) error {
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
-	/* 	//	Create a new `default` organisation for the new user.
-	   	_, err := organisations.CreateWithUserID(ctx, client, &organisations.CreateOptions{
-	   		Name:   fmt.Sprintf("%s's Org", strings.Split(user.Name, " ")[0]),
-	   		UserID: user.ID,
-	   	})
-	   	if err != nil {
-	   		return c.JSON(err.Type.GetStatusCode(), &clients.APIResponse{
-	   			Message: err.GenerateMessage("Failed to create default organisation"),
-	   			Error:   err.Message,
-	   		})
-	   	}
-	*/
-
 	//	Shoot a welcome email to the user
 	if err := mail.GetService().SendWelcomeEmail(ctx, &user); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
@@ -358,7 +342,7 @@ func OrganisationCreated(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row organisations.Organisation
+	var row organisationCommons.Organisation
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",
@@ -494,35 +478,35 @@ func OrganisationCreated(c echo.Context) error {
 		})
 	}
 
-	//	Add envsecrets as a bot
-	botPublicKeyBytes, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: "Failed to base64 decode server's public key",
-			Error:   err.Error(),
-		})
-	}
+	/* 	//	Add envsecrets as a bot
+	   	botPublicKeyBytes, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
+	   	if err != nil {
+	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+	   			Message: "Failed to base64 decode server's public key",
+	   			Error:   err.Error(),
+	   		})
+	   	}
 
-	var botPublicKey [32]byte
-	copy(botPublicKey[:], botPublicKeyBytes)
-	result, err = keys.SealAsymmetricallyAnonymous(keyBytes, botPublicKey)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: "Failed to seal org's symmetric key with bot's public key",
-			Error:   err.Error(),
-		})
-	}
+	   	var botPublicKey [32]byte
+	   	copy(botPublicKey[:], botPublicKeyBytes)
+	   	result, err = keys.SealAsymmetricallyAnonymous(keyBytes, botPublicKey)
+	   	if err != nil {
+	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+	   			Message: "Failed to seal org's symmetric key with bot's public key",
+	   			Error:   err.Error(),
+	   		})
+	   	}
 
-	if err := organisations.UpdateServerKeyCopy(ctx, client, &organisations.UpdateServerKeyCopyOptions{
-		OrgID: row.ID,
-		Key:   base64.StdEncoding.EncodeToString(result),
-	}); err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: "Failed to save server's key copy",
-			Error:   err.Error(),
-		})
-	}
-
+	   	if err := organisations.UpdateServerKeyCopy(ctx, client, &organisations.UpdateServerKeyCopyOptions{
+	   		OrgID: row.ID,
+	   		Key:   base64.StdEncoding.EncodeToString(result),
+	   	}); err != nil {
+	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
+	   			Message: "Failed to save server's key copy",
+	   			Error:   err.Error(),
+	   		})
+	   	}
+	*/
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully generated symmetric key and created default roles",
 	})
@@ -560,9 +544,9 @@ func ProjectInserted(c echo.Context) error {
 	})
 
 	//	Create default environments for this new project.
-	envs := []string{"development", "test", "staging", "production"}
+	envs := []string{"dev", "test", "staging", "prod"}
 	for _, item := range envs {
-		if _, err := environments.CreateWithUserID(ctx, client, &environments.CreateOptions{
+		if _, err := environments.CreateWithUserID(ctx, client, &environmentCommons.CreateOptions{
 			Name:      item,
 			ProjectID: row.ID,
 			UserID:    row.UserID,
@@ -608,7 +592,6 @@ func InviteInserted(c echo.Context) error {
 	//	Send the invitation email.
 	if err := service.Invite(ctx, &commons.InvitationOptions{
 		ID:            row.ID,
-		Key:           row.Key,
 		ReceiverEmail: row.Email,
 		OrgID:         row.OrgID,
 		SenderID:      row.UserID,

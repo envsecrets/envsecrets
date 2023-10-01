@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 )
 
 type Invite struct {
@@ -14,8 +14,8 @@ type Invite struct {
 
 	UserID string `json:"user_id,omitempty"`
 
-	OrgID        string                     `json:"org_id,omitempty"`
-	Organisation organisations.Organisation `json:"organisation,omitempty"`
+	OrgID        string                           `json:"org_id,omitempty"`
+	Organisation organisationCommons.Organisation `json:"organisation,omitempty"`
 
 	Key   string `json:"key,omitempty"`
 	Email string `json:"email,omitempty"`
@@ -48,6 +48,39 @@ type CreateResponse struct {
 	ID string `json:"id,omitempty" graphql:"id,omitempty"`
 }
 
+type AcceptRequestOptions struct {
+	ID string `json:"id,omitempty"`
+}
+
 type UpdateOptions struct {
+	Set SetUpdateOptions
+}
+
+type SetUpdateOptions struct {
 	Accepted bool `json:"accepted,omitempty"`
+}
+
+type SendRequestOptions struct {
+	OrgID           string `json:"org_id,omitempty"`
+	RoleID          string `json:"role_id,omitempty"`
+	InviteeEmail    string `json:"invitee_email,omitempty"`
+	InviterPassword string `json:"inviter_password,omitempty"`
+}
+
+type SendOptions struct {
+	OrgID     string
+	RoleID    string
+	InviterID string
+
+	//	Decrypted organisation key.
+	Key          []byte
+	InviteeEmail string
+}
+
+type InsertOptions struct {
+	UserID string `json:"user_id,omitempty"`
+	OrgID  string `json:"org_id,omitempty"`
+	Key    string `json:"key,omitempty"`
+	Email  string `json:"email,omitempty"`
+	RoleID string `json:"role_id,omitempty"`
 }

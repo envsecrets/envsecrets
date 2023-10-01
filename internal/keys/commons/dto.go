@@ -2,6 +2,7 @@ package commons
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 )
 
@@ -17,7 +18,7 @@ type Key struct {
 	Salt         string `json:"salt,omitempty"`
 }
 
-func (k *Key) DecodePayload() (*Payload, error) {
+func (k *Key) Decode() (*Payload, error) {
 
 	salt, err := base64.StdEncoding.DecodeString(k.Salt)
 	if err != nil {
@@ -54,9 +55,13 @@ type Payload struct {
 	Salt         []byte
 }
 
-func (p *Payload) Validate() error {
+type DecryptOptions struct {
+	Password string
+	OrgID    string
+}
 
-	return nil
+func (o *DecryptOptions) Marshal() ([]byte, error) {
+	return json.Marshal(o)
 }
 
 type CreateOptions struct {

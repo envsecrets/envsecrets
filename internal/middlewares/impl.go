@@ -2,10 +2,8 @@ package middlewares
 
 import (
 	"encoding/hex"
-	"errors"
 	"log"
 	"os"
-	"time"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
 	globalCommons "github.com/envsecrets/envsecrets/commons"
@@ -76,28 +74,15 @@ func TokenHeader() echo.MiddlewareFunc {
 				return false, err
 			}
 
-			//	Generate token's hash.
-			hash := globalCommons.SHA256Hash(payload)
-
-			//	Verify the token.
-			token, err := tokens.GetByHash(ctx, client, hash)
+			//	Decrypt the token.
+			token, err := tokens.GetService().Decrypt(ctx, client, payload)
 			if err != nil {
 				return false, err
 			}
 
-			if token.EnvID == "" {
-				return false, errors.New("failed to fetch the environment this token is associated with")
-			}
-
-			//	Parse the token expiry
-			now := time.Now()
-			expired := now.After(token.Expiry)
-			if expired {
-				return false, errors.New("token expired")
-			}
-
 			//	Set the environment ID in echo's context.
 			c.Set("env_id", token.EnvID)
+			c.Set("org_key", token.OrgKey)
 
 			return true, nil
 		},

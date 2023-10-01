@@ -87,7 +87,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	//	Extract the slug from entity details
 	slug := options.EntityDetails["full_name"].(string)
 
-	for key, payload := range options.Secret.Data {
+	for key, payload := range *options.Data {
 
 		//	If the payload is of type `ciphertext`,
 		//	we have to encrypt its value and push it to Github action's secrets.

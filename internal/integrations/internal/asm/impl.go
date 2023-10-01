@@ -79,7 +79,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.Cre
 	client := secretsmanager.NewFromConfig(cfg)
 
 	//	Marshal the secrets
-	payload, err := options.Secret.ToMap().Marshal()
+	payload, err := options.Data.Marshal()
 	if err != nil {
 		return nil, err
 	}

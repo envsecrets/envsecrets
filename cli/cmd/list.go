@@ -32,15 +32,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -57,44 +51,26 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
-		//	If the account configuration doesn't exist,
-		//	log-in the user first.
-		if !config.GetService().Exists(configCommons.AccountConfig) {
-			loginCmd.PreRunE(cmd, args)
-			loginCmd.Run(cmd, args)
-		}
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var options secretsCommons.GetOptions
+		options := secrets.ListOptions{
+			EnvID: commons.Secret.EnvID,
+		}
 
 		if version > -1 {
 			options.Version = &version
 		}
 
-		options.EnvID = commons.ProjectConfig.Environment
-
-		secrets, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &options)
+		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
 			log.Debug(err)
-
-			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-				log.Error("You haven't set any secrets in this environment")
-				log.Info("Use `envs set --help` for more information")
-				os.Exit(1)
-			} else {
-				log.Fatal("Failed to fetch the secrets")
-			}
+			log.Fatal("Failed to list the secrets")
 		}
 
-		for key := range secrets.Data {
+		for _, key := range secrets.Keys() {
 			fmt.Println(key)
 		}
 	},
@@ -114,4 +90,5 @@ func init() {
 	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	listCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 	listCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
+	listCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }

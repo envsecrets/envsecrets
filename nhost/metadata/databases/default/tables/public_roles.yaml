@@ -50,6 +50,9 @@ select_permissions:
               org_has_user:
                 user_id:
                   _eq: X-Hasura-User-Id
+          - invites:
+              email:
+                _eq: X-Hasura-User-Email
       allow_aggregations: true
 update_permissions:
   - role: user

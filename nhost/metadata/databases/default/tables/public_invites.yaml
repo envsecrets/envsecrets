@@ -44,12 +44,13 @@ select_permissions:
     permission:
       columns:
         - accepted
-        - email
         - created_at
-        - updated_at
+        - email
         - id
+        - key
         - org_id
         - role_id
+        - updated_at
         - user_id
       filter:
         _or:
@@ -66,7 +67,18 @@ select_permissions:
                         _contains:
                           permissions:
                             read: true
+          - email:
+              _eq: X-Hasura-User-Email
       allow_aggregations: true
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - accepted
+      filter:
+        email:
+          _eq: X-Hasura-User-Email
+      check: null
 delete_permissions:
   - role: user
     permission:

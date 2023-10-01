@@ -60,6 +60,16 @@ func (*DefaultConfigService) Save(payload interface{}, configType commons.Config
 func (*DefaultConfigService) Load(configType commons.ConfigType) (interface{}, error) {
 	switch configType {
 	case commons.ProjectConfig:
+
+		/* 		//	If a project config does not exist, save a default one.
+		   		if !project.Exists() {
+		   			if err := project.Save(&commons.Project{
+		   				AutoCapitalize: false,
+		   			}); err != nil {
+		   				return nil, err
+		   			}
+		   		}
+		*/
 		return project.Load()
 	case commons.AccountConfig:
 		return account.Load()

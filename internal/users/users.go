@@ -74,7 +74,7 @@ func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email str
 	}
 
 	if len(resp) == 0 {
-		return nil, errors.New("no rows affected")
+		return nil, errors.New("no row found")
 	}
 
 	return &resp[0], nil

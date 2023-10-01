@@ -6,7 +6,8 @@ import (
 
 func AddRoutes(sg *echo.Group) {
 
-	commonGroup := sg.Group("/invites")
+	group := sg.Group("/invites")
 
-	commonGroup.GET("/accept", AcceptHandler)
+	group.POST("", SendHandler)
+	group.POST("/accept", AcceptHandler)
 }

@@ -145,6 +145,10 @@ func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient,
 		return nil, err
 	}
 
+	if len(resp) == 0 {
+		return nil, errors.New("failed to fetch the key")
+	}
+
 	result, err := base64.StdEncoding.DecodeString(resp[0].PublicKey)
 	if err != nil {
 		return nil, err
@@ -163,7 +167,6 @@ func GetPublicKeyByUserEmail(ctx context.ServiceContext, client *clients.GQLClie
 		}
 	  }				  
 	`)
-
 	req.Var("email", email)
 
 	var response map[string]interface{}
@@ -180,6 +183,10 @@ func GetPublicKeyByUserEmail(ctx context.ServiceContext, client *clients.GQLClie
 	var resp []commons.Key
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
+	}
+
+	if len(resp) == 0 {
+		return nil, errors.New("failed to fetch the key")
 	}
 
 	result, err := base64.StdEncoding.DecodeString(resp[0].PublicKey)

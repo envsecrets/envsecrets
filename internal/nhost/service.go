@@ -18,7 +18,7 @@ func Signup(ctx context.ServiceContext, options *SignupOptions) *Error {
 	}
 
 	//	Initialize a new request
-	req, err := http.NewRequest(http.MethodPost, os.Getenv("NHOST_AUTH_URL")+"/signup/email-password", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, os.Getenv("NHOST_AUTH_URL")+"/v1"+"/signup/email-password", bytes.NewBuffer(body))
 	if err != nil {
 		return &Error{Message: err.Error(), Code: http.StatusText(http.StatusBadRequest)}
 	}

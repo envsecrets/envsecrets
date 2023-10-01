@@ -48,7 +48,7 @@ func SetupCallbackHandler(c echo.Context) error {
 		CustomHeaders: []clients.CustomHeader{
 			{
 				Key:   string(clients.AuthorizationHeader),
-				Value: "Bearer " + token,
+				Value: token,
 			},
 		},
 	})
@@ -65,11 +65,12 @@ func SetupCallbackHandler(c echo.Context) error {
 		Options: options,
 	})
 	if err != nil {
+		fmt.Println("integration error", err)
 		return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/catalog?setup_action=install&setup_status=failed&integration_type=%s", os.Getenv("FE_URL"), integration_type))
 	}
 
 	//	Redirect the user to front-end to complete post-integration steps.
-	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/%s/sync?setup_action=install&setup_status=successful", os.Getenv("FE_URL"), integration_type))
+	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/%s?setup_action=install&setup_status=successful", os.Getenv("FE_URL"), integration_type))
 }
 
 func SetupHandler(c echo.Context) error {

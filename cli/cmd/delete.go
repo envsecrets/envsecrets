@@ -31,15 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"os"
 	"strings"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -49,51 +44,38 @@ var deleteCmd = &cobra.Command{
 	Short: "Deletes a key=value pair from your current environment's secrets",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
-		}
-
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Run sanity checks
-		if len(args) != 1 {
-			log.Fatal("Invalid key format")
-		}
 		key := args[0]
 
 		//	Auto-capitalize the key
 		key = strings.ToUpper(key)
 
-		options := &secretsCommons.DeleteSecretOptions{
+		options := &secrets.DeleteOptions{
 			Key:   key,
-			EnvID: commons.ProjectConfig.Environment,
+			EnvID: commons.Secret.EnvID,
 		}
 
 		if version > -1 {
 			options.Version = &version
 		}
 
-		secret, err := secrets.Delete(commons.DefaultContext, commons.GQLClient, options)
+		secret, err := secrets.GetService().Delete(commons.DefaultContext, commons.GQLClient, options)
 		if err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to delete secret")
 		}
 
-		log.Infoln("Created version", *secret.Version)
-
+		if secret.Version != nil {
+			log.Infoln("Latest version is now", *secret.Version)
+		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("Key successfully deleted")
+		log.Infof("Key %s deleted", args[0])
 	},
 }
 
@@ -109,4 +91,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// deleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	deleteCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to delete the secret key from. Defaults to the local environment.")
 }

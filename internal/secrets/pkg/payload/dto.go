@@ -21,9 +21,6 @@ type Payload struct {
 	//	For example, Github and Vercel.
 	Exposable bool `json:"exposable,omitempty"`
 
-	//	Type in which the value is stored in our database.
-	//	Type Type `json:"type,omitempty"`
-
 	//	Internal variable to record the current state of encoding of this payload's value.
 	encoded bool `json:"-"`
 }

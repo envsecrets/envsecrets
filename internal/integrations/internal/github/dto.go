@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 type SetupOptions struct {
@@ -17,7 +17,7 @@ type SetupOptions struct {
 type SyncOptions struct {
 	InstallationID string                 `json:"installation_id"`
 	EntityDetails  map[string]interface{} `json:"entity_details"`
-	Secret         secretCommons.Secret   `json:"secret"`
+	Data           *keypayload.KPMap      `json:"data"`
 }
 
 type InstallationAccessTokenResponse struct {

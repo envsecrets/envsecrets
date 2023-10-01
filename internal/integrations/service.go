@@ -23,6 +23,7 @@ import (
 
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, error)
+	List(context.ServiceContext, *clients.GQLClient, *commons.ListIntegrationFilters) (*commons.Integrations, error)
 	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, error)
 	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, error)
 	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, error)
@@ -33,6 +34,10 @@ type DefaultIntegrationService struct{}
 
 func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, error) {
 	return graphql.Get(ctx, client, id)
+}
+
+func (*DefaultIntegrationService) List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListIntegrationFilters) (*commons.Integrations, error) {
+	return graphql.List(ctx, client, options)
 }
 
 func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, options map[string]interface{}) (interface{}, error) {
@@ -231,50 +236,50 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		return github.Sync(ctx, &github.SyncOptions{
 			InstallationID: integration.InstallationID,
 			EntityDetails:  options.EntityDetails,
-			Secret:         options.Secret,
+			Data:           options.Data,
 		})
 	case commons.Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			IntegrationID: options.IntegrationID,
 			OrgID:         integration.OrgID,
 		})
 	case commons.Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
 			Credentials:   credentials,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.CircleCI:
 		return circle.Sync(ctx, &circle.SyncOptions{
 			Credentials:   credentials,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Supabase:
 		return supabase.Sync(ctx, &supabase.SyncOptions{
 			Credentials:   credentials,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.Netlify:
 		return netlify.Sync(ctx, &netlify.SyncOptions{
 			Credentials:   credentials,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.GSM:
 		return gsm.Sync(ctx, &gsm.SyncOptions{
 			Credentials:   credentials,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.ASM:
 		resp, err := asm.Sync(ctx, &asm.SyncOptions{
 			OrgID:         integration.OrgID,
-			Secret:        options.Secret,
+			Data:          options.Data,
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
 		})

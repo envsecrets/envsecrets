@@ -33,19 +33,13 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/cli/internal"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
+	"github.com/envsecrets/envsecrets/dto"
 	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/keys"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -58,59 +52,23 @@ var XTokenHeader string
 var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Prints decrypted list of your environment's (key=value) secret pairs",
-	Args:  cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	If the user has passed a token,
 		//	avoid using email+password to authenticate them against the API.
 		if XTokenHeader != "" {
+			commons.Secret = &dto.Secret{}
 			return
 		}
 
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
-		//	Load the user's email.
-		accountConfig, err := config.GetService().Load(configCommons.AccountConfig)
-		if err != nil {
-			loginCmd.PreRunE(cmd, args)
-			loginCmd.Run(cmd, args)
-		} else {
-
-			accountData := accountConfig.(*configCommons.Account)
-			email = accountData.User.Email
-
-			//	Log them in first.
-			//	Take password input
-			passwordPrompt := promptui.Prompt{
-				Label: "Password",
-				Mask:  '*',
-			}
-
-			password, err = passwordPrompt.Run()
-			if err != nil {
-				os.Exit(1)
-			}
-
-			loginCmd.Run(cmd, args)
-
-			//	Re-initialize the commons
-			commons.Initialize()
-		}
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var secret *secretsCommons.Secret
-		var err error
-		var orgKey [32]byte
-
 		if XTokenHeader != "" {
 
-			options := internal.GetValuesOptions{
+			options := &internal.GetValuesOptions{
 				Token: XTokenHeader,
 			}
 
@@ -118,105 +76,89 @@ var exportCmd = &cobra.Command{
 				options.Version = &version
 			}
 
-			secret, err = internal.GetValues(commons.DefaultContext, commons.HTTPClient, &options)
+			result, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, options)
 			if err != nil {
 				log.Debug(err)
-				log.Fatal("Failed to fetch the secrets")
+				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
+					log.Error("You haven't set any secrets in this environment")
+					log.Info("Use `envs set --help` for more information")
+				} else {
+					log.Fatal("Failed to fetch the secrets")
+				}
 			}
+
+			for k, v := range result.Data {
+				commons.Secret.Set(k, &dto.Payload{
+					Value: v.Value,
+				})
+			}
+
+			commons.Secret.Decode()
 
 		} else {
 
-			decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the organisation encryption key")
-			}
-			copy(orgKey[:], decryptedOrgKey)
-
-			//	Get the values from Hasura.
-			getOptions := secretsCommons.GetOptions{
-				EnvID: commons.ProjectConfig.Environment,
+			//	Fetch only the required values.
+			getOptions := secrets.GetOptions{
+				EnvID: commons.Secret.EnvID,
 			}
 
 			if version > -1 {
 				getOptions.Version = &version
 			}
 
-			secret, err = secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+			result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 			if err != nil {
 				log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
 					log.Error("You haven't set any secrets in this environment")
 					log.Info("Use `envs set --help` for more information")
-					os.Exit(1)
 				} else {
 					log.Fatal("Failed to fetch the secrets")
 				}
 			}
 
-			//	Decrypt the values.
-			if err := secret.Decrypt(orgKey); err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the secret")
-			}
-		}
+			commons.Secret = result
 
-		//	Decode the values.
-		if err := secret.Decode(); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decode the secret")
+			//	Decrypt and decode the common secret.
+			DecryptAndDecode()
 		}
 
 		//	Initialize a new buffer to store key=value lines
 		var buffer bytes.Buffer
-		var variables []string
-		for key := range secret.Data {
-			variables = append(variables, secret.GetFmtString(key))
-		}
 
-		buffer.WriteString(strings.Join(variables, "\n"))
+		buffer.WriteString(strings.Join(commons.Secret.Data.FmtStrings(), "\n"))
 
-		if exportfile != "" {
+		fmt.Println(buffer.String())
+		/*
+			 		if exportfile != "" {
 
-			f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to open file: ", exportfile)
-			}
+						f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+						if err != nil {
+							log.Debug(err)
+							log.Fatal("Failed to open file: ", exportfile)
+						}
 
-			defer f.Close()
+						defer f.Close()
 
-			switch filepath.Ext(file) {
-			default:
-				if _, err := f.WriteString(buffer.String()); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to export values to file")
-				}
+						switch filepath.Ext(file) {
+						default:
+							if _, err := f.WriteString(buffer.String()); err != nil {
+								log.Debug(err)
+								log.Fatal("Failed to export values to file")
+							}
 
-			case ".csv":
-				log.Error("This file format is not yet supported")
-				log.Info("Use `--help` for more information")
-				os.Exit(1)
+						case ".csv":
+							log.Error("This file format is not yet supported")
+							log.Info("Use `--help` for more information")
+							os.Exit(1)
 
-			case ".json":
-
-				/* 				var mapping map[string]interface{}
-				   				for key, value := range mapping {
-
-				   					//	Base64 encode the secret value
-				   					value = base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(value)))
-
-				   					data[key] = secretsCommons.Payload{
-				   						Value: value,
-				   						Type:  secretsCommons.Ciphertext,
-				   					}
-				   				}
-				*/
-			case ".yaml":
-			}
-		} else {
-			fmt.Println(buffer.String())
-		}
+						case ".json":
+						case ".yaml":
+						}
+					} else {
+						fmt.Println(buffer.String())
+					}
+		*/
 	},
 }
 
@@ -234,4 +176,5 @@ func init() {
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
 	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	exportCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }

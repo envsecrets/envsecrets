@@ -32,15 +32,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/keys"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -56,41 +51,20 @@ var getCmd = &cobra.Command{
 			return
 		}
 
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
-		//	If the account configuration doesn't exist,
-		//	log-in the user first.
-		if !config.GetService().Exists(configCommons.AccountConfig) {
-			loginCmd.PreRunE(cmd, args)
-			loginCmd.Run(cmd, args)
-		}
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
 		key := args[0]
 
-		//	Auto-capitalize the key
-		if commons.ProjectConfig.AutoCapitalize {
-			key = strings.ToUpper(key)
-		}
+		//	Capitalize the key.
+		key = strings.ToUpper(key)
 
-		var orgKey [32]byte
-		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decrypt the organisation's encryption key")
-		}
-		copy(orgKey[:], decryptedOrgKey)
-
-		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetOptions{
-			EnvID: commons.ProjectConfig.Environment,
+		//	Fetch only the required values.
+		getOptions := secrets.GetOptions{
+			EnvID: commons.Secret.EnvID,
 			Key:   key,
 		}
 
@@ -98,42 +72,23 @@ var getCmd = &cobra.Command{
 			getOptions.Version = &version
 		}
 
-		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
-
 			log.Debug(err)
-			log.Fatal("Failed to fetch the secrets")
-
-			/* 			//	Read the value from Contingency file.
-			   			if commons.ContingencyConfig != nil {
-			   				log.Warn("Searching value in contingency file")
-			   				temp := *commons.ContingencyConfig
-			   				result = temp[key]
-			   			}
-			*/
+			log.Fatal("Failed to fetch the value")
 		}
 
-		if err := secret.Decrypt(orgKey); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decrypt the secret")
+		commons.Secret = result
+
+		//	Decrypt and decode the common secret.
+		DecryptAndDecode()
+
+		if commons.Secret.Get(key) == nil {
+			log.Fatal("No value found for this key")
 		}
 
-		//	Decode the values.
-		if err := secret.Decode(); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decode the secret")
-		}
-
-		fmt.Printf("%v", secret.Get(key).Value)
+		fmt.Printf("%v", commons.Secret.Get(key).Value)
 		fmt.Println()
-
-		/*
-			 		//	Update the Contingency file
-					if err := config.GetService().Save(configCommons.Contingency(list.Data), configCommons.ContingencyConfig); err != nil {
-						log.Debug(err)
-						log.Warn("Failed to save secrets in Contingency file")
-					}
-		*/
 	},
 }
 
@@ -149,5 +104,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
-	//getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
+	getCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
+	// getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

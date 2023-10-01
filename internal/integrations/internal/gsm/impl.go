@@ -87,7 +87,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	PARENT := fmt.Sprintf("projects/%v", options.Credentials["project_id"])
 
 	//	Prepare the payload
-	payload, err := options.Secret.ToMap().Marshal()
+	payload, err := options.Data.Marshal()
 	if err != nil {
 		return err
 	}

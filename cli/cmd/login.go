@@ -125,7 +125,7 @@ var loginCmd = &cobra.Command{
 		}
 
 		//	Reload the clients.
-		commons.Initialize()
+		commons.Initialize(log)
 
 		//	Pull the user's existing key pair saved in their cloud account.
 		keyPair, err := keys.GetByUserID(commons.DefaultContext, commons.GQLClient, response.Session.User.ID)
@@ -172,7 +172,7 @@ var loginCmd = &cobra.Command{
 		//	If they already have an existing key-pair.
 		if keyPair != nil {
 
-			payload, err := keyPair.DecodePayload()
+			payload, err := keyPair.Decode()
 			if err != nil {
 				log.Debug(err)
 				log.Fatal("Failed to decode your encryption keys")

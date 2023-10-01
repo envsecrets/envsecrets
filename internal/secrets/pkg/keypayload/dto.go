@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/keyvalue"
-	"github.com/envsecrets/envsecrets/internal/secrets/internal/payload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keyvalue"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 )
 
 // Key-Payload Map
@@ -16,7 +16,7 @@ func (m KPMap) IsEmpty() bool {
 	return len(m) == 0
 }
 
-func (m KPMap) Load(value map[string]*payload.Payload) {
+func (m KPMap) Load(value KPMap) {
 	for name := range value {
 		m.Set(name, value[name])
 	}

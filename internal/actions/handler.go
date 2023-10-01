@@ -6,6 +6,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
+	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	"github.com/labstack/echo/v4"
@@ -23,7 +24,7 @@ func EnvironmentCreate(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var options environments.CreateOptions
+	var options environmentCommons.CreateOptions
 	if err := MapToStruct(payload.Input.Args, &options); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",

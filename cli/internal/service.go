@@ -32,10 +32,8 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 	//	If the environment token is passed,
 	//	create a new HTTP client and attach it in the header.
 	if options.Token != "" {
-
 		client = clients.NewHTTPClient(&clients.HTTPConfig{
 			BaseURL: commons.API + "/v1",
-			Logger:  commons.Logger,
 			CustomHeaders: []clients.CustomHeader{
 				{
 					Key:   string(clients.TokenHeader),

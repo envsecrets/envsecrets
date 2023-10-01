@@ -6,7 +6,7 @@ import (
 
 func AddRoutes(sg *echo.Group) {
 
-	tokens := sg.Group("/tokens")
+	commonGroup := sg.Group("/tokens")
 
-	tokens.POST("", CreateHandler)
+	commonGroup.POST("", CreateHandler)
 }
