@@ -2,7 +2,6 @@ package account
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -34,14 +33,14 @@ func Save(config *commons.Account) error {
 	}
 
 	//	Save the config file
-	return ioutil.WriteFile(CONFIG_LOC, data, 0644)
+	return os.WriteFile(CONFIG_LOC, data, 0644)
 }
 
 // Load, parse and return the available account config.
 func Load() (*commons.Account, error) {
 
 	//	Read the file
-	data, err := ioutil.ReadFile(CONFIG_LOC)
+	data, err := os.ReadFile(CONFIG_LOC)
 	if err != nil {
 		return nil, err
 	}

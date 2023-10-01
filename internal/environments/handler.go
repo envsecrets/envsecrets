@@ -150,6 +150,14 @@ func SyncHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
+	//	Decode the values before sending them further.
+	if err := payload.Data.Decode(); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to decode the secrets",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Call the service function.
 	if err := Sync(ctx, client, &commons.SyncOptions{
 		EnvID:           envID,

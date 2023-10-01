@@ -1,4 +1,4 @@
-package payload
+package dto
 
 import (
 	"encoding/base64"
@@ -7,10 +7,6 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/keys"
 )
-
-// Type of secret value.
-// For example, "plaintext" or "ciphertext".
-//type Type string
 
 type Payload struct {
 	sync.Mutex
@@ -55,7 +51,7 @@ func (p *Payload) IsExposable() bool {
 	return p.Exposable
 }
 
-// Marks the payload as "exportable."
+// Marks the payload as "base64 encoded"
 func (p *Payload) MarkEncoded() {
 	p.Lock()
 	defer p.Unlock()
@@ -93,7 +89,7 @@ func (p *Payload) MarkNotExposable() {
 	p.Exposable = false
 }
 
-// Marks the payload as "decoded."
+// Marks the payload as "base64 decoded"
 func (p *Payload) MarkDecoded() {
 	p.Lock()
 	defer p.Unlock()
@@ -168,6 +164,7 @@ func (p *Payload) Decrypt(key [32]byte) error {
 			return err
 		}
 	}
+
 	//	Decrypt the value using org-key.
 	decrypted, err := keys.OpenSymmetrically([]byte(p.Value), key)
 	if err != nil {

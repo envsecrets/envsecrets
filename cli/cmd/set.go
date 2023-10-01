@@ -31,28 +31,19 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 
 	internalErrors "errors"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/keys"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
+	"github.com/envsecrets/envsecrets/dto"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
-var encrypt bool
 var file string
+var environmentName string
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
@@ -65,19 +56,8 @@ You can also load your variables directly from files: envs set --file .env
 NOTE: This command auto-capitalizes your keys.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
-		}
-
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 
@@ -89,109 +69,96 @@ NOTE: This command auto-capitalizes your keys.`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var data secretsCommons.Secret
+		/* 		if file != "" {
+		   			filedata, err := os.ReadFile(file)
+		   			if err != nil {
+		   				log.Debug(err)
+		   				log.Fatal("Failed to read file: ", file)
+		   			}
 
-		if file != "" {
-			filedata, err := ioutil.ReadFile(file)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to read file: ", file)
-			}
+		   			switch filepath.Ext(file) {
+		   			default:
 
-			switch filepath.Ext(file) {
-			default:
+		   				lines := strings.Split(string(filedata), "\n")
 
-				lines := strings.Split(string(filedata), "\n")
+		   				for index, item := range lines {
 
-				for index, item := range lines {
+		   					//	Clean the line.
+		   					item = strings.TrimSpace(item)
 
-					//	Clean the line.
-					item = strings.TrimSpace(item)
+		   					key, payload, err := readPair(item)
+		   					if err != nil {
+		   						log.Error("Error on line ", index, " of your file")
+		   						log.Fatal(err)
+		   					}
+		   					commons.Secret.Add(key, payload)
+		   				}
 
-					key, payload, err := readPair(item)
-					if err != nil {
-						log.Error("Error on line ", index, " of your file")
-						log.Fatal(err)
-					}
-					data.Add(key, payload)
-				}
+		   			case ".csv":
+		   				log.Error("This file format is not yet supported")
+		   				log.Info("Use `--help` for more information")
+		   				os.Exit(1)
 
-			case ".csv":
-				log.Error("This file format is not yet supported")
-				log.Info("Use `--help` for more information")
-				os.Exit(1)
+		   			case ".json":
 
-			case ".json":
+		   				if err := json.Unmarshal(filedata, &data); err != nil {
+		   					log.Debug(err)
+		   					log.Fatal("Failed to read json from file")
+		   				}
 
-				if err := json.Unmarshal(filedata, &data); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to read json from file")
-				}
+		   				commons.Secret.Encode()
 
-				data.Encode()
+		   			case ".yaml":
 
-			case ".yaml":
+		   				if err := yaml.Unmarshal(filedata, &data); err != nil {
+		   					log.Debug(err)
+		   					log.Fatal("Failed to read json from file")
+		   				}
 
-				if err := yaml.Unmarshal(filedata, &data); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to read json from file")
-				}
+		   				commons.Secret.Encode()
+		   			}
+		   		} else {
 
-				data.Encode()
-			}
+		   			//	Run sanity checks
+		   			if len(args) < 1 {
+		   				log.Fatal("Invalid key=value pair")
+		   			}
 
-		} else {
+		   			key, payload, err := readPair(args[0])
+		   			if err != nil {
+		   				log.Fatal(err)
+		   			}
 
-			//	Run sanity checks
-			if len(args) < 1 {
-				log.Fatal("Invalid key=value pair")
-			}
-
-			key, payload, err := readPair(args[0])
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			data.Add(key, payload)
-		}
-
-		var orgKey [32]byte
-		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
+		   			commons.Secret.Set(key, payload)
+		   		}
+		*/
+		key, payload, err := readPair(args[0])
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decrypt the organisation's encryption key")
+			log.Fatal(err)
 		}
-		copy(orgKey[:], decryptedOrgKey)
 
-		//	Encrypt the secrets
-		if err := data.Encrypt(orgKey); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to encrypt secrets")
-		}
+		commons.Secret.Set(key, payload)
+
+		//	Encrypt the values.
+		Encrypt()
 
 		//	Upload the values to Hasura.
-		result, err := secrets.Set(commons.DefaultContext, commons.GQLClient, &secretsCommons.SetOptions{
-			EnvID: commons.ProjectConfig.Environment,
-			Data:  data.Data,
-		})
-		if err != nil {
+		if err := secrets.GetService().Set(commons.DefaultContext, commons.GQLClient, commons.Secret); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to set the secrets")
 		}
 
-		log.Info("Secrets set! Created version ", *result.Version)
+		log.Info("Secrets set!")
 
-		/*
-			 		//	Update the Contingency file
-					if err := config.GetService().Save(configCommons.Contingency(data), configCommons.ContingencyConfig); err != nil {
-						log.Debug(err)
-						log.Warn("Failed to save secrets in Contingency file")
-					}
-		*/
+		if commons.Secret.EnvID != "" {
+			if commons.Secret.Version != nil {
+				log.Infof("Latest version in remote `%s` is now %d ", environmentName, *commons.Secret.Version)
+			}
+		}
 	},
 }
 
-func readPair(data string) (string, *secretsCommons.AddConfig, error) {
+func readPair(data string) (string, *dto.Payload, error) {
 
 	if !strings.Contains(data, "=") {
 		return "", nil, internalErrors.New("invalid key=value pair")
@@ -206,14 +173,10 @@ func readPair(data string) (string, *secretsCommons.AddConfig, error) {
 	key := pair[0]
 	value := pair[1]
 
-	//	Auto-capitalize the key
-	if commons.ProjectConfig.AutoCapitalize {
-		key = strings.ToUpper(key)
-	}
+	key = strings.ToUpper(key)
 
-	return key, &secretsCommons.AddConfig{
-		Value:     value,
-		Exposable: !encrypt,
+	return key, &dto.Payload{
+		Value: value,
 	}, nil
 }
 
@@ -229,5 +192,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	setCmd.Flags().StringVarP(&file, "file", "f", "", "Filepath to import your variables from [.env, .json, .txt, .yaml]")
-	setCmd.Flags().BoolVarP(&encrypt, "encrypt", "e", true, "Encrypt the value")
+	setCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
+	//setCmd.Flags().BoolVarP(&encrypt, "encrypt", "e", true, "Encrypt the value")
 }

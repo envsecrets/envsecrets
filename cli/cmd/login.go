@@ -125,7 +125,7 @@ var loginCmd = &cobra.Command{
 		}
 
 		//	Reload the clients.
-		commons.Initialize()
+		commons.Initialize(log)
 
 		//	Pull the user's existing key pair saved in their cloud account.
 		keyPair, err := keys.GetByUserID(commons.DefaultContext, commons.GQLClient, response.Session.User.ID)

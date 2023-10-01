@@ -16,7 +16,7 @@ func (m KPMap) IsEmpty() bool {
 	return len(m) == 0
 }
 
-func (m KPMap) Load(value map[string]*payload.Payload) {
+func (m KPMap) Load(value KPMap) {
 	for name := range value {
 		m.Set(name, value[name])
 	}

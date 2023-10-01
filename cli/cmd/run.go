@@ -39,13 +39,9 @@ import (
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/cli/internal"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/keys"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	secretsCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/spf13/cobra"
 )
 
@@ -63,19 +59,8 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			return
 		}
 
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
-		//	If the account configuration doesn't exist,
-		//	log-in the user first.
-		if !config.GetService().Exists(configCommons.AccountConfig) {
-			loginCmd.PreRunE(cmd, args)
-			loginCmd.Run(cmd, args)
-		}
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// The --command flag and args are mututally exclusive
@@ -97,27 +82,16 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var orgKey [32]byte
-		decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.OrgKey)
-		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to decrypt the organisation's encryption key")
-		}
-		copy(orgKey[:], decryptedOrgKey)
-
-		//	Get the values from Hasura.
-		getOptions := secretsCommons.GetOptions{
-			EnvID: commons.ProjectConfig.Environment,
+		//	Fetch only the required values.
+		getOptions := secrets.GetOptions{
+			EnvID: commons.Secret.EnvID,
 		}
 
 		if version > -1 {
 			getOptions.Version = &version
 		}
 
-		//	Initialize a new buffer to store key=value lines
-		var variables []string
-
-		secret, err := secrets.Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
 			log.Debug(err)
 			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
@@ -126,24 +100,20 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			} else {
 				log.Fatal("Failed to fetch the secrets")
 			}
+		}
+
+		commons.Secret = result
+
+		//	Decrypt and decode the common secret.
+		DecryptAndDecode()
+
+		//	Initialize a new buffer to store key=value lines
+		variables := commons.Secret.Data.FmtStrings()
+
+		if environmentName != "" {
+			log.Infof("Injecting secret version %d in your process from remote environment `%s`", *commons.Secret.Version, environmentName)
 		} else {
-
-			if err := secret.Decrypt(orgKey); err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt secrets")
-			}
-
-			//	Decode the values.
-			if err := secret.Decode(); err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decode the secret")
-			}
-
-			for key := range secret.Data {
-				variables = append(variables, secret.Data.FmtString(key))
-			}
-
-			log.Infof("Injecting %d secrets in your process from version %d...", len(secret.Data), *secret.Version)
+			log.Info("Injecting secrets in your process from local environment...")
 		}
 
 		//	Overwrite reserved keys
@@ -201,5 +171,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
+	runCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 	//runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

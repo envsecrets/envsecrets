@@ -3,7 +3,6 @@ package clients
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -118,7 +117,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		defer resp.Body.Close()
 
-		result, err := ioutil.ReadAll(resp.Body)
+		result, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -167,7 +166,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		//	Re-set the body in the request, because it would have already been read once.
 		if body != nil {
-			req.Body = ioutil.NopCloser(body)
+			req.Body = io.NopCloser(body)
 		}
 
 		return c.Run(ctx, req, response)
@@ -180,7 +179,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		defer resp.Body.Close()
 
-		result, err := ioutil.ReadAll(resp.Body)
+		result, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}

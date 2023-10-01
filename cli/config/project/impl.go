@@ -1,23 +1,22 @@
 package project
 
 import (
+	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/envsecrets/envsecrets/cli/config/commons"
-	"gopkg.in/yaml.v3"
 )
 
 const (
-	CONFIG_FILENAME = "config.yaml"
+	FILENAME = "config.json"
 )
 
 var (
-	DIR        = filepath.Dir(commons.EXECUTABLE)
+	DIR        = commons.WORKING_DIR
 	CONFIG_DIR = filepath.Join(DIR, commons.CONFIG_FOLDER_NAME)
-	CONFIG_LOC = filepath.Join(CONFIG_DIR, CONFIG_FILENAME)
+	CONFIG_LOC = filepath.Join(CONFIG_DIR, FILENAME)
 )
 
 // Save the provided config in its default location in the project root.
@@ -28,33 +27,33 @@ func Save(config *commons.Project) error {
 		return err
 	}
 
-	//	Marshal the yaml
-	data, err := yaml.Marshal(config.Stringify())
+	//	Marshal the content
+	data, err := json.MarshalIndent(&config, "", "\t")
 	if err != nil {
 		return err
 	}
 
 	//	Save the config file
-	return ioutil.WriteFile(CONFIG_LOC, data, 0644)
+	return os.WriteFile(CONFIG_LOC, data, 0644)
 }
 
 // Load, parse and return the available project config.
 func Load() (*commons.Project, error) {
 
 	//	Read the file
-	data, err := ioutil.ReadFile(CONFIG_LOC)
+	data, err := os.ReadFile(CONFIG_LOC)
 	if err != nil {
 		return nil, err
 	}
 
-	var config commons.ProjectStringified
+	var config commons.Project
 
 	//	Unmarshal its contents
-	if err := yaml.Unmarshal(data, &config); err != nil {
+	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
 
-	return config.Unstringify()
+	return &config, nil
 }
 
 // Validate whether project config exists in file system or not

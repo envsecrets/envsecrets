@@ -2,6 +2,7 @@ package commons
 
 import (
 	"encoding/base64"
+	"encoding/json"
 
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
@@ -12,52 +13,87 @@ type Account struct {
 	User         userCommons.User `json:"user" yaml:"user"`
 }
 
-type ProjectStringified struct {
-	Version        int    `json:"version" yaml:"version"`
-	Organisation   string `json:"organisation" yaml:"organisation"`
-	Project        string `json:"project" yaml:"project"`
-	Environment    string `json:"environment" yaml:"environment"`
-	OrgKey         string `json:"org_key" yaml:"org_key"`
-	AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
-}
-
 type Project struct {
-	Version        int    `json:"version" yaml:"version"`
-	Organisation   string `json:"organisation" yaml:"organisation"`
-	Project        string `json:"project" yaml:"project"`
-	Environment    string `json:"environment" yaml:"environment"`
-	OrgKey         []byte `json:"org_key" yaml:"org_key"`
-	AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
+	//OrgID     string `json:"org_id" yaml:"org_id"`
+	ProjectID string `json:"project_id" yaml:"project_id"`
+	Key       []byte `json:"key" yaml:"key"`
+	//AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
 }
 
-func (p *ProjectStringified) Unstringify() (*Project, error) {
+// Custom json marshalling.
+// We need to do this because we want to store the org key as a base64 encoded string in the config file.
+// We can't store it as a byte array because yaml marshalling will convert it to a string.
+func (p *Project) MarshalJSON() ([]byte, error) {
 
-	key, err := base64.StdEncoding.DecodeString(p.OrgKey)
+	var structure struct {
+		//OrgID     string `json:"org_id" yaml:"org_id"`
+		ProjectID string `json:"project_id" yaml:"project_id"`
+		Key       string `json:"key" yaml:"key"`
+		//AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
+	}
+
+	//structure.OrgID = p.OrgID
+	structure.ProjectID = p.ProjectID
+	structure.Key = base64.StdEncoding.EncodeToString(p.Key)
+	//structure.AutoCapitalize = p.AutoCapitalize
+	return json.Marshal(structure)
+}
+
+// Custom json unmarshalling.
+// We need to do this because we want to store the org key as a base64 encoded string in the config file.
+func (p *Project) UnmarshalJSON(data []byte) error {
+
+	var structure struct {
+		OrgID     string `json:"org_id" yaml:"org_id"`
+		ProjectID string `json:"project_id" yaml:"project_id"`
+		Key       string `json:"key" yaml:"key"`
+		//AutoCapitalize bool   `json:"auto_capitalize" yaml:"auto_capitalize"`
+	}
+
+	if err := json.Unmarshal(data, &structure); err != nil {
+		return err
+	}
+
+	key, err := base64.StdEncoding.DecodeString(structure.Key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &Project{
-		Version:        p.Version,
-		Organisation:   p.Organisation,
-		Project:        p.Project,
-		Environment:    p.Environment,
-		OrgKey:         key,
-		AutoCapitalize: p.AutoCapitalize,
-	}, nil
-}
-
-func (p *Project) Stringify() *ProjectStringified {
-	return &ProjectStringified{
-		Version:        p.Version,
-		Organisation:   p.Organisation,
-		Project:        p.Project,
-		Environment:    p.Environment,
-		OrgKey:         base64.StdEncoding.EncodeToString(p.OrgKey),
-		AutoCapitalize: p.AutoCapitalize,
+	*p = Project{
+		//OrgID:     structure.OrgID,
+		ProjectID: structure.ProjectID,
+		Key:       key,
+		//AutoCapitalize: structure.AutoCapitalize,
 	}
+
+	return nil
 }
 
+/*
+	 func (p *ProjectStringified) Unstringify() (*Project, error) {
+
+		key, err := base64.StdEncoding.DecodeString(p.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Project{
+			Organisation:   p.Organisation,
+			Project:        p.Project,
+			Key:         key,
+			AutoCapitalize: p.AutoCapitalize,
+		}, nil
+	}
+
+	func (p *Project) Stringify() *ProjectStringified {
+		return &ProjectStringified{
+			Organisation:   p.Organisation,
+			Project:        p.Project,
+			Key:         base64.StdEncoding.EncodeToString(p.Key),
+			AutoCapitalize: p.AutoCapitalize,
+		}
+	}
+*/
 type Keys struct {
 	Public  []byte `json:"public_key" yaml:"public_key"`
 	Private []byte `json:"private_key" yaml:"private_key"`

@@ -31,11 +31,20 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
 	"os"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
-	"github.com/envsecrets/envsecrets/cli/config"
-	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
+	"github.com/envsecrets/envsecrets/internal/clients"
+	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
+	"github.com/envsecrets/envsecrets/internal/events"
+	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -53,95 +62,102 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user is not already authenticated,
-		//	log them in first.
-		if !auth.IsLoggedIn() {
-			loginCmd.Run(cmd, args)
-		}
-
-		//	Ensure the project configuration is initialized and available.
-		if !config.GetService().Exists(configCommons.ProjectConfig) {
-			log.Error("Can't read project configuration")
-			log.Info("Initialize your current directory with `envs init`")
-			os.Exit(1)
-		}
-
+		//	Initialize the common secret.
+		InitializeSecret(log)
 	},
-	/* 	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 
-	   		var err error
+		var err error
 
-	   		options := environmentCommons.SyncRequestOptions{}
+		//	Fetch only the required values.
+		getOptions := secrets.GetOptions{
+			EnvID: commons.Secret.EnvID,
+		}
 
-	   		if version > -1 {
-	   			options.Version = &version
-	   		}
+		if version > -1 {
+			getOptions.Version = &version
+		}
 
-	   		options.IntegrationType = integrationType
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		if err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to fetch the value")
+		}
 
-	   		//	Fetch the list of events with their respective type of integrations.
-	   		if options.IntegrationType == "" {
+		commons.Secret = result
 
-	   			events, err := events.GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.ProjectConfig.Environment)
-	   			if err != nil {
-	   				log.Debug(err)
-	   				log.Fatal("failed to fetch active integrations for your environment")
-	   			}
+		//	Decrypt and decode the common secret.
+		DecryptAndDecode()
 
-	   			var types []string
-	   			for _, item := range *events {
-	   				types = append(types, string(item.Integration.Type))
-	   			}
+		//	Copy the dto.KPMap to keypayload.KPMap
+		kpMap := keypayload.KPMap{}
+		for key, value := range commons.Secret.Data.GetMapping() {
+			kpMap[key] = &payload.Payload{
+				Value: value.GetValue(),
+			}
+		}
 
-	   			selection := promptui.Select{
-	   				Label: "Platform to sync your secrets to",
-	   				Items: types,
-	   			}
+		//	Encode all the values before sending them to the server.
+		kpMap.Encode()
 
-	   			index, _, err := selection.Run()
-	   			if err != nil {
-	   				os.Exit(1)
-	   			}
+		options := environmentCommons.SyncRequestOptions{
+			Data: &kpMap,
+		}
 
-	   			options.IntegrationType = types[index]
-	   		}
+		options.IntegrationType = integrationCommons.IntegrationType(integrationType)
 
-	   		if len(password) == 0 {
+		//	Fetch the list of events with their respective type of integrations.
+		if options.IntegrationType == "" {
 
-	   			//	Take password input
-	   			passwordPrompt := promptui.Prompt{
-	   				Label: "Account Password",
-	   				Mask:  '*',
-	   			}
+			events, err := events.GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.Secret.EnvID)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("failed to fetch active integrations for your environment")
+			}
 
-	   			password, err = passwordPrompt.Run()
-	   			if err != nil {
-	   				os.Exit(1)
-	   			}
-	   		}
+			var types []integrationCommons.IntegrationType
+			for _, item := range *events {
+				types = append(types, item.Integration.Type)
+			}
 
-	   		options.Password = password
+			selection := promptui.Select{
+				Label: "Platform to sync your secrets to",
+				Items: types,
+			}
 
-	   		body, err := json.Marshal(&options)
-	   		if err != nil {
-	   			log.Debug(err)
-	   			log.Fatal("failed to marshal your HTTP request body")
-	   		}
+			index, _, err := selection.Run()
+			if err != nil {
+				os.Exit(1)
+			}
 
-	   		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.ProjectConfig.Environment+"/sync-password", bytes.NewBuffer(body))
-	   		if err != nil {
-	   			log.Debug(err)
-	   			log.Fatal("failed to create your HTTP request")
-	   		}
+			options.IntegrationType = types[index]
+		}
 
-	   		var response clients.APIResponse
-	   		if err := commons.HTTPClient.Run(commons.DefaultContext, req, &response); err != nil {
-	   			log.Fatal(err)
-	   		}
+		body, err := json.Marshal(&options)
+		if err != nil {
+			log.Debug(err)
+			log.Fatal("failed to marshal your HTTP request body")
+		}
 
-	   		log.Info("Successfully synced secrets")
-	   	},
-	*/}
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.Secret.EnvID+"/sync", bytes.NewBuffer(body))
+		if err != nil {
+			log.Debug(err)
+			log.Fatal("failed to create your HTTP request")
+		}
+
+		var response clients.APIResponse
+		err = commons.HTTPClient.Run(commons.DefaultContext, req, &response)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if response.Error != "" {
+			log.Fatal(response.Error)
+		}
+
+		log.Info("Successfully synced secrets")
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
@@ -158,4 +174,6 @@ func init() {
 	syncCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	syncCmd.Flags().StringVarP(&password, "password", "p", "", "Your envsecrets account password")
 	syncCmd.Flags().StringVarP(&integrationType, "type", "t", "", "Type of integration to push secrets to")
+	syncCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
+	syncCmd.MarkFlagRequired("env")
 }

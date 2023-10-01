@@ -235,7 +235,7 @@ func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *us
 					Button: hermes.Button{
 						Color: "#222", // Optional action button color
 						Text:  "Community Server",
-						Link:  os.Getenv("DISCORD"),
+						Link:  os.Getenv("COMMUNITY"),
 					},
 				},
 			},

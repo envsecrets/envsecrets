@@ -35,7 +35,6 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 
 		client = clients.NewHTTPClient(&clients.HTTPConfig{
 			BaseURL: commons.API + "/v1",
-			Logger:  commons.Logger,
 			CustomHeaders: []clients.CustomHeader{
 				{
 					Key:   string(clients.TokenHeader),

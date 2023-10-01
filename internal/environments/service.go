@@ -121,6 +121,35 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	return &resp, nil
 }
 
+// Get a environment by ID
+func GetByNameAndProjectID(ctx context.ServiceContext, client *clients.GQLClient, name, project_id string) (*commons.Environment, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($name: String!, $project_id: uuid!) {
+		environments(where: {_and: [{name: {_eq: $name}}, {project_id: {_eq: $project_id}}]}) {
+		  id
+		}
+	  }			
+	`)
+
+	req.Var("name", name)
+	req.Var("project_id", project_id)
+
+	var response struct {
+		Result []commons.Environment `json:"environments"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	if len(response.Result) == 0 {
+		return nil, errors.New("environment not found")
+	}
+
+	return &response.Result[0], nil
+}
+
 // List environments
 func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListOptions) (*[]commons.Environment, error) {
 

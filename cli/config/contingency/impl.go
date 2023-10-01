@@ -3,7 +3,6 @@ package contingency
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,7 +15,7 @@ const (
 )
 
 var (
-	DIR        = filepath.Dir(commons.EXECUTABLE)
+	DIR        = commons.WORKING_DIR
 	CONFIG_DIR = filepath.Join(DIR, commons.CONFIG_FOLDER_NAME)
 	CONFIG_LOC = filepath.Join(CONFIG_DIR, CONFIG_FILENAME)
 )
@@ -46,14 +45,14 @@ func Save(config *secretCommons.Secret) error {
 	}
 
 	//	Save the config file
-	return ioutil.WriteFile(CONFIG_LOC, data, 0644)
+	return os.WriteFile(CONFIG_LOC, data, 0644)
 }
 
 // Load, parse and return the available account config.
 func Load() (*secretCommons.Secret, error) {
 
 	//	Read the file
-	data, err := ioutil.ReadFile(CONFIG_LOC)
+	data, err := os.ReadFile(CONFIG_LOC)
 	if err != nil {
 		return nil, err
 	}

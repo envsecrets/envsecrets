@@ -36,13 +36,16 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
+	"github.com/envsecrets/envsecrets/cli/config"
+	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var verbosity string
+var debug bool
 
-var log = commons.Logger
+var log = logrus.New()
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -65,10 +68,34 @@ Upgrade the CLI:
 	Version: commons.VERSION,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 
+		verbosity := "info"
+		if debug {
+			verbosity = "debug"
+		}
+
 		if err := setUpLogs(os.Stdout, verbosity); err != nil {
 			return err
 		}
 
+		/* 		//	Load the project configuration.
+		   		config, err := LoadConfig(commons.CONFIG_LOC)
+		   		if err != nil {
+		   			return err
+		   		}
+		fmt.Println("Project in local config", config.Project)
+		*/
+
+		//	Initialize configuration
+		commons.Initialize(log)
+
+		/* 		//	If the user is not already authenticated,
+		   		//	log them in first.
+		   		if args[0] != "login" {
+		   			if !auth.IsLoggedIn() {
+		   				loginCmd.Run(cmd, args)
+		   			}
+		   		}
+		*/
 		return nil
 	},
 
@@ -77,6 +104,23 @@ Upgrade the CLI:
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
+/* // LoadConfig reads configuration from file or environment variables.
+func LoadConfig(path string) (config *commons.Config, err error) {
+	viper.AddConfigPath(path)
+	//viper.SetConfigName("app")
+	viper.SetConfigType("yaml")
+
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return
+	}
+
+	err = viper.Unmarshal(&config)
+	return
+}
+*/
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -134,5 +178,56 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().StringVarP(&verbosity, "level", "l", logrus.InfoLevel.String(), "log levels - debug, info, warn, error")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Print debug logs")
+}
+
+func InitializeSecret(log *logrus.Logger) {
+
+	if log == nil {
+		log = logrus.New()
+	}
+
+	var remoteConfig *secrets.RemoteConfig
+	if environmentName != "" {
+
+		log.Debug("Reading project config...")
+
+		//	Fetch the project config
+		projectConfig, err := config.GetService().Load(configCommons.ProjectConfig)
+		if err != nil {
+
+			if os.IsNotExist(err) {
+
+				//	If the project config does not exist, begin the `init` command.
+				initCmd.PreRunE(rootCmd, []string{})
+				initCmd.Run(rootCmd, []string{})
+
+				InitializeSecret(log)
+
+			} else {
+				log.Fatal(err)
+			}
+		} else {
+			commons.ProjectConfig = projectConfig.(*configCommons.Project)
+		}
+
+		//	If the project config does not exist, throw an error.
+		if commons.ProjectConfig == nil {
+			log.Fatal("Project configuration not found")
+		}
+
+		remoteConfig = &secrets.RemoteConfig{
+			EnvironmentName: environmentName,
+			ProjectID:       commons.ProjectConfig.ProjectID,
+		}
+	}
+
+	//	Initialize the local secret.
+	secret, err := secrets.GetService().Init(commons.DefaultContext, commons.GQLClient, remoteConfig)
+	if err != nil {
+		log.Error(err)
+		log.Fatal("Failed to initialize the local secret")
+	}
+
+	commons.Secret = secret
 }
