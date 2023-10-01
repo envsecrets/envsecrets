@@ -39,7 +39,7 @@ func (*DefaultTokenService) Create(ctx context.ServiceContext, client *clients.G
 	//	Encrypt the org key using newly generated symmetric key
 	var key [32]byte
 	copy(key[:], keyBytes)
-	token, err := keys.SealAsymmetricallyAnonymous(options.OrgKey, key)
+	token, err := keys.SealSymmetrically(options.OrgKey, key)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,6 @@ func (*DefaultTokenService) Decrypt(ctx context.ServiceContext, client *clients.
 		return nil, err
 	}
 
-	//	Encrypt the org key using newly generated symmetric key
 	var key [32]byte
 	copy(key[:], keyBytes)
 	decrypted, err := keys.OpenSymmetrically(token, key)

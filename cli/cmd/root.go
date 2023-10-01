@@ -190,6 +190,10 @@ func InitializeSecret(log *logrus.Logger) {
 	var remoteConfig *secrets.RemoteConfig
 	if environmentName != "" {
 
+		if !config.GetService().Exists(configCommons.AccountConfig) {
+			loginCmd.Run(rootCmd, []string{})
+		}
+
 		log.Debug("Reading project config...")
 
 		//	Fetch the project config

@@ -163,7 +163,6 @@ func ListHandler(c echo.Context) error {
 	var payload commons.ListRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 			Error:   err.Error(),
 		})

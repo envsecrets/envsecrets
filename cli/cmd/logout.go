@@ -33,7 +33,6 @@ package cmd
 import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	accountConfig "github.com/envsecrets/envsecrets/cli/config/account"
-	"github.com/envsecrets/envsecrets/cli/config/commons"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +43,11 @@ var logoutCmd = &cobra.Command{
 	Short: "Logout of this CLI",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		log.Debug("working dir", commons.WORKING_DIR)
+		if err := config.GetService().Delete(configCommons.ProjectConfig); err != nil {
+			log.Debug(err)
+			log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
+			log.Fatal("Failed to log you out")
+		}
 
 		if err := config.GetService().Delete(configCommons.AccountConfig); err != nil {
 			log.Debug(err)
