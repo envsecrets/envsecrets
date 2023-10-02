@@ -19,8 +19,7 @@ builds:
     ldflags:
       - -X github.com/envsecrets/envsecrets/cli/commons.VERSION={{.Version}}
       - -X github.com/envsecrets/envsecrets/cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
-      - -X github.com/envsecrets/envsecrets/cli/config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
-      - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run/v1
+      - -X github.com/envsecrets/envsecrets/cli/config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run
       - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_GRAPHQL_URL=https://vtlttqmxlifmlwsrvddp.graphql.eu-central-1.nhost.run/v1
 
 release:
@@ -73,7 +72,7 @@ brews:
     description: "CLI-first management of your environment secrets."
     download_strategy: CurlDownloadStrategy
 
-    tap:
+    repository:
       owner: envsecrets
       name: homebrew-tap
     commit_author:
