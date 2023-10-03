@@ -77,7 +77,7 @@ func (e *Event) GetEntityType() string {
 	switch e.Integration.Type {
 	case integrationsCommons.Github:
 		return "repository"
-	case integrationsCommons.Vercel, integrationsCommons.CircleCI:
+	case integrationsCommons.Vercel, integrationsCommons.CircleCI, integrationsCommons.Supabase:
 		return "project"
 	case integrationsCommons.Gitlab:
 		return "project/group"

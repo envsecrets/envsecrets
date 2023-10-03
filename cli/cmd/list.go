@@ -32,9 +32,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/internal/secrets"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/spf13/cobra"
 )
 
@@ -67,6 +69,11 @@ var listCmd = &cobra.Command{
 		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient, &options)
 		if err != nil {
 			log.Debug(err)
+			if err.Error() == string(clients.ErrorTypeRecordNotFound) {
+				log.Error("You haven't set any secrets in this environment")
+				log.Info("Use `envs set --help` for more information")
+				os.Exit(1)
+			}
 			log.Fatal("Failed to list the secrets")
 		}
 

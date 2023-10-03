@@ -1,4 +1,4 @@
-package circle
+package circleci
 
 import (
 	"bytes"
