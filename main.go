@@ -33,7 +33,13 @@ func main() {
 	// Echo instance
 	e := echo.New()
 
-	// Middleware
+	//
+	// Middlewares
+	//
+
+	//	Rate-limit requests to 10 per second.
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(10)))
+
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
