@@ -12,7 +12,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/asm"
-	"github.com/envsecrets/envsecrets/internal/integrations/internal/circle"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/circleci"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/github"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gitlab"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
@@ -98,7 +98,7 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 			OrgID:       integration.OrgID,
 		})
 	case commons.CircleCI:
-		return circle.ListEntities(ctx, &circle.ListOptions{
+		return circleci.ListEntities(ctx, &circleci.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
@@ -134,7 +134,7 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 
 	switch integrationType {
 	case commons.CircleCI:
-		return circle.ListSubEntities(ctx, &circle.ListOptions{
+		return circleci.ListSubEntities(ctx, &circleci.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 			OrgSlug:     params.Get("org-slug"),
@@ -191,7 +191,7 @@ func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clie
 			OrgID: options.OrgID,
 		})
 	case commons.CircleCI:
-		return circle.Setup(ctx, client, &circle.SetupOptions{
+		return circleci.Setup(ctx, client, &circleci.SetupOptions{
 			Token: fmt.Sprint(options.Options["token"]),
 			OrgID: options.OrgID,
 		})
@@ -253,7 +253,7 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 			EntityDetails: options.EntityDetails,
 		})
 	case commons.CircleCI:
-		return circle.Sync(ctx, &circle.SyncOptions{
+		return circleci.Sync(ctx, &circleci.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,

@@ -1,4 +1,4 @@
-package circle
+package circleci
 
 import "github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 

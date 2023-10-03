@@ -94,9 +94,16 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		return err
 	}
 
-	var response interface{}
+	var response struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+	}
 	if err := client.Run(ctx, req, &response); err != nil {
 		return err
+	}
+
+	if response.Code != http.StatusCreated {
+		return fmt.Errorf("failed to sync the secrets to netlify site: %s", response.Message)
 	}
 
 	return nil

@@ -33,6 +33,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -82,6 +83,7 @@ var exportCmd = &cobra.Command{
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
 					log.Error("You haven't set any secrets in this environment")
 					log.Info("Use `envs set --help` for more information")
+					os.Exit(1)
 				} else {
 					log.Fatal("Failed to fetch the secrets")
 				}
@@ -112,6 +114,7 @@ var exportCmd = &cobra.Command{
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
 					log.Error("You haven't set any secrets in this environment")
 					log.Info("Use `envs set --help` for more information")
+					os.Exit(1)
 				} else {
 					log.Fatal("Failed to fetch the secrets")
 				}
