@@ -10,6 +10,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/invites/graphql"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/memberships"
+	"github.com/envsecrets/envsecrets/internal/organisations"
+	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 )
 
@@ -94,11 +96,23 @@ func (d *DefaultInviteService) Accept(ctx context.ServiceContext, client *client
 	}
 
 	//	Mark the invite accepted.
-	return d.Update(ctx, client, id, &commons.UpdateOptions{
+	if err := d.Update(ctx, client, id, &commons.UpdateOptions{
 		Set: commons.SetUpdateOptions{
 			Accepted: true,
 		},
-	})
+	}); err != nil {
+		return err
+	}
+
+	//	Update the invite limit of the organisation.
+	if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisationCommons.UpdateInviteLimitOptions{
+		ID:               invite.OrgID,
+		IncrementLimitBy: -1,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (*DefaultInviteService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *commons.UpdateOptions) error {
