@@ -42,6 +42,10 @@ func Signin(ctx context.ServiceContext, client *clients.HTTPClient, options *com
 		return nil, err
 	}
 
+	if response.Session["accessToken"] == nil {
+		return nil, errors.New("invalid credentials")
+	}
+
 	//	Initialize a new GQL client with the user's access token.
 	gqlClient := clients.NewGQLClient(&clients.GQLConfig{
 		Type: clients.HasuraClientType,

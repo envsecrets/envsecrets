@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -38,21 +37,12 @@ func SigninHandler(c echo.Context) error {
 	response, err := Signin(ctx, client, &payload)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to login the user",
+			Message: "Login failed. Recheck your credentials.",
 			Error:   err.Error(),
 		})
 	}
 
-	//	Marshal the response.
-	body, err := json.Marshal(response)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to login the user",
-			Error:   err.Error(),
-		})
-	}
-
-	return c.String(http.StatusOK, string(body))
+	return c.JSON(http.StatusOK, response)
 
 	//return writeCookie(c, string(body))
 }
