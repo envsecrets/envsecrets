@@ -2,7 +2,7 @@
 
 [Quickstart](https://docs.envsecrets.com/platform/quickstart) &nbsp;&nbsp;•&nbsp;&nbsp; [Homepage](https://envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Login](https://app.envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA) &nbsp;&nbsp;•&nbsp;&nbsp; [Twitter](https://twitter.com/envsecrets)
 
-envsecrets is a free-forever cloud account to store your environment secrets and synchronize them with third-party services.
+envsecrets is an open-source free-forever cloud account to store your environment secrets and synchronize them with third-party services.
 
 This tool is for you if you:
 
