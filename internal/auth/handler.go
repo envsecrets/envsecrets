@@ -18,7 +18,7 @@ import (
 func SigninHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.SigninOptions
+	var payload commons.SigninRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -29,12 +29,23 @@ func SigninHandler(c echo.Context) error {
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
 	//	Initialize a new HTTP client
-	client := clients.NewHTTPClient(&clients.HTTPConfig{
-		Type: clients.HTTPClientType,
-	})
+	client := clients.NewNhostClient(&clients.NhostConfig{})
 
-	//	Call the service handler.
-	response, err := Signin(ctx, client, &payload)
+	//	Call the appropriate service handler.
+	var response *commons.SigninResponse
+	var err error
+	if payload.Ticket == "" {
+		response, err = GetService().SigninWithPassword(ctx, client, &commons.SigninWithPasswordOptions{
+			Email:    payload.Email,
+			Password: payload.Password,
+		})
+	} else {
+		response, err = GetService().SigninWithMFA(ctx, client, &commons.SigninWithMFAOptions{
+			Ticket:   payload.Ticket,
+			OTP:      payload.OTP,
+			Password: payload.Password,
+		})
+	}
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Login failed. Recheck your credentials.",
@@ -161,6 +172,76 @@ func UpdatePasswordHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "password successfuly updated",
+	})
+}
+
+func GenerateQRHandler(c echo.Context) error {
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize a new HTTP client
+	client := clients.NewNhostClient(&clients.NhostConfig{
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+	})
+
+	//	Call the appropriate service handler.
+	response, err := GetService().GenerateTOTPQR(ctx, client)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to generate QR Code.",
+			Error:   err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+func ToggleMFAHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload commons.ToggleMFARequestOptions
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to parse the body",
+		})
+	}
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize a new HTTP client
+	client := clients.NewNhostClient(&clients.NhostConfig{
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+	})
+
+	//	Prepare service options.
+	options := commons.ToggleMFAOptions{
+		Code: payload.Code,
+	}
+
+	//	If it is a POST request, activate MFA.
+	//	If it is a DELETE request, deactivate MFA.
+	if c.Request().Method == http.MethodPost {
+		options.ActiveMFAType = commons.TOTP
+	}
+
+	//	Call the appropriate service handler.
+	err := GetService().ToggleMFA(ctx, client, &options)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to toggle MFA.",
+			Error:   err.Error(),
+		})
+	}
+
+	message := "MFA Deactivated"
+	if c.Request().Method == http.MethodPost {
+		message = "MFA Activated"
+	}
+
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+		Message: message,
 	})
 }
 
