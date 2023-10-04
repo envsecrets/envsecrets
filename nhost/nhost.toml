@@ -3,10 +3,6 @@
 name = 'API'
 value = '{{ secrets.API }}'
 
-[[global.environment]]
-name = 'AUTH_MFA_ENABLED'
-value = 'true'
-
 [hasura]
 version = 'v2.29.0-ce'
 adminSecret = '{{ secrets.NHOST_ADMIN_SECRET }}'
