@@ -2,8 +2,6 @@
 
 [Quickstart](https://docs.envsecrets.com/platform/quickstart) &nbsp;&nbsp;•&nbsp;&nbsp; [Homepage](https://envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Login](https://app.envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA) &nbsp;&nbsp;•&nbsp;&nbsp; [Twitter](https://twitter.com/envsecrets)
 
----
-
 envsecrets is a free-forever cloud account to store your environment secrets and synchronize them with third-party services.
 
 This tool is for you if you:
@@ -14,15 +12,13 @@ This tool is for you if you:
 - Do not have any access control setup for your secrets.
 - Need to version your secrets.
 
----
-
 ## Security
 
 Read our detailed [data model](https://docs.envsecrets.com/security) to understand how we keep your secrets secure.
 
 ### By Design
 
-- **End-to-End Encryption**
+- **End-to-End Encryption**  <br />
     All cryptographic operations happen on client side only. Never on our servers. 
 - **Zero-Knowledge Architecture**
     No one can see your secrets. Not even us. If our database gets hacked/leaked, attackers will never be able to decrypt your secrets.
