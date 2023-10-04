@@ -37,9 +37,9 @@ Amongst many hidden gems, the platform's core features include:
 - 🔐 **Role-Based Access Control** <br />
     Never let your interns get access to production secrets.
 - 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc. <br />
-    Push your secrets to the third-partry services where you are consuming them.
+    Push your secrets to the third-partry services where you consume them.
 - 📕 **Versioning** <br />
-    Want to rollback to a previous value? Versioning is here to save your day.
+    Want to bring back a previous value? Rollback to an older version of your secret.
 - 🔑 **Services Tokens / API Keys** <br />
     Securely export and consume your secrets in places where you cannot authenticate with your account password.
 - 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc. <br />
