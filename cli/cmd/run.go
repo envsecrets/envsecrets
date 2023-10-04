@@ -95,7 +95,7 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		if err != nil {
 			log.Debug(err)
 			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-				log.Error("You haven't set any secrets in this environment")
+				log.Warn("You haven't set any secrets in this environment")
 				log.Info("Use `envs set --help` for more information")
 			} else {
 				log.Fatal("Failed to fetch the secrets")

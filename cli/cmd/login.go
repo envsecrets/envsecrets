@@ -31,20 +31,20 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
-	"encoding/base64"
+	"fmt"
 	"net/mail"
 	"os"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	globalCommons "github.com/envsecrets/envsecrets/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
+	authCommons "github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
-	"github.com/envsecrets/envsecrets/internal/keys"
-	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
+	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/argon2"
 )
 
 var (
@@ -102,23 +102,69 @@ var loginCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		//	Prepare body
-		payload := map[string]interface{}{
-			"email":    email,
-			"password": password,
-		}
+		client := clients.NewNhostClient(&clients.NhostConfig{
+			BaseURL: configCommons.NHOST_AUTH_URL,
+			Logger:  log,
+		})
 
-		response, err := auth.Login(payload)
+		//	Call the appropriate service handler.
+		response, err := auth.GetService().SigninWithPassword(commons.DefaultContext, client, &authCommons.SigninWithPasswordOptions{
+			Email:    email,
+			Password: password,
+		})
 		if err != nil {
 			log.Debug(err)
-			log.Fatal("Authentication failed")
+			log.Fatal("Login failed. Recheck your credentials.")
+		}
+
+		//	If the user has MFA enabled.
+		if response.MFA != nil {
+
+			//	Ask the user for TOTP.
+			prompt := promptui.Prompt{
+				Label:       "OTP",
+				Mask:        '*',
+				HideEntered: true,
+				Validate: func(input string) error {
+					if len(input) != 6 {
+						return fmt.Errorf("otp should be 6 digits")
+					}
+					return nil
+				},
+			}
+
+			totp, err := prompt.Run()
+			if err != nil {
+				os.Exit(1)
+			}
+
+			response, err = auth.GetService().SigninWithMFA(commons.DefaultContext, client, &authCommons.SigninWithMFAOptions{
+				Ticket: response.MFA["ticket"].(string),
+				OTP:    totp,
+			})
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Login failed. Recheck your credentials.")
+			}
+		}
+
+		var session struct {
+			AccessToken          string           `json:"accessToken"`
+			AccessTokenExpiresIn int              `json:"accessTokenExpiresIn"`
+			RefreshToken         string           `json:"refreshToken"`
+			User                 userCommons.User `json:"user"`
+		}
+
+		if err := globalCommons.MapToStruct(response.Session, &session); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to map the configuration")
 		}
 
 		//	Save the account config
 		if err := config.GetService().Save(configCommons.Account{
-			AccessToken:  response.Session.AccessToken,
-			RefreshToken: response.Session.RefreshToken,
-			User:         response.Session.User,
+			AccessToken:  session.AccessToken,
+			RefreshToken: session.RefreshToken,
+			User:         session.User,
 		}, configCommons.AccountConfig); err != nil {
 			log.Debug(err)
 			log.Fatal("Failed to save account configuration locally")
@@ -127,87 +173,30 @@ var loginCmd = &cobra.Command{
 		//	Reload the clients.
 		commons.Initialize(log)
 
-		//	Pull the user's existing key pair saved in their cloud account.
-		keyPair, err := keys.GetByUserID(commons.DefaultContext, commons.GQLClient, response.Session.User.ID)
+		//	Initialize a new GQL client with the user's access token.
+		gqlClient := clients.NewGQLClient(&clients.GQLConfig{
+			BaseURL:       commons.NHOST_GRAPHQL_URL,
+			Authorization: fmt.Sprintf("Bearer %s", response.Session["accessToken"].(string)),
+			Logger:        log,
+		})
+
+		//	Extract and decrypt keys from user's session.
+		pair, err := auth.GetService().DecryptKeysFromSession(commons.DefaultContext, gqlClient, &authCommons.DecryptKeysFromSessionOptions{
+			Session:  response.Session,
+			Password: password,
+		})
 		if err != nil {
-			apiError := clients.ParseExternal(err)
-
-			//	If they don't have a key pair, create a new key pair locally, and upload it.
-			if apiError.IsType(clients.ErrorTypeDoesNotExist) {
-
-				pair, err := keys.GenerateKeyPair(password)
-				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to generate fresh encryption key pair for you")
-
-				}
-
-				//	Upload the keys to their cloud account.
-				if err := keys.Create(commons.DefaultContext, commons.GQLClient, &keyCommons.CreateOptions{
-					PublicKey:    base64.StdEncoding.EncodeToString(pair.PublicKey),
-					PrivateKey:   base64.StdEncoding.EncodeToString(pair.PrivateKey),
-					ProtectedKey: base64.StdEncoding.EncodeToString(pair.ProtectedKey),
-					Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
-				}); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to backup your keys")
-
-				}
-
-				//	Save the keys locally for the user
-				if err := config.GetService().Save(configCommons.Keys{
-					Public:  pair.PublicKey,
-					Private: pair.DecryptedPrivateKey,
-				}, configCommons.KeysConfig); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to save key configuration locally")
-				}
-
-			} else {
-				log.Debug(err)
-				log.Fatal("Failed to download your encryption keys")
-			}
+			log.Debug(err)
+			log.Fatal("Failed to decrypt your keys")
 		}
 
-		//	If they already have an existing key-pair.
-		if keyPair != nil {
-
-			payload, err := keyPair.Decode()
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decode your encryption keys")
-			}
-
-			//	Regenerate the key from user's password
-			passwordDerivedKey := argon2.Key([]byte(password), payload.Salt, 3, KEY_BYTES*1024, 4, KEY_BYTES)
-
-			//	Use the password derived key to decrypt protection key.
-			var passwordDerivedKeyForOpening [32]byte
-			copy(passwordDerivedKeyForOpening[:], passwordDerivedKey)
-			protectionKey, err := keys.OpenSymmetrically(payload.ProtectedKey, passwordDerivedKeyForOpening)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the protection key")
-			}
-
-			//	Decrypt the private key using the decrypted protection key.
-			var protectionKeyForOpening [32]byte
-			copy(protectionKeyForOpening[:], protectionKey)
-			privateKey, err := keys.OpenSymmetrically(payload.PrivateKey, protectionKeyForOpening)
-			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the private key")
-			}
-
-			//	Save the public-private keys locally.
-			//	Save the keys locally for the user
-			if err := config.GetService().Save(configCommons.Keys{
-				Public:  payload.PublicKey,
-				Private: privateKey,
-			}, configCommons.KeysConfig); err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to save key configuration locally")
-			}
+		//	Save the public-private keys locally.
+		if err := config.GetService().Save(configCommons.Keys{
+			Public:  pair.PublicKey,
+			Private: pair.PrivateKey,
+		}, configCommons.KeysConfig); err != nil {
+			log.Debug(err)
+			log.Fatal("Failed to save key configuration locally")
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

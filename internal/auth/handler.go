@@ -32,18 +32,19 @@ func SigninHandler(c echo.Context) error {
 	client := clients.NewNhostClient(&clients.NhostConfig{})
 
 	//	Call the appropriate service handler.
+	service := GetService()
+
 	var response *commons.SigninResponse
 	var err error
 	if payload.Ticket == "" {
-		response, err = GetService().SigninWithPassword(ctx, client, &commons.SigninWithPasswordOptions{
+		response, err = service.SigninWithPassword(ctx, client, &commons.SigninWithPasswordOptions{
 			Email:    payload.Email,
 			Password: payload.Password,
 		})
 	} else {
-		response, err = GetService().SigninWithMFA(ctx, client, &commons.SigninWithMFAOptions{
-			Ticket:   payload.Ticket,
-			OTP:      payload.OTP,
-			Password: payload.Password,
+		response, err = service.SigninWithMFA(ctx, client, &commons.SigninWithMFAOptions{
+			Ticket: payload.Ticket,
+			OTP:    payload.OTP,
 		})
 	}
 	if err != nil {
@@ -51,6 +52,41 @@ func SigninHandler(c echo.Context) error {
 			Message: "Login failed. Recheck your credentials.",
 			Error:   err.Error(),
 		})
+	}
+
+	if response.MFA != nil {
+		return c.JSON(http.StatusOK, response)
+	}
+
+	if response.Session["accessToken"] == nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Login failed. Recheck your credentials.",
+			Error:   "could not generate access token",
+		})
+	}
+
+	//	Initialize a new GQL client with the user's access token.
+	gqlClient := clients.NewGQLClient(&clients.GQLConfig{
+		Authorization: "Bearer " + response.Session["accessToken"].(string),
+		Type:          clients.HasuraClientType,
+	})
+
+	//	Extract and decrypt keys from user's session.
+	pair, err := service.DecryptKeysFromSession(ctx, gqlClient, &commons.DecryptKeysFromSessionOptions{
+		Session:  response.Session,
+		Password: payload.Password,
+	})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Login failed. Could not decrypt your keys.",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Include the decrypted keys in response.
+	response.Keys = map[string]string{
+		"publicKey":  base64.StdEncoding.EncodeToString(pair.PublicKey),
+		"privateKey": base64.StdEncoding.EncodeToString(pair.PrivateKey),
 	}
 
 	return c.JSON(http.StatusOK, response)

@@ -18,12 +18,6 @@ type SigninWithPasswordOptions struct {
 }
 
 type SigninWithMFAOptions struct {
-	OTP      string `json:"otp"`
-	Ticket   string `json:"ticket"`
-	Password string `json:"password"`
-}
-
-type SigninWithMFANhostOptions struct {
 	OTP    string `json:"otp"`
 	Ticket string `json:"ticket"`
 }
@@ -95,4 +89,9 @@ type UpdatePasswordOptions struct {
 
 func (o *UpdatePasswordOptions) Marshal() ([]byte, error) {
 	return json.Marshal(o)
+}
+
+type DecryptKeysFromSessionOptions struct {
+	Password string `json:"password"`
+	Session  map[string]interface{}
 }

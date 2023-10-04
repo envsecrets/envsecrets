@@ -112,7 +112,7 @@ var exportCmd = &cobra.Command{
 			if err != nil {
 				log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-					log.Error("You haven't set any secrets in this environment")
+					log.Warn("You haven't set any secrets in this environment")
 					log.Info("Use `envs set --help` for more information")
 					os.Exit(1)
 				} else {

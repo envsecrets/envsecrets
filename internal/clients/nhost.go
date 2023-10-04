@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ type NhostClient struct {
 	CustomHeaders   []CustomHeader
 	log             *logrus.Logger
 	ResponseHandler func(*http.Response) error
+	BaseURL         string
 }
 
 type NhostConfig struct {
@@ -23,6 +25,7 @@ type NhostConfig struct {
 	CustomHeaders   []CustomHeader
 	Logger          *logrus.Logger
 	ResponseHandler func(*http.Response) error
+	BaseURL         string
 }
 
 func NewNhostClient(config *NhostConfig) *NhostClient {
@@ -39,6 +42,10 @@ func NewNhostClient(config *NhostConfig) *NhostClient {
 		response.log = config.Logger
 	}
 
+	response.BaseURL = config.BaseURL
+	if response.BaseURL == "" {
+		response.BaseURL = os.Getenv("NHOST_AUTH_URL")
+	}
 	response.CustomHeaders = config.CustomHeaders
 	response.Authorization = config.Authorization
 	response.ResponseHandler = config.ResponseHandler
