@@ -2,9 +2,7 @@
 
 [Quickstart](https://docs.envsecrets.com/platform/quickstart) &nbsp;&nbsp;•&nbsp;&nbsp; [Homepage](https://envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Login](https://app.envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA) &nbsp;&nbsp;•&nbsp;&nbsp; [Twitter](https://twitter.com/envsecrets)
 
----
-
-envsecrets is a free-forever cloud account to store your environment secrets and synchronize them with third-party services.
+envsecrets is an open-source free-forever cloud account to store your environment secrets and synchronize them with third-party services.
 
 This tool is for you if you:
 
@@ -14,41 +12,39 @@ This tool is for you if you:
 - Do not have any access control setup for your secrets.
 - Need to version your secrets.
 
----
-
 ## Security
 
 Read our detailed [data model](https://docs.envsecrets.com/security) to understand how we keep your secrets secure.
 
 ### By Design
 
-- **End-to-End Encryption**
-    All cryptographic operations happen on client side only. Never on our servers. 
-- **Zero-Knowledge Architecture**
+- **End-to-End Encryption** <br />
+    You are protected with public-key cryptography. Secrets are encrypted and decrypted on client side only. Never on our servers. 
+- **Zero-Knowledge Architecture** <br />
     No one can see your secrets. Not even us. If our database gets hacked/leaked, attackers will never be able to decrypt your secrets.
-- **Multi-Factor Authentication**
+- **Multi-Factor Authentication** <br />
     You can enable Temporal One Time Passwords on the [platform](https://app.envsecrets.com) and scan the QR in any authenticator app like Google Authenticator or Authy.
 
 ### By Promise
 
-- **Open Source Codebase**
+- **Open Source Codebase** <br />
     Feel free to scan our code to establish trust.
 
 ## Core Features
 
 Amongst many hidden gems, the platform's core features include:
 
-- 🔐 **Role-Based Access Control**
+- 🔐 **Role-Based Access Control** <br />
     Never let your interns get access to production secrets.
-- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc.
-    Push your secrets to the third-partry services where you are consuming them.
-- 📕 **Versioning**
-    Want to rollback to a previous value? Versioning is here to save your day.
-- 🔑 **Services Tokens / API Keys**
+- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc. <br />
+    Push your secrets to the third-partry services where you consume them.
+- 📕 **Versioning** <br />
+    Want to bring back a previous value? Rollback to an older version of your secret.
+- 🔑 **Services Tokens / API Keys** <br />
     Securely export and consume your secrets in places where you cannot authenticate with your account password.
-- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc.
+- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc. <br />
     Push your secrets to the third-partry services where you are consuming them.
-- 🛡️ **Multi-Factor Authentication**
+- 🛡️ **Multi-Factor Authentication** <br />
     Activate TOTP based MFA in your account. Prevent attackers from accessing your secrets just because they got your password.
 
 ## Getting Started
