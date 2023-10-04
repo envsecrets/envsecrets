@@ -18,33 +18,33 @@ Read our detailed [data model](https://docs.envsecrets.com/security) to understa
 
 ### By Design
 
-- **End-to-End Encryption**  <br />
+- **End-to-End Encryption** <br />
     All cryptographic operations happen on client side only. Never on our servers. 
-- **Zero-Knowledge Architecture**
+- **Zero-Knowledge Architecture** <br />
     No one can see your secrets. Not even us. If our database gets hacked/leaked, attackers will never be able to decrypt your secrets.
-- **Multi-Factor Authentication**
+- **Multi-Factor Authentication** <br />
     You can enable Temporal One Time Passwords on the [platform](https://app.envsecrets.com) and scan the QR in any authenticator app like Google Authenticator or Authy.
 
 ### By Promise
 
-- **Open Source Codebase**
+- **Open Source Codebase** <br />
     Feel free to scan our code to establish trust.
 
 ## Core Features
 
 Amongst many hidden gems, the platform's core features include:
 
-- 🔐 **Role-Based Access Control**
+- 🔐 **Role-Based Access Control** <br />
     Never let your interns get access to production secrets.
-- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc.
+- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc. <br />
     Push your secrets to the third-partry services where you are consuming them.
-- 📕 **Versioning**
+- 📕 **Versioning** <br />
     Want to rollback to a previous value? Versioning is here to save your day.
-- 🔑 **Services Tokens / API Keys**
+- 🔑 **Services Tokens / API Keys** <br />
     Securely export and consume your secrets in places where you cannot authenticate with your account password.
-- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc.
+- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc. <br />
     Push your secrets to the third-partry services where you are consuming them.
-- 🛡️ **Multi-Factor Authentication**
+- 🛡️ **Multi-Factor Authentication** <br />
     Activate TOTP based MFA in your account. Prevent attackers from accessing your secrets just because they got your password.
 
 ## Getting Started
