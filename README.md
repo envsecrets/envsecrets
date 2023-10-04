@@ -19,7 +19,7 @@ Read our detailed [data model](https://docs.envsecrets.com/security) to understa
 ### By Design
 
 - **End-to-End Encryption** <br />
-    All cryptographic operations happen on client side only. Never on our servers. 
+    You are protected with public-key cryptography. Secrets are encrypted and decrypted on client side only. Never on our servers. 
 - **Zero-Knowledge Architecture** <br />
     No one can see your secrets. Not even us. If our database gets hacked/leaked, attackers will never be able to decrypt your secrets.
 - **Multi-Factor Authentication** <br />
