@@ -34,6 +34,23 @@ Read our detailed [data model](https://docs.envsecrets.com/security) to understa
 - **Open Source Codebase**
     Feel free to scan our code to establish trust.
 
+## Core Features
+
+Amongst many hidden gems, the platform's core features include:
+
+- 🔐 **Role-Based Access Control**
+    Never let your interns get access to production secrets.
+- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc.
+    Push your secrets to the third-partry services where you are consuming them.
+- 📕 **Versioning**
+    Want to rollback to a previous value? Versioning is here to save your day.
+- 🔑 **Services Tokens / API Keys**
+    Securely export and consume your secrets in places where you cannot authenticate with your account password.
+- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc.
+    Push your secrets to the third-partry services where you are consuming them.
+- 🛡️ **Multi-Factor Authentication**
+    Activate TOTP based MFA in your account. Prevent attackers from accessing your secrets just because they got your password.
+
 ## Getting Started
 
 ### Installation
