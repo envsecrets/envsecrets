@@ -70,7 +70,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			log.Debug(err)
 			if err.Error() == string(clients.ErrorTypeRecordNotFound) {
-				log.Error("You haven't set any secrets in this environment")
+				log.Warn("You haven't set any secrets in this environment")
 				log.Info("Use `envs set --help` for more information")
 				os.Exit(1)
 			}

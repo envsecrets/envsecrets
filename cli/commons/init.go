@@ -23,7 +23,6 @@ func Initialize(log *logrus.Logger) {
 
 	//	Initalize the HTTP client with bearer token from account config
 	HTTPClient = clients.NewHTTPClient(&clients.HTTPConfig{
-		Type:    clients.HasuraClientType,
 		BaseURL: API + "/v1",
 		Logger:  log,
 	})

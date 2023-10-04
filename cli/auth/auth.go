@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -18,12 +19,14 @@ type LoginResponse struct {
 		Ticket string `json:"ticket"`
 	} `json:"mfa"`
 
-	Session struct {
-		AccessToken          string           `json:"accessToken"`
-		AccessTokenExpiresIn int              `json:"accessTokenExpiresIn"`
-		RefreshToken         string           `json:"refreshToken"`
-		User                 userCommons.User `json:"user"`
-	} `json:"session"`
+	Session NhostSession `json:"session"`
+}
+
+type NhostSession struct {
+	AccessToken          string           `json:"accessToken"`
+	AccessTokenExpiresIn int              `json:"accessTokenExpiresIn"`
+	RefreshToken         string           `json:"refreshToken"`
+	User                 userCommons.User `json:"user"`
 }
 
 func Login(payload map[string]interface{}) (*LoginResponse, error) {
@@ -51,7 +54,7 @@ func Login(payload map[string]interface{}) (*LoginResponse, error) {
 	}
 	defer res.Body.Close()
 
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}

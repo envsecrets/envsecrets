@@ -12,7 +12,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-type GQLClient struct {
+type HasuraClient struct {
 	*graphql.Client
 	BaseURL       string
 	Authorization string
@@ -21,8 +21,7 @@ type GQLClient struct {
 	log           *logrus.Logger
 }
 
-type GQLConfig struct {
-	Type          ClientType
+type HasuraConfig struct {
 	BaseURL       string
 	Authorization string
 	Headers       []Header
@@ -30,22 +29,13 @@ type GQLConfig struct {
 	Logger        *logrus.Logger
 }
 
-func NewGQLClient(config *GQLConfig) *GQLClient {
+func NewHasuraClient(config *HasuraConfig) *HasuraClient {
 
-	var response GQLClient
+	var response HasuraClient
 
-	response.Headers = config.Headers
-	response.CustomHeaders = config.CustomHeaders
-	response.BaseURL = config.BaseURL
-	response.Authorization = config.Authorization
-
-	switch config.Type {
-	case HasuraClientType:
+	if response.BaseURL == "" {
 		response.BaseURL = os.Getenv(string(NHOST_GRAPHQL_URL))
 	}
-
-	client := graphql.NewClient(response.BaseURL)
-	response.Client = client
 
 	if config.Logger != nil {
 		response.log = config.Logger
@@ -53,14 +43,22 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 		response.log = logrus.New()
 	}
 
+	client := graphql.NewClient(response.BaseURL)
+	response.Client = client
+
 	if config == nil {
 		return &response
 	}
 
+	response.Headers = config.Headers
+	response.CustomHeaders = config.CustomHeaders
+	response.BaseURL = config.BaseURL
+	response.Authorization = config.Authorization
+
 	return &response
 }
 
-func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) error {
+func (c *HasuraClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) error {
 
 	//	Set Authorization Header
 	if c.Authorization != "" {
