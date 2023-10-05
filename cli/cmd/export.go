@@ -247,7 +247,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
-	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
+	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secret key-values to a file {.json | .yaml | .txt}")
 	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 	exportCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }

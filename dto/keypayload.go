@@ -70,8 +70,6 @@ func (m *KPMap) Set(key string, value *Payload) {
 
 // Sets the value for the payload belong the the specified key in the map.
 func (m *KPMap) SetValue(key, value string) {
-	m.Lock()
-	defer m.Unlock()
 	m.mapping[key].Set(value)
 }
 
@@ -84,8 +82,6 @@ func (m *KPMap) Get(key string) *Payload {
 
 // Fetches the value from the payload for a specific key in the map.
 func (m *KPMap) GetValue(key string) string {
-	m.Lock()
-	defer m.Unlock()
 	return m.mapping[key].GetValue()
 }
 
@@ -105,8 +101,6 @@ func (m *KPMap) FmtStrings() []string {
 
 // Updates a key name in the map from "old" to "new."
 func (m *KPMap) ChangeKey(old, new string) {
-	m.Lock()
-	defer m.Unlock()
 	payload := m.Get(old)
 	m.Set(new, payload)
 	m.Delete(old)
