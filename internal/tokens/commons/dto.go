@@ -14,6 +14,11 @@ type Token struct {
 	Name      string    `json:"name,omitempty"`
 }
 
+// IsExpired checks whether the token is expired or not.
+func (t *Token) IsExpired() bool {
+	return t.Expiry.Before(time.Now())
+}
+
 type CreateRequestOptions struct {
 	Password string `json:"password"`
 	EnvID    string `json:"env_id"`

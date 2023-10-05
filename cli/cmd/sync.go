@@ -171,9 +171,9 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// syncCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	syncCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
+	syncCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret; -1 for latest version")
 	syncCmd.Flags().StringVarP(&password, "password", "p", "", "Your envsecrets account password")
 	syncCmd.Flags().StringVarP(&integrationType, "type", "t", "", "Type of integration to push secrets to")
-	syncCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
+	syncCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to sync the secrets to.")
 	syncCmd.MarkFlagRequired("env")
 }

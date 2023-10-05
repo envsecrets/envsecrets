@@ -32,8 +32,12 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -41,6 +45,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/envsecrets/envsecrets/dto"
 	"github.com/envsecrets/envsecrets/internal/clients"
+	"github.com/envsecrets/envsecrets/internal/tokens"
 	"github.com/spf13/cobra"
 )
 
@@ -77,7 +82,7 @@ var exportCmd = &cobra.Command{
 				options.Version = &version
 			}
 
-			result, err := internal.GetValues(commons.DefaultContext, commons.HTTPClient, options)
+			result, err := internal.GetSecret(commons.DefaultContext, commons.HTTPClient, options)
 			if err != nil {
 				log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
@@ -89,7 +94,42 @@ var exportCmd = &cobra.Command{
 				}
 			}
 
-			for k, v := range result.Data {
+			//	Mark all the secrets encoded by default.
+			result.Secret.MarkEncoded()
+
+			//	Decode the key.
+			keyBytes, err := base64.StdEncoding.DecodeString(result.Token.Key)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decode the key")
+			}
+
+			//	Decode the token.
+			token, err := hex.DecodeString(XTokenHeader)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decode the token")
+			}
+
+			//	Decrypt the token.
+			orgKeyBytes, err := tokens.GetService().Decrypt(commons.DefaultContext, commons.GQLClient, token, keyBytes)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decrypt the token")
+			}
+
+			//	Convert the key to [32]byte.
+			var orgKey [32]byte
+			copy(orgKey[:], orgKeyBytes)
+
+			//	Decrypt the secrets.
+			if err := result.Secret.Decrypt(orgKey); err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to decrypt the secret")
+			}
+
+			//	Temporary copy-over.
+			for k, v := range result.Secret.Data {
 				commons.Secret.Set(k, &dto.Payload{
 					Value: v.Value,
 				})
@@ -131,37 +171,67 @@ var exportCmd = &cobra.Command{
 
 		buffer.WriteString(strings.Join(commons.Secret.Data.FmtStrings(), "\n"))
 
-		fmt.Println(buffer.String())
-		/*
-			 		if exportfile != "" {
+		if exportfile != "" {
 
-						f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-						if err != nil {
-							log.Debug(err)
-							log.Fatal("Failed to open file: ", exportfile)
-						}
+			f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+			if err != nil {
+				log.Debug(err)
+				log.Fatal("Failed to open file: ", exportfile)
+			}
 
-						defer f.Close()
+			defer f.Close()
 
-						switch filepath.Ext(file) {
-						default:
-							if _, err := f.WriteString(buffer.String()); err != nil {
-								log.Debug(err)
-								log.Fatal("Failed to export values to file")
-							}
+			switch filepath.Ext(exportfile) {
+			default:
 
-						case ".csv":
-							log.Error("This file format is not yet supported")
-							log.Info("Use `--help` for more information")
-							os.Exit(1)
+				if _, err := f.WriteString(buffer.String()); err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to export values to file")
+				}
 
-						case ".json":
-						case ".yaml":
-						}
-					} else {
-						fmt.Println(buffer.String())
-					}
-		*/
+			case ".csv":
+
+				log.Error("This file format is not yet supported")
+				log.Info("Use `--help` for more information")
+				os.Exit(1)
+
+			case ".json":
+
+				//	Convert KP Map to KV Map.
+				data := commons.Secret.Data.ToKVMap()
+
+				result, err := json.MarshalIndent(data, "", "\t")
+				if err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to marshal the values before exporting to file")
+				}
+
+				if _, err := f.Write(result); err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to export values to file")
+				}
+
+			case ".yaml":
+
+				//	Convert KP Map to KV Map.
+				data := commons.Secret.Data.ToKVMap()
+
+				result, err := data.MarshalYAML()
+				if err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to marshal the values before exporting to file")
+				}
+
+				if _, err := f.Write(result); err != nil {
+					log.Debug(err)
+					log.Fatal("Failed to export values to file")
+				}
+
+			}
+		} else {
+			fmt.Println(buffer.String())
+		}
+
 	},
 }
 
@@ -177,7 +247,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	exportCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
-	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secrets to a file {.json | .yaml | .txt}")
+	exportCmd.Flags().StringVarP(&exportfile, "file", "f", "", "Export secret key-values to a file {.json | .yaml | .txt}")
 	exportCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 	exportCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }
