@@ -172,5 +172,4 @@ func init() {
 	// is called directly, e.g.:
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
 	runCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
-	//runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

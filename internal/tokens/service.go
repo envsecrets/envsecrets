@@ -1,8 +1,6 @@
 package tokens
 
 import (
-	"encoding/base64"
-	"errors"
 	"time"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
@@ -15,14 +13,19 @@ import (
 
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Token, error)
+	GetByHash(context.ServiceContext, *clients.GQLClient, string) (*commons.Token, error)
 	Create(context.ServiceContext, *clients.GQLClient, *commons.CreateOptions) ([]byte, error)
-	Decrypt(context.ServiceContext, *clients.GQLClient, []byte) (*commons.DecryptResponse, error)
+	Decrypt(context.ServiceContext, *clients.GQLClient, []byte, []byte) ([]byte, error)
 }
 
 type DefaultTokenService struct{}
 
 func (*DefaultTokenService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Token, error) {
 	return graphql.Get(ctx, client, id)
+}
+
+func (*DefaultTokenService) GetByHash(ctx context.ServiceContext, client *clients.GQLClient, hash string) (*commons.Token, error) {
+	return graphql.GetByHash(ctx, client, hash)
 }
 
 func (*DefaultTokenService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateOptions) ([]byte, error) {
@@ -60,27 +63,7 @@ func (*DefaultTokenService) Create(ctx context.ServiceContext, client *clients.G
 	return token, nil
 }
 
-func (*DefaultTokenService) Decrypt(ctx context.ServiceContext, client *clients.GQLClient, token []byte) (*commons.DecryptResponse, error) {
-
-	//	Hash the token to fetch it from database.
-	hash := globalCommons.SHA256Hash(token)
-	row, err := graphql.GetByHash(ctx, client, hash)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Parse the token expiry
-	now := time.Now()
-	expired := now.After(row.Expiry)
-	if expired {
-		return nil, errors.New("token expired")
-	}
-
-	//	Base64 decode the key.
-	keyBytes, err := base64.StdEncoding.DecodeString(row.Key)
-	if err != nil {
-		return nil, err
-	}
+func (*DefaultTokenService) Decrypt(ctx context.ServiceContext, client *clients.GQLClient, token, keyBytes []byte) ([]byte, error) {
 
 	var key [32]byte
 	copy(key[:], keyBytes)
@@ -89,10 +72,5 @@ func (*DefaultTokenService) Decrypt(ctx context.ServiceContext, client *clients.
 		return nil, err
 	}
 
-	return &commons.DecryptResponse{
-		OrgKey: decrypted,
-		EnvID:  row.EnvID,
-		Expiry: row.Expiry,
-		Name:   row.Name,
-	}, nil
+	return decrypted, nil
 }

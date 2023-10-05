@@ -45,12 +45,6 @@ var getCmd = &cobra.Command{
 	Short: "Fetch decrypted value corresponding to your secret key",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user has passed a token,
-		//	avoid using email+password to authenticate them against the API.
-		if XTokenHeader != "" {
-			return
-		}
-
 		//	Initialize the common secret.
 		InitializeSecret(log)
 	},
@@ -105,5 +99,4 @@ func init() {
 	// is called directly, e.g.:
 	getCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	getCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
-	// getCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

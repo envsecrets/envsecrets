@@ -26,6 +26,6 @@ func AddRoutes(sg *echo.Group) {
 		}),
 	}
 
-	group.GET("", ListHandler, middlewares...)
-	group.GET("/values", GetHandler, middlewares...)
+	group.GET("", GetHandler, middlewares...)
+	//	group.GET("/values", GetHandler, middlewares...)
 }

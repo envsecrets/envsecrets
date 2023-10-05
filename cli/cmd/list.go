@@ -47,12 +47,6 @@ var listCmd = &cobra.Command{
 	Short:   "List only the keys of your secrets",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user has passed a token,
-		//	avoid using email+password to authenticate them against the API.
-		if XTokenHeader != "" {
-			return
-		}
-
 		//	Initialize the common secret.
 		InitializeSecret(log)
 	},
@@ -95,7 +89,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	listCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 	listCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	listCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }
