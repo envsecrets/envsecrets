@@ -22,11 +22,6 @@ const (
 	Netlify  Type = "netlify"
 )
 
-const (
-	INTEGRATION_TYPE = "integration_type"
-	INTEGRATION_ID   = "integration_id"
-)
-
 var (
 	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify}
 )
