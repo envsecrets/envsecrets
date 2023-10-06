@@ -1,15 +1,51 @@
 package projects
 
 import (
-	"encoding/json"
+	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/machinebox/graphql"
 )
 
-// Create a new workspace
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, error) {
+type Service interface {
+	Get(context.ServiceContext, *clients.GQLClient, string) (*Project, error)
+	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Project, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Project, error)
+	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Project, error)
+	Delete(context.ServiceContext, *clients.GQLClient, string) error
+}
+
+type DefaultService struct{}
+
+// Get a project by ID
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		projects_by_pk(id: $id) {
+			id
+			name
+			org_id
+		}
+	  }	  
+	`)
+
+	req.Var("id", id)
+
+	var response struct {
+		Project Project `json:"projects_by_pk"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response.Project, nil
+}
+
+// Create a new project
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Project, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $org_id: uuid!) {
@@ -25,61 +61,25 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	req.Var("name", options.Name)
 	req.Var("org_id", options.OrgID)
 
-	var response map[string]interface{}
+	var response struct {
+		Query struct {
+			Returning []Project `json:"returning"`
+		} `json:"insert_projects"`
+	}
+
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["insert_projects"].(map[string]interface{})["returning"].([]interface{}))
-	if err != nil {
-		return nil, err
+	if len(response.Query.Returning) == 0 {
+		return nil, fmt.Errorf("no project created")
 	}
 
-	//	Unmarshal the response from "returning"
-	var resp []Project
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp[0], nil
-}
-
-// Get a workspace by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Project, error) {
-
-	req := graphql.NewRequest(`
-	query MyQuery($id: uuid!) {
-		projects_by_pk(id: $id) {
-			id
-			name
-			org_id
-		}
-	  }	  
-	`)
-
-	req.Var("id", id)
-
-	var response map[string]interface{}
-	if err := client.Do(ctx, req, &response); err != nil {
-		return nil, err
-	}
-
-	returning, err := json.Marshal(response["projects_by_pk"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp Project
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+	return &response.Query.Returning[0], nil
 }
 
 // List projects
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -92,33 +92,25 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 
 	req.Var("id", options.OrgID)
 
-	var response map[string]interface{}
+	var response struct {
+		Projects []Project `json:"projects"`
+	}
+
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["projects"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp []Project
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+	return &response.Projects, nil
 }
 
-// Update a workspace by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, error) {
+// Update a project by ID
+func (*DefaultService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Project, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
 		update_projects_by_pk(pk_columns: {id: $id}, _set: {name: $name}) {
 			id
-		  name
+			name
 		}
 	  }	  
 	`)
@@ -126,26 +118,18 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 	req.Var("id", id)
 	req.Var("name", options.Name)
 
-	var response map[string]interface{}
+	var response struct {
+		UpdateProject Project `json:"update_projects_by_pk"`
+	}
+
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["update_projects_by_pk"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp Project
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+	return &response.UpdateProject, nil
 }
 
 // Delete a project by ID
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+func (*DefaultService) Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }

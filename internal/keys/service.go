@@ -2,10 +2,8 @@ package keys
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"io"
-	"os"
 
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -13,7 +11,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/keys/graphql"
 	"github.com/envsecrets/envsecrets/internal/memberships"
-	"github.com/envsecrets/envsecrets/internal/organisations"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/nacl/secretbox"
@@ -226,34 +223,4 @@ func DecryptAsymmetricallyAnonymous(public, private, org_key []byte) ([]byte, er
 		return nil, err
 	}
 	return result, nil
-}
-
-func GetOrgKeyServerCopy(ctx context.ServiceContext, org_id string) ([]byte, error) {
-
-	//	Initialize new GQL client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	Get the server's key copy
-	serverCopy, err := organisations.GetService().GetServerKeyCopy(ctx, client, org_id)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Decrypt the copy with server's private key (in env vars).
-	serverPrivateKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
-	if err != nil {
-		return nil, err
-	}
-
-	serverPublicKey, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	if err != nil {
-		return nil, err
-	}
-
-	return DecryptAsymmetricallyAnonymous(serverPublicKey, serverPrivateKey, serverCopy)
 }

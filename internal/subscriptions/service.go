@@ -3,49 +3,27 @@ package subscriptions
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/machinebox/graphql"
 )
 
-// Create a new workspace
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Subscription, error) {
-
-	req := graphql.NewRequest(`
-	mutation MyMutation($subscription_id: String!, $org_id: uuid!) {
-		insert_subscriptions(objects: {subscription_id: $subscription_id, org_id: $org_id}) {
-		  returning {
-			id
-		  }
-		}
-	  }	  
-	`)
-
-	req.Var("subscription_id", options.SubscriptionID)
-	req.Var("org_id", options.OrgID)
-
-	var response map[string]interface{}
-	if err := client.Do(ctx, req, &response); err != nil {
-		return nil, err
-	}
-
-	returning, err := json.Marshal(response["insert_subscriptions"].(map[string]interface{})["returning"].([]interface{}))
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp []Subscription
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp[0], nil
+type Service interface {
+	Get(context.ServiceContext, *clients.GQLClient, string) (*Subscription, error)
+	GetBySubscriptionID(context.ServiceContext, *clients.GQLClient, string) (*Subscription, error)
+	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Subscription, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Subscription, error)
+	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Subscription, error)
+	Delete(context.ServiceContext, *clients.GQLClient, string) error
+	DeleteBySubscriptionID(context.ServiceContext, *clients.GQLClient, string) error
 }
 
-// Get a workspace by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Subscription, error) {
+type DefaultService struct{}
+
+// Get a subscription by ID
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -60,26 +38,15 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Sub
 
 	req.Var("id", id)
 
-	var response map[string]interface{}
-	if err := client.Do(ctx, req, &response); err != nil {
-		return nil, err
+	var response struct {
+		Subscription Subscription `json:"subscriptions_by_pk"`
 	}
 
-	returning, err := json.Marshal(response["subscriptions_by_pk"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp Subscription
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+	return &response.Subscription, nil
 }
 
-func GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, subscription_id string) (*Subscription, error) {
+// Fetches the row with unique Stripe subscription ID
+func (*DefaultService) GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, subscription_id string) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($subscription_id: String!) {
@@ -112,8 +79,41 @@ func GetBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, 
 	return &resp[0], nil
 }
 
+// Create a new subscription
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Subscription, error) {
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($subscription_id: String!, $org_id: uuid!) {
+		insert_subscriptions(objects: {subscription_id: $subscription_id, org_id: $org_id}) {
+		  returning {
+			id
+		  }
+		}
+	  }	  
+	`)
+
+	req.Var("subscription_id", options.SubscriptionID)
+	req.Var("org_id", options.OrgID)
+
+	var response struct {
+		Query struct {
+			Returning []Subscription `json:"returning"`
+		} `json:"insert_subscriptions"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	if len(response.Query.Returning) == 0 {
+		return nil, fmt.Errorf("failed to create subscription")
+	}
+
+	return &response.Query.Returning[0], nil
+}
+
 // List subscriptions
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Subscription, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Subscription, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!) {
@@ -144,8 +144,8 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 	return &resp, nil
 }
 
-// Update a workspace by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Subscription, error) {
+// Update a subscription by ID
+func (*DefaultService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Subscription, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $status: String!) {
@@ -179,7 +179,7 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 }
 
 // Delete a subscription by ID
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+func (*DefaultService) Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!) {
@@ -207,7 +207,7 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) er
 }
 
 // Delete a subscription by Stripe Subscription ID
-func DeleteBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+func (*DefaultService) DeleteBySubscriptionID(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!) {

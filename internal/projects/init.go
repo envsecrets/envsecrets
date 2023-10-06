@@ -1,4 +1,4 @@
-package invites
+package projects
 
 func init() {
 	SetService(&DefaultService{})

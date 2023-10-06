@@ -43,7 +43,6 @@ import (
 	projectConfig "github.com/envsecrets/envsecrets/cli/config/project"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -84,7 +83,7 @@ var initCmd = &cobra.Command{
 		//
 		//	Call APIs to pull existing entities
 		//
-		var organisation organisationCommons.Organisation
+		var organisation organisations.Organisation
 		var project projects.Project
 
 		//	All names entered by the user must be slugs.
@@ -133,7 +132,7 @@ var initCmd = &cobra.Command{
 		//	Setup project
 		if len(projectID) == 0 {
 
-			projectsList, err := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
+			projectsList, err := projects.GetService().List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
 				OrgID: organisation.ID,
 			})
 			if err != nil {
@@ -170,7 +169,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, err := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
+				item, err := projects.GetService().Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
 					OrgID: organisation.ID,
 					Name:  result,
 				})

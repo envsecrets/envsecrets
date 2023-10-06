@@ -1,4 +1,4 @@
-package invites
+package environments
 
 func init() {
 	SetService(&DefaultService{})

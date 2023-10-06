@@ -6,18 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/envsecrets/envsecrets/api/integrations"
-	"github.com/envsecrets/envsecrets/internal/actions"
-	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/environments"
-	"github.com/envsecrets/envsecrets/internal/events"
-	"github.com/envsecrets/envsecrets/internal/invites"
-	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/api"
 	"github.com/envsecrets/envsecrets/internal/middlewares"
-	"github.com/envsecrets/envsecrets/internal/payments"
-	"github.com/envsecrets/envsecrets/internal/secrets"
-	"github.com/envsecrets/envsecrets/internal/tokens"
-	"github.com/envsecrets/envsecrets/internal/triggers"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -73,41 +63,8 @@ func main() {
 	}
 	e.Use(middlewares.JWTAuth(skipper))
 
-	//	API	Version 1 Group
-	v1Group := e.Group("/v1")
-
-	//	Hasura triggers group
-	triggers.AddRoutes(v1Group)
-
-	//	Hasura actions group
-	actions.AddRoutes(v1Group)
-
-	//	Authentication group
-	auth.AddRoutes(v1Group)
-
-	//	Keys group
-	keys.AddRoutes(v1Group)
-
-	//	Secrets group
-	secrets.AddRoutes(v1Group)
-
-	//	Integrations group
-	integrations.AddRoutes(v1Group)
-
-	//	Environments group
-	environments.AddRoutes(v1Group)
-
-	//	Invites group
-	invites.AddRoutes(v1Group)
-
-	//	Payments group
-	payments.AddRoutes(v1Group)
-
-	//	Tokens group
-	tokens.AddRoutes(v1Group)
-
-	//	Events group
-	events.AddRoutes(v1Group)
+	//	Add API routes.
+	api.AddRoutes(e)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))

@@ -6,7 +6,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
-	tokenCommons "github.com/envsecrets/envsecrets/internal/tokens/commons"
+	"github.com/envsecrets/envsecrets/internal/tokens"
 	"github.com/labstack/echo/v4"
 )
 
@@ -116,9 +116,9 @@ func GetHandler(c echo.Context) error {
 		return echo.ErrUnauthorized
 	}
 
-	var token *tokenCommons.Token
+	var token *tokens.Token
 	if c.Get("token") != nil {
-		token = c.Get("token").(*tokenCommons.Token)
+		token = c.Get("token").(*tokens.Token)
 	}
 
 	//	Override the env_id set by token middleware.
