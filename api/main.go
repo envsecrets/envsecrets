@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/envsecrets/envsecrets/api/actions"
 	"github.com/envsecrets/envsecrets/api/auth"
 	"github.com/envsecrets/envsecrets/api/environments"
 	"github.com/envsecrets/envsecrets/api/events"
@@ -9,7 +10,6 @@ import (
 	"github.com/envsecrets/envsecrets/api/payments"
 	"github.com/envsecrets/envsecrets/api/tokens"
 	"github.com/envsecrets/envsecrets/api/triggers"
-	"github.com/envsecrets/envsecrets/internal/actions"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	"github.com/labstack/echo/v4"
 )
