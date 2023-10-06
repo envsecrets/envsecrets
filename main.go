@@ -38,7 +38,7 @@ func main() {
 	//
 
 	//	Rate-limit requests to 10 per second.
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(10)))
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(5)))
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
