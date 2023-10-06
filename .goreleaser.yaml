@@ -28,7 +28,7 @@ release:
   # We want to publish our binaries in a different public repository.
   github:
     owner: envsecrets
-    name: cli
+    name: envsecrets
 
 
 universal_binaries:
