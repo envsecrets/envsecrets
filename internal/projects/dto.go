@@ -1,7 +1,6 @@
 package projects
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -12,14 +11,6 @@ type Project struct {
 	Name      string    `json:"name,omitempty"`
 	OrgID     string    `json:"org_id,omitempty"`
 	UserID    string    `json:"user_id"`
-}
-
-func (w *Project) Marshal() ([]byte, error) {
-	return json.Marshal(&w)
-}
-
-func (w *Project) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, &w)
 }
 
 type CreateOptions struct {

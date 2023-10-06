@@ -45,7 +45,7 @@ func EnvironmentCreate(c echo.Context) error {
 	//	1. Organisation is active on at least 1 paid plan.
 
 	//	Fetch the org_id by using project_id.
-	project, err := projects.Get(ctx, client, options.ProjectID)
+	project, err := projects.GetService().Get(ctx, client, options.ProjectID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to fetch the project details",

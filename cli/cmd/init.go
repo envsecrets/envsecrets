@@ -132,7 +132,7 @@ var initCmd = &cobra.Command{
 		//	Setup project
 		if len(projectID) == 0 {
 
-			projectsList, err := projects.List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
+			projectsList, err := projects.GetService().List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
 				OrgID: organisation.ID,
 			})
 			if err != nil {
@@ -169,7 +169,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, err := projects.Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
+				item, err := projects.GetService().Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
 					OrgID: organisation.ID,
 					Name:  result,
 				})
