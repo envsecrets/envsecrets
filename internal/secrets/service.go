@@ -10,7 +10,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/events"
 	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
-	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
@@ -107,7 +106,7 @@ func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	// Fetch the integration event for the environment
 	if options.IntegrationType != "" {
 
-		allEvents, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, integrationCommons.IntegrationType(options.IntegrationType))
+		allEvents, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, integrations.Type(options.IntegrationType))
 		if err != nil {
 			return err
 		}
@@ -125,7 +124,7 @@ func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	integrationService := integrations.GetService()
 
 	for _, event := range *allEvents {
-		if err := integrationService.Sync(ctx, client, &integrationCommons.SyncOptions{
+		if err := integrationService.Sync(ctx, client, &integrations.SyncOptions{
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,

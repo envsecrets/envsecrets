@@ -12,7 +12,6 @@ node_modules
 .env.development
 cli/.envs
 variables.sh
-api
 cli/build.sh
 cli/bin
 secret.json

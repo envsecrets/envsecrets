@@ -2,34 +2,13 @@ package supabase
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
-
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
-
-	//	Encrypt the credentials
-	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
-		"token": options.Token,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	Create a new record in Hasura.
-	return graphql.Insert(ctx, gqlClient, &commons.AddIntegrationOptions{
-		OrgID:       options.OrgID,
-		Type:        commons.Supabase,
-		Credentials: base64.StdEncoding.EncodeToString(credentials),
-	})
-}
 
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 

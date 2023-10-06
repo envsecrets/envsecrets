@@ -1,12 +1,7 @@
 package asm
 
 import (
-	"encoding/base64"
-
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -14,25 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
-
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
-
-	//	Encrypt the credentials
-	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
-		"role_arn": options.RoleARN,
-		"region":   options.Region,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	Create a new record in Hasura.
-	return graphql.Insert(ctx, gqlClient, &commons.AddIntegrationOptions{
-		OrgID:       options.OrgID,
-		Type:        commons.ASM,
-		Credentials: base64.StdEncoding.EncodeToString(credentials),
-	})
-}
 
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 

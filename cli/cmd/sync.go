@@ -41,7 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
 	"github.com/envsecrets/envsecrets/internal/events"
-	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 	"github.com/manifoldco/promptui"
@@ -52,14 +52,13 @@ var integrationType string
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "sync --env [your-remote-environment-name]",
+	Short: "Push your secrets to third-party services",
+	Long: `This command decrypts your secrets on client side
+and pushes them to the chosen third-party service that is activated on that environment.
+For example, Github Actions, AWS Secrets Manager, etc.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+You can activate your connected integrations on the "integrations" page of your dashboard.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
@@ -104,7 +103,7 @@ to quickly create a Cobra application.`,
 			Data: &kpMap,
 		}
 
-		options.IntegrationType = integrationCommons.IntegrationType(integrationType)
+		options.IntegrationType = integrations.Type(integrationType)
 
 		//	Fetch the list of events with their respective type of integrations.
 		if options.IntegrationType == "" {
@@ -115,7 +114,7 @@ to quickly create a Cobra application.`,
 				log.Fatal("failed to fetch active integrations for your environment")
 			}
 
-			var types []integrationCommons.IntegrationType
+			var types []integrations.Type
 			for _, item := range *events {
 				types = append(types, item.Integration.Type)
 			}

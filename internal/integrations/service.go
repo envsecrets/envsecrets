@@ -22,25 +22,64 @@ import (
 )
 
 type Service interface {
-	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Integration, error)
-	List(context.ServiceContext, *clients.GQLClient, *commons.ListIntegrationFilters) (*commons.Integrations, error)
-	ListEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, map[string]interface{}) (interface{}, error)
-	ListSubEntities(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, string, url.Values) (interface{}, error)
-	Setup(context.ServiceContext, *clients.GQLClient, commons.IntegrationType, *commons.SetupOptions) (*commons.Integration, error)
-	Sync(context.ServiceContext, *clients.GQLClient, *commons.SyncOptions) error
+	Get(context.ServiceContext, *clients.GQLClient, string) (*Integration, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListIntegrationFilters) (*Integrations, error)
+	ListEntities(context.ServiceContext, *clients.GQLClient, Type, string, map[string]interface{}) (interface{}, error)
+	ListSubEntities(context.ServiceContext, *clients.GQLClient, Type, string, url.Values) (interface{}, error)
+	Setup(context.ServiceContext, *clients.GQLClient, Type, *SetupOptions) (*Integration, error)
+	Sync(context.ServiceContext, *clients.GQLClient, *SyncOptions) error
 }
 
-type DefaultIntegrationService struct{}
+type DefaultService struct{}
 
-func (*DefaultIntegrationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, error) {
-	return graphql.Get(ctx, client, id)
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Integration, error) {
+
+	result, err := graphql.Get(ctx, client, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Integration{
+		ID:             result.ID,
+		OrgID:          result.OrgID,
+		InstallationID: result.InstallationID,
+		Type:           Type(result.Type),
+		Credentials:    result.Credentials,
+		CreatedAt:      result.CreatedAt,
+		UpdatedAt:      result.UpdatedAt,
+		UserID:         result.UserID,
+	}, nil
 }
 
-func (*DefaultIntegrationService) List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListIntegrationFilters) (*commons.Integrations, error) {
-	return graphql.List(ctx, client, options)
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListIntegrationFilters) (*Integrations, error) {
+
+	var integrations Integrations
+
+	result, err := graphql.List(ctx, client, &graphql.ListIntegrationFilters{
+		OrgID: options.OrgID,
+		Type:  string(options.Type),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range result {
+		integrations = append(integrations, Integration{
+			ID:             item.ID,
+			OrgID:          item.OrgID,
+			InstallationID: item.InstallationID,
+			Type:           Type(item.Type),
+			Credentials:    item.Credentials,
+			CreatedAt:      item.CreatedAt,
+			UpdatedAt:      item.UpdatedAt,
+			UserID:         item.UserID,
+		})
+	}
+
+	return &integrations, nil
 }
 
-func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, options map[string]interface{}) (interface{}, error) {
+func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, integrationID string, options map[string]interface{}) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -67,37 +106,40 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 	}
 
 	switch integrationType {
-	case commons.Github:
-		return github.ListEntities(ctx, integration)
-	case commons.Gitlab:
-		return gitlab.ListEntities(ctx, &gitlab.ListOptions{
-			Credentials: credentials,
-			Type:        gitlab.EntityType(options["type"].(string)),
-			Integration: integration,
+	case Github:
+		return github.ListEntities(ctx, &github.ListOptions{
+			InstallationID: integration.InstallationID,
 		})
-	case commons.Vercel:
+	case Gitlab:
+		return gitlab.ListEntities(ctx, &gitlab.ListOptions{
+			Credentials:   credentials,
+			Type:          gitlab.EntityType(options["type"].(string)),
+			OrgID:         integration.OrgID,
+			IntegrationID: integration.ID,
+		})
+	case Vercel:
 		return vercel.ListEntities(ctx, &vercel.ListOptions{
 			Credentials: credentials,
 		})
-	case commons.Supabase:
+	case Supabase:
 		return supabase.ListEntities(ctx, &supabase.ListOptions{
 			Credentials: credentials,
 		})
-	case commons.Netlify:
+	case Netlify:
 		return netlify.ListEntities(ctx, &netlify.ListOptions{
 			Credentials: credentials,
 		})
-	case commons.ASM:
+	case ASM:
 		return asm.ListEntities(ctx, &asm.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
-	case commons.GSM:
+	case GSM:
 		return gsm.ListEntities(ctx, &gsm.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
-	case commons.CircleCI:
+	case CircleCI:
 		return circleci.ListEntities(ctx, &circleci.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
@@ -106,7 +148,8 @@ func (*DefaultIntegrationService) ListEntities(ctx context.ServiceContext, clien
 		return nil, errors.New("invalid integration type")
 	}
 }
-func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, integrationID string, params url.Values) (interface{}, error) {
+
+func (*DefaultService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, integrationID string, params url.Values) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -133,7 +176,7 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 	}
 
 	switch integrationType {
-	case commons.CircleCI:
+	case CircleCI:
 		return circleci.ListSubEntities(ctx, &circleci.ListOptions{
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
@@ -144,68 +187,108 @@ func (*DefaultIntegrationService) ListSubEntities(ctx context.ServiceContext, cl
 	}
 }
 
-func (*DefaultIntegrationService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType commons.IntegrationType, options *commons.SetupOptions) (*commons.Integration, error) {
+func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, options *SetupOptions) (*Integration, error) {
 
+	//	Initialize the options to insert a new row of our integration in database.
+	var data struct {
+		InstallationID string
+		Credentials    map[string]interface{}
+	}
+
+	//	Prepare the connection credentials to be saved in our database.
 	switch integrationType {
-	case commons.Github:
-		return github.Setup(ctx, client, &github.SetupOptions{
-			InstallationID: fmt.Sprint(options.Options["installation_id"]),
-			SetupAction:    fmt.Sprint(options.Options["setup_action"]),
-			State:          fmt.Sprint(options.Options["state"]),
-			OrgID:          options.OrgID,
+	case Github:
+
+		data.InstallationID = fmt.Sprint(options.Options["installation_id"])
+
+	case Netlify:
+
+		data.Credentials = map[string]interface{}{
+			"token": fmt.Sprint(options.Options["token"]),
+		}
+
+	case Gitlab:
+
+		credentials, err := gitlab.PrepareCredentials(ctx, &gitlab.PrepareCredentialsOptions{
+			Code: fmt.Sprint(options.Options["code"]),
 		})
-	case commons.Netlify:
-		return netlify.Setup(ctx, client, &netlify.SetupOptions{
-			Token: fmt.Sprint(options.Options["token"]),
-			OrgID: options.OrgID,
+		if err != nil {
+			return nil, err
+		}
+
+		data.Credentials = credentials
+
+	case Vercel:
+
+		credentials, err := vercel.PrepareCredentials(ctx, &vercel.PrepareCredentialsOptions{
+			Code: fmt.Sprint(options.Options["code"]),
 		})
-	case commons.Gitlab:
-		return gitlab.Setup(ctx, client, &gitlab.SetupOptions{
-			Code:  fmt.Sprint(options.Options["code"]),
-			OrgID: options.OrgID,
-		})
-	case commons.Vercel:
-		return vercel.Setup(ctx, client, &vercel.SetupOptions{
-			ConfigurationID: fmt.Sprint(options.Options["configurationId"]),
-			Next:            fmt.Sprint(options.Options["next"]),
-			Source:          fmt.Sprint(options.Options["source"]),
-			Code:            fmt.Sprint(options.Options["code"]),
-			State:           fmt.Sprint(options.Options["state"]),
-			OrgID:           options.OrgID,
-		})
-	case commons.ASM:
-		return asm.Setup(ctx, client, &asm.SetupOptions{
-			Region:  fmt.Sprint(options.Options["region"]),
-			RoleARN: fmt.Sprint(options.Options["role_arn"]),
-			OrgID:   options.OrgID,
-		})
-	case commons.GSM:
+		if err != nil {
+			return nil, err
+		}
+
+		data.Credentials = credentials
+
+	case ASM:
+
+		data.Credentials = map[string]interface{}{
+			"role_arn": fmt.Sprint(options.Options["role_arn"]),
+			"region":   fmt.Sprint(options.Options["region"]),
+		}
+
+	case GSM:
 
 		var keys map[string]interface{}
 		if err := json.Unmarshal([]byte(options.Options["keys"].(string)), &keys); err != nil {
 			return nil, err
 		}
 
-		return gsm.Setup(ctx, client, &gsm.SetupOptions{
-			Keys:  keys,
-			OrgID: options.OrgID,
-		})
-	case commons.CircleCI:
-		return circleci.Setup(ctx, client, &circleci.SetupOptions{
-			Token: fmt.Sprint(options.Options["token"]),
-			OrgID: options.OrgID,
-		})
-	case commons.Supabase:
-		return supabase.Setup(ctx, client, &supabase.SetupOptions{
-			Token: fmt.Sprint(options.Options["token"]),
-			OrgID: options.OrgID,
-		})
+		data.Credentials = keys
+
+	case CircleCI:
+
+		data.Credentials = map[string]interface{}{
+			"token": fmt.Sprint(options.Options["token"]),
+		}
+
+	case Supabase:
+
+		data.Credentials = map[string]interface{}{
+			"token": fmt.Sprint(options.Options["token"]),
+		}
+
+	default:
+		return nil, errors.New("unsupported integration type")
 	}
 
-	return nil, errors.New("invalid integration type")
+	addOptions := graphql.AddIntegrationOptions{
+		OrgID:          options.OrgID,
+		InstallationID: data.InstallationID,
+		Type:           string(integrationType),
+	}
+
+	//	Encrypt the credentials
+	if data.Credentials != nil {
+		credentials, err := commons.EncryptCredentials(ctx, options.OrgID, data.Credentials)
+		if err != nil {
+			return nil, err
+		}
+
+		addOptions.Credentials = base64.StdEncoding.EncodeToString(credentials)
+	}
+
+	//	Create a new record in Hasura.
+	result, err := graphql.Insert(ctx, client, &addOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Integration{
+		ID: result.ID,
+	}, nil
 }
 
-func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) error {
+func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
 
 	//	Get the integration to which this event belong to.
 	integration, err := graphql.Get(ctx, client, options.IntegrationID)
@@ -231,14 +314,14 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 		}
 	}
 
-	switch integration.Type {
-	case commons.Github:
+	switch Type(integration.Type) {
+	case Github:
 		return github.Sync(ctx, &github.SyncOptions{
 			InstallationID: integration.InstallationID,
 			EntityDetails:  options.EntityDetails,
 			Data:           options.Data,
 		})
-	case commons.Gitlab:
+	case Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
@@ -246,37 +329,37 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 			IntegrationID: options.IntegrationID,
 			OrgID:         integration.OrgID,
 		})
-	case commons.Vercel:
+	case Vercel:
 		return vercel.Sync(ctx, &vercel.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
-	case commons.CircleCI:
+	case CircleCI:
 		return circleci.Sync(ctx, &circleci.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
-	case commons.Supabase:
+	case Supabase:
 		return supabase.Sync(ctx, &supabase.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
-	case commons.Netlify:
+	case Netlify:
 		return netlify.Sync(ctx, &netlify.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
-	case commons.GSM:
+	case GSM:
 		return gsm.Sync(ctx, &gsm.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
-	case commons.ASM:
+	case ASM:
 		resp, err := asm.Sync(ctx, &asm.SyncOptions{
 			OrgID:         integration.OrgID,
 			Data:          options.Data,
@@ -297,7 +380,7 @@ func (*DefaultIntegrationService) Sync(ctx context.ServiceContext, client *clien
 					clients.XHasuraAdminSecretHeader,
 				},
 			})
-			return graphql.UpdateDetails(ctx, gqlClient, &commons.UpdateDetailsOptions{
+			return graphql.UpdateDetails(ctx, gqlClient, &graphql.UpdateDetailsOptions{
 				ID:            options.EventID,
 				EntityDetails: options.EntityDetails,
 			})

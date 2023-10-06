@@ -2,7 +2,6 @@ package vercel
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,14 +11,9 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
-// ---	Flow ---
-// 1. Exchange the `code` received from Vercel for an access token: https://api.vercel.com/v2/oauth/access_token
-// 2. Save the `access_token` and `installation_id` in Hasura.
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
+func PrepareCredentials(ctx context.ServiceContext, options *PrepareCredentialsOptions) (map[string]interface{}, error) {
 
 	//	Initialize a new HTTP client for Vercel.
 	httpClient := clients.NewHTTPClient(&clients.HTTPConfig{
@@ -48,24 +42,12 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 		return nil, err
 	}
 
-	//	Encrypt the credentials
-	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
+	return map[string]interface{}{
 		"token_type":   response.TokenType,
 		"access_token": response.AccessToken,
 		"user_id":      response.UserID,
 		"team_id":      response.TeamID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	Create a new record in Hasura.
-	return graphql.Insert(ctx, gqlClient, &commons.AddIntegrationOptions{
-		OrgID:          options.OrgID,
-		InstallationID: response.InstallationID,
-		Type:           commons.Vercel,
-		Credentials:    base64.StdEncoding.EncodeToString(credentials),
-	})
+	}, nil
 }
 
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {

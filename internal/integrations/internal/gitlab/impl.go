@@ -1,7 +1,6 @@
 package gitlab
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -9,14 +8,10 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
-// ---	Flow ---
-// 1. Exchange the `code` received from Vercel for an access token.
-// 2. Save the `refresh_token` as credentials in Hasura.
-func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
+// Prepares credentials to be saved in the database.
+func PrepareCredentials(ctx context.ServiceContext, options *PrepareCredentialsOptions) (map[string]interface{}, error) {
 
 	//	Exchange the code for Access Token
 	response, err := GetAccessToken(ctx, &TokenRequestOptions{
@@ -27,21 +22,10 @@ func Setup(ctx context.ServiceContext, gqlClient *clients.GQLClient, options *Se
 		return nil, err
 	}
 
-	//	Encrypt the credentials
-	credentials, err := commons.EncryptCredentials(ctx, options.OrgID, map[string]interface{}{
+	return map[string]interface{}{
 		"token_type":    response.TokenType,
 		"refresh_token": response.RefreshToken,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	//	Create a new record in Hasura.
-	return graphql.Insert(ctx, gqlClient, &commons.AddIntegrationOptions{
-		OrgID:       options.OrgID,
-		Type:        commons.Gitlab,
-		Credentials: base64.StdEncoding.EncodeToString(credentials),
-	})
+	}, nil
 }
 
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
@@ -49,8 +33,8 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	//	Refresh access token
 	access, err := RefreshToken(ctx, &TokenRefreshOptions{
 		RefreshToken:  options.Credentials["refresh_token"].(string),
-		OrgID:         options.Integration.OrgID,
-		IntegrationID: options.Integration.ID,
+		OrgID:         options.OrgID,
+		IntegrationID: options.IntegrationID,
 	})
 	if err != nil {
 		return nil, err

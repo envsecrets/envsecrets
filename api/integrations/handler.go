@@ -9,21 +9,21 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/labstack/echo/v4"
 )
 
 func SetupCallbackHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	integration_type := c.Param(commons.INTEGRATION_TYPE)
-	serviceType := commons.IntegrationType(integration_type)
+	integration_type := c.Param(INTEGRATION_TYPE)
+	serviceType := integrations.Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
 
 	//	Get the service.
-	service := GetService()
+	service := integrations.GetService()
 
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
@@ -60,12 +60,11 @@ func SetupCallbackHandler(c echo.Context) error {
 	}
 
 	//	Run the service handler.
-	_, err := service.Setup(ctx, client, serviceType, &commons.SetupOptions{
+	_, err := service.Setup(ctx, client, serviceType, &integrations.SetupOptions{
 		OrgID:   orgID,
 		Options: options,
 	})
 	if err != nil {
-		fmt.Println("integration error", err)
 		return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s/integrations/catalog?setup_action=install&setup_status=failed&integration_type=%s", os.Getenv("FE_URL"), integration_type))
 	}
 
@@ -76,14 +75,14 @@ func SetupCallbackHandler(c echo.Context) error {
 func SetupHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	integration_type := c.Param(commons.INTEGRATION_TYPE)
-	serviceType := commons.IntegrationType(integration_type)
+	integration_type := c.Param(INTEGRATION_TYPE)
+	serviceType := integrations.Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
 
 	//	Unmarshal the incoming payload
-	var payload commons.SetupOptions
+	var payload integrations.SetupOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -91,7 +90,7 @@ func SetupHandler(c echo.Context) error {
 	}
 
 	//	Get the service.
-	service := GetService()
+	service := integrations.GetService()
 
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
@@ -119,14 +118,14 @@ func SetupHandler(c echo.Context) error {
 func ListEntitiesHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	integration_type := c.Param(commons.INTEGRATION_TYPE)
-	serviceType := commons.IntegrationType(integration_type)
+	integration_type := c.Param(INTEGRATION_TYPE)
+	serviceType := integrations.Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
 
 	//	Get the service.
-	service := GetService()
+	service := integrations.GetService()
 
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
@@ -144,7 +143,7 @@ func ListEntitiesHandler(c echo.Context) error {
 	}
 
 	//	Run the service handler.
-	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID), options)
+	entities, err := service.ListEntities(ctx, client, serviceType, c.Param(INTEGRATION_ID), options)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to fetch integration entities",
@@ -161,14 +160,14 @@ func ListEntitiesHandler(c echo.Context) error {
 func ListSubEntitiesHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	integration_type := c.Param(commons.INTEGRATION_TYPE)
-	serviceType := commons.IntegrationType(integration_type)
+	integration_type := c.Param(INTEGRATION_TYPE)
+	serviceType := integrations.Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
 
 	//	Get the service.
-	service := GetService()
+	service := integrations.GetService()
 
 	//	Initialize a new default context
 	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
@@ -180,7 +179,7 @@ func ListSubEntitiesHandler(c echo.Context) error {
 	})
 
 	//	Run the service handler.
-	entities, err := service.ListSubEntities(ctx, client, serviceType, c.Param(commons.INTEGRATION_ID), c.QueryParams())
+	entities, err := service.ListSubEntities(ctx, client, serviceType, c.Param(INTEGRATION_ID), c.QueryParams())
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to fetch integration subentities",

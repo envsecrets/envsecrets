@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/envsecrets/envsecrets/api/integrations"
 	"github.com/envsecrets/envsecrets/internal/actions"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/events"
-	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/middlewares"
