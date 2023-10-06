@@ -7,7 +7,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/events"
-	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/machinebox/graphql"
 )
@@ -224,7 +223,7 @@ func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) er
 // This function assumed that the secrets being supplied are already decrypted.
 func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
 
-	var eventList *eventCommons.Events
+	var eventList *events.Events
 	var err error
 	if options.IntegrationType != "" {
 		eventList, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)

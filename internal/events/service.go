@@ -5,13 +5,12 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 
 	"github.com/machinebox/graphql"
 )
 
-func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_id string) (*commons.Events, error) {
+func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_id string) (*Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($secret_id: uuid!) {
@@ -42,7 +41,7 @@ func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_i
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Events
+	var resp Events
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -50,7 +49,7 @@ func GetBySecret(ctx context.ServiceContext, client *clients.GQLClient, secret_i
 	return &resp, nil
 }
 
-func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*commons.Events, error) {
+func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -78,7 +77,7 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Events
+	var resp Events
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	return &resp, nil
 }
 
-func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clients.GQLClient, env_id string, integration_type integrations.Type) (*commons.Events, error) {
+func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clients.GQLClient, env_id string, integration_type integrations.Type) (*Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $integration_type: String!) {
@@ -114,7 +113,7 @@ func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clie
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Events
+	var resp Events
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -122,7 +121,7 @@ func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clie
 	return &resp, nil
 }
 
-func GetByIntegration(ctx context.ServiceContext, client *clients.GQLClient, integration_id string) (*commons.Events, error) {
+func GetByIntegration(ctx context.ServiceContext, client *clients.GQLClient, integration_id string) (*Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($integration_id: uuid!) {
@@ -149,7 +148,7 @@ func GetByIntegration(ctx context.ServiceContext, client *clients.GQLClient, int
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Events
+	var resp Events
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}

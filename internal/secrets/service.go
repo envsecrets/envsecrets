@@ -8,7 +8,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/events"
-	eventCommons "github.com/envsecrets/envsecrets/internal/events/commons"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/graphql"
@@ -100,7 +99,7 @@ func Set(ctx context.ServiceContext, client *clients.GQLClient, options *commons
 
 func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SyncOptions) error {
 
-	var allEvents *eventCommons.Events
+	var allEvents *events.Events
 	var err error
 
 	// Fetch the integration event for the environment

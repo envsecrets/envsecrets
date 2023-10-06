@@ -6,7 +6,7 @@ import (
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/events/commons"
+	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,7 +21,7 @@ func ActionsGetHandler(c echo.Context) error {
 	}
 
 	//	Extract the arguments out of action payload.
-	var inputs commons.ActionsGetOptions
+	var inputs events.ActionsGetOptions
 	if err := globalCommons.MapToStruct(payload.Input.Args, &inputs); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the inputs",
@@ -37,7 +37,7 @@ func ActionsGetHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
-	events, err := GetByEnvironment(ctx, client, inputs.EnvID)
+	events, err := events.GetByEnvironment(ctx, client, inputs.EnvID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to get the events",
