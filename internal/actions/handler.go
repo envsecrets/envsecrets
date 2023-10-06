@@ -53,7 +53,7 @@ func EnvironmentCreate(c echo.Context) error {
 		})
 	}
 
-	activeSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: project.OrgID})
+	activeSubscriptions, err := subscriptions.GetService().List(ctx, client, &subscriptions.ListOptions{OrgID: project.OrgID})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to fetch the subscription details",

@@ -137,6 +137,9 @@ func CheckoutWebhook(c echo.Context) error {
 		},
 	})
 
+	//	Get the subscription service.
+	service := subscriptions.GetService()
+
 	// Handle the checkout.session.completed event
 	if event.Type == "checkout.session.completed" {
 
@@ -147,7 +150,7 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Insert a new subscription row.
-		if _, err := subscriptions.Create(ctx, client, &subscriptions.CreateOptions{
+		if _, err := service.Create(ctx, client, &subscriptions.CreateOptions{
 			OrgID:          session.ClientReferenceID,
 			SubscriptionID: session.Subscription.ID,
 		}); err != nil {
@@ -175,7 +178,7 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Fetch the subscription using ID
-		existingSubscription, err := subscriptions.GetBySubscriptionID(ctx, client, subscription.ID)
+		existingSubscription, err := service.GetBySubscriptionID(ctx, client, subscription.ID)
 		if err != nil {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("Error fetching subscription from envsecrets database: %v\n", err))
 		}
@@ -189,7 +192,7 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Update subscription status
-		if _, err := subscriptions.Update(ctx, client, existingSubscription.ID, &subscriptions.UpdateOptions{
+		if _, err := service.Update(ctx, client, existingSubscription.ID, &subscriptions.UpdateOptions{
 			Status: string(subscription.Status),
 		}); err != nil {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", "failed to update subscription status", err.Error()))
@@ -203,7 +206,7 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Delete the subscription from our database
-		if err := subscriptions.DeleteBySubscriptionID(ctx, client, subscription.ID); err != nil {
+		if err := service.DeleteBySubscriptionID(ctx, client, subscription.ID); err != nil {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("%s: %s", "failed to delete the subscription record from db", err.Error()))
 		}
 	}

@@ -251,7 +251,7 @@ func SecretDeleteLegacy(c echo.Context) error {
 	}
 
 	//	Get subscriptions for this organisation
-	orgSubscriptions, err := subscriptions.List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
+	orgSubscriptions, err := subscriptions.GetService().List(ctx, client, &subscriptions.ListOptions{OrgID: organisation.ID})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to get the subscriptions for this organisation",
