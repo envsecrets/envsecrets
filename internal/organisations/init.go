@@ -1,5 +1,5 @@
 package organisations
 
 func init() {
-	SetService(&DefaultOrganisationService{})
+	SetService(&DefaultService{})
 }

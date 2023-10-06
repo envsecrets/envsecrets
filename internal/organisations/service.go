@@ -16,9 +16,9 @@ type Service interface {
 	UpdateInviteLimit(context.ServiceContext, *clients.GQLClient, *UpdateInviteLimitOptions) error
 }
 
-type DefaultOrganisationService struct{}
+type DefaultService struct{}
 
-func (*DefaultOrganisationService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, error) {
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -42,7 +42,7 @@ func (*DefaultOrganisationService) Get(ctx context.ServiceContext, client *clien
 	return response.Organisation, nil
 }
 
-func (*DefaultOrganisationService) GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, error) {
+func (*DefaultService) GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env_id string) (*Organisation, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!) {
@@ -65,12 +65,13 @@ func (*DefaultOrganisationService) GetByEnvironment(ctx context.ServiceContext, 
 	return &response.Organisations[0], nil
 }
 
-func (*DefaultOrganisationService) List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery($env_id: uuid!) {
-		organisations(where: {projects: {environments: {id: {_eq: $env_id}}}}, limit: 1) {
+	query MyQuery {
+		organisations {
 		  id
+		  name
 		}
 	  }	   
 	`)
@@ -86,7 +87,7 @@ func (*DefaultOrganisationService) List(ctx context.ServiceContext, client *clie
 	return &response.Organisations, nil
 }
 
-func (*DefaultOrganisationService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, error) {
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, error) {
 
 	if options.UserID != "" {
 		return createWithUserID(ctx, client, options)
@@ -95,7 +96,7 @@ func (*DefaultOrganisationService) Create(ctx context.ServiceContext, client *cl
 	return create(ctx, client, options.Name)
 }
 
-func (*DefaultOrganisationService) UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) error {
+func (*DefaultService) UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) error {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $limit: Int!) {

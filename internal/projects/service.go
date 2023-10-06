@@ -62,18 +62,20 @@ func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLCli
 	req.Var("org_id", options.OrgID)
 
 	var response struct {
-		Returning []Project `json:"returning"`
+		Query struct {
+			Returning []Project `json:"returning"`
+		} `json:"insert_projects"`
 	}
 
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	if len(response.Returning) == 0 {
+	if len(response.Query.Returning) == 0 {
 		return nil, fmt.Errorf("no project created")
 	}
 
-	return &response.Returning[0], nil
+	return &response.Query.Returning[0], nil
 }
 
 // List projects
