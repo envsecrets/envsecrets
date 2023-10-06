@@ -11,7 +11,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 )
 
@@ -105,7 +104,7 @@ func (d *DefaultInviteService) Accept(ctx context.ServiceContext, client *client
 	}
 
 	//	Update the invite limit of the organisation.
-	if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisationCommons.UpdateInviteLimitOptions{
+	if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisations.UpdateInviteLimitOptions{
 		ID:               invite.OrgID,
 		IncrementLimitBy: -1,
 	}); err != nil {

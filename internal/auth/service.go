@@ -16,7 +16,6 @@ import (
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/nhost"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
@@ -166,7 +165,7 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	}
 
 	//	Create a new `default` organisation for the new user.
-	_, err = organisations.GetService().Create(ctx, client, &organisationCommons.CreateOptions{
+	_, err = organisations.GetService().Create(ctx, client, &organisations.CreateOptions{
 		Name:   fmt.Sprintf("%s's Org", strings.Split(options.Name, " ")[0]),
 		UserID: user.ID,
 	})

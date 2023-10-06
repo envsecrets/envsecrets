@@ -15,7 +15,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/roles"
@@ -341,7 +340,7 @@ func OrganisationCreated(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row organisationCommons.Organisation
+	var row organisations.Organisation
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",

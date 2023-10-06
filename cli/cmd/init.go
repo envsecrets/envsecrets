@@ -43,7 +43,6 @@ import (
 	projectConfig "github.com/envsecrets/envsecrets/cli/config/project"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -84,7 +83,7 @@ var initCmd = &cobra.Command{
 		//
 		//	Call APIs to pull existing entities
 		//
-		var organisation organisationCommons.Organisation
+		var organisation organisations.Organisation
 		var project projects.Project
 
 		//	All names entered by the user must be slugs.

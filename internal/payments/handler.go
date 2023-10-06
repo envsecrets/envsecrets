@@ -11,7 +11,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/payments/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	"github.com/envsecrets/envsecrets/internal/users"
@@ -184,7 +183,7 @@ func CheckoutWebhook(c echo.Context) error {
 		}
 
 		//	Update the invite limit for the organisation.
-		if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisationCommons.UpdateInviteLimitOptions{
+		if err := organisations.GetService().UpdateInviteLimit(ctx, client, &organisations.UpdateInviteLimitOptions{
 			ID:               existingSubscription.OrgID,
 			IncrementLimitBy: int(quantity),
 		}); err != nil {

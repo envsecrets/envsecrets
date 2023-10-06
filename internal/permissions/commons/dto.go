@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/envsecrets/envsecrets/internal/environments"
-	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
+	organisations "github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
@@ -45,8 +45,8 @@ type OrgnisationPermissions struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 
-	OrgID        string                           `json:"org_id,omitempty"`
-	Organisation organisationCommons.Organisation `json:"organisation,omitempty"`
+	OrgID        string                     `json:"org_id,omitempty"`
+	Organisation organisations.Organisation `json:"organisation,omitempty"`
 
 	User   userCommons.User `json:"user,omitempty"`
 	UserID string           `json:"user_id,omitempty"`
