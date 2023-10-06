@@ -104,8 +104,11 @@ func SyncWithPasswordHandler(c echo.Context) error {
 		})
 	}
 
+	//	Get the environments service.
+	service := environments.GetService()
+
 	//	Call the service function.
-	if err := environments.Sync(ctx, client, &environments.SyncOptions{
+	if err := service.Sync(ctx, client, &environments.SyncOptions{
 		EnvID:           envID,
 		IntegrationType: payload.IntegrationType,
 		Secrets:         &decrypted.Data,
@@ -158,8 +161,11 @@ func SyncHandler(c echo.Context) error {
 		})
 	}
 
+	//	Get the environments service.
+	service := environments.GetService()
+
 	//	Call the service function.
-	if err := environments.Sync(ctx, client, &environments.SyncOptions{
+	if err := service.Sync(ctx, client, &environments.SyncOptions{
 		EnvID:           envID,
 		Secrets:         payload.Data,
 		IntegrationType: payload.IntegrationType,

@@ -11,8 +11,21 @@ import (
 	"github.com/machinebox/graphql"
 )
 
+type Service interface {
+	Get(context.ServiceContext, *clients.GQLClient, string) (*Environment, error)
+	GetByNameAndProjectID(context.ServiceContext, *clients.GQLClient, string, string) (*Environment, error)
+	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Environment, error)
+	CreateWithUserID(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Environment, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Environment, error)
+	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Environment, error)
+	Delete(context.ServiceContext, *clients.GQLClient, string) error
+	Sync(context.ServiceContext, *clients.GQLClient, *SyncOptions) error
+}
+
+type DefaultService struct{}
+
 // Create a new environment
-func Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!) {
@@ -47,7 +60,7 @@ func Create(ctx context.ServiceContext, client *clients.GQLClient, options *Crea
 	return &resp[0], nil
 }
 
-func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
+func (*DefaultService) CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($name: String!, $project_id: uuid!, $user_id: uuid) {
@@ -86,7 +99,7 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 }
 
 // Get a environment by ID
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, error) {
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -119,7 +132,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Env
 }
 
 // Get a environment by ID
-func GetByNameAndProjectID(ctx context.ServiceContext, client *clients.GQLClient, name, project_id string) (*Environment, error) {
+func (*DefaultService) GetByNameAndProjectID(ctx context.ServiceContext, client *clients.GQLClient, name, project_id string) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($name: String!, $project_id: uuid!) {
@@ -148,7 +161,7 @@ func GetByNameAndProjectID(ctx context.ServiceContext, client *clients.GQLClient
 }
 
 // List environments
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -181,7 +194,7 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOp
 }
 
 // Update a environment by ID
-func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, error) {
+func (*DefaultService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) (*Environment, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($id: uuid!, $name: String!) {
@@ -215,13 +228,13 @@ func Update(ctx context.ServiceContext, client *clients.GQLClient, id string, op
 }
 
 // Delete a environment by ID
-func Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+func (*DefaultService) Delete(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 	return nil
 }
 
 // This function syncs the secrets of an environment with it's connected integrations.
 // This function assumed that the secrets being supplied are already decrypted.
-func Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
+func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
 
 	var eventList *events.Events
 	var err error

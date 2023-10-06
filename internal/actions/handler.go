@@ -75,8 +75,11 @@ func EnvironmentCreate(c echo.Context) error {
 		})
 	}
 
+	//	Get the environments service.
+	service := environments.GetService()
+
 	//	Create the environment
-	environment, err := environments.Create(ctx, client, &options)
+	environment, err := service.Create(ctx, client, &options)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to create the environment",

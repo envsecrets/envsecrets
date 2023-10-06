@@ -542,10 +542,13 @@ func ProjectInserted(c echo.Context) error {
 		},
 	})
 
+	//	Get the environments service.
+	service := environments.GetService()
+
 	//	Create default environments for this new project.
 	envs := []string{"dev", "test", "staging", "prod"}
 	for _, item := range envs {
-		if _, err := environments.CreateWithUserID(ctx, client, &environments.CreateOptions{
+		if _, err := service.CreateWithUserID(ctx, client, &environments.CreateOptions{
 			Name:      item,
 			ProjectID: row.ID,
 			UserID:    row.UserID,

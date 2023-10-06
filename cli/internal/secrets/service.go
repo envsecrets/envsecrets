@@ -25,8 +25,11 @@ func (d *DefaultService) Init(ctx context.ServiceContext, client *clients.GQLCli
 
 	if options != nil {
 
+		//	Get the environments service.
+		service := environments.GetService()
+
 		//	Fetch the ID of the environment first.
-		environment, err := environments.GetByNameAndProjectID(ctx, client, options.EnvironmentName, options.ProjectID)
+		environment, err := service.GetByNameAndProjectID(ctx, client, options.EnvironmentName, options.ProjectID)
 		if err != nil {
 			return nil, err
 		}

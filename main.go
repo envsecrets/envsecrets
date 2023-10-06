@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/envsecrets/envsecrets/api/environments"
+	"github.com/envsecrets/envsecrets/api/events"
 	"github.com/envsecrets/envsecrets/api/integrations"
 	"github.com/envsecrets/envsecrets/internal/actions"
 	"github.com/envsecrets/envsecrets/internal/auth"
-	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/middlewares"
