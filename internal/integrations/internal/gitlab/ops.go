@@ -233,7 +233,7 @@ func RefreshToken(ctx context.ServiceContext, options *TokenRefreshOptions) (*To
 			},
 		})
 
-		err = graphql.UpdateCredentials(ctx, client, &commons.UpdateCredentialsOptions{
+		err = graphql.UpdateCredentials(ctx, client, &graphql.UpdateCredentialsOptions{
 			ID:          options.IntegrationID,
 			Credentials: base64.StdEncoding.EncodeToString(credentials),
 		})

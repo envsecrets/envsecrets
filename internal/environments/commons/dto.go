@@ -1,10 +1,9 @@
 package commons
 
 import (
-	"encoding/json"
 	"time"
 
-	intergrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
@@ -15,14 +14,6 @@ type Environment struct {
 	Name      string    `json:"name,omitempty" graphql:"name,omitempty"`
 	ProjectID string    `json:"project_id,omitempty" graphql:"project_id"`
 	UserID    string    `json:"user_id"`
-}
-
-func (w *Environment) Marshal() ([]byte, error) {
-	return json.Marshal(&w)
-}
-
-func (w *Environment) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, &w)
 }
 
 type CreateOptions struct {
@@ -40,21 +31,21 @@ type ListOptions struct {
 }
 
 type SyncWithPasswordRequestOptions struct {
-	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
-	Password        string                              `json:"password" validate:"required"`
-	Version         *int                                `json:"version,omitempty"`
+	IntegrationType integrations.IntegrationType `json:"integration_type,omitempty"`
+	Password        string                       `json:"password" validate:"required"`
+	Version         *int                         `json:"version,omitempty"`
 
 	// Name of the secret to sync.
 	Key string `json:"key,omitempty"`
 }
 
 type SyncRequestOptions struct {
-	IntegrationType intergrationCommons.IntegrationType `json:"integration_type,omitempty"`
-	Data            *keypayload.KPMap                   `json:"data"`
+	IntegrationType integrations.IntegrationType `json:"integration_type,omitempty"`
+	Data            *keypayload.KPMap            `json:"data"`
 }
 
 type SyncOptions struct {
 	EnvID           string
-	IntegrationType intergrationCommons.IntegrationType
+	IntegrationType integrations.IntegrationType
 	Secrets         *keypayload.KPMap
 }

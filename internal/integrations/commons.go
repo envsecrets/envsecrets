@@ -1,4 +1,4 @@
-package commons
+package integrations
 
 type IntegrationType string
 

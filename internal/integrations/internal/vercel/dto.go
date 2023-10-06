@@ -11,6 +11,10 @@ type SetupOptions struct {
 	Code            string
 }
 
+type PrepareCredentialsOptions struct {
+	Code string
+}
+
 type CodeExchangeResponse struct {
 	TokenType      string `json:"token_type"`
 	AccessToken    string `json:"access_token"`

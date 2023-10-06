@@ -1,4 +1,4 @@
-package commons
+package integrations
 
 import (
 	"time"
@@ -99,31 +99,9 @@ func (i *Integration) GetDescription() string {
 
 type Integrations []Integration
 
-type AddIntegrationOptions struct {
-
-	//	Global
-	OrgID          string          `json:"org_id"`
-	InstallationID string          `json:"installation_id"`
-	Type           IntegrationType `json:"type"`
-
-	//	Especially for Vercel
-	Credentials string                 `json:"credentials,omitempty"`
-	Scope       map[string]interface{} `json:"scope,omitempty"`
-}
-
 type ListIntegrationFilters struct {
 	OrgID string          `json:"org_id"`
 	Type  IntegrationType `json:"type"`
-}
-
-type UpdateDetailsOptions struct {
-	ID            string                 `json:"id"`
-	EntityDetails map[string]interface{} `json:"entity_details"`
-}
-
-type UpdateCredentialsOptions struct {
-	ID          string `json:"id"`
-	Credentials string `json:"credentials"`
 }
 
 type Entity struct {
@@ -137,6 +115,7 @@ type Entity struct {
 }
 
 type Entities []Entity
+
 type ListEntitiesRequest struct {
 	OrgID string          `json:"org_id"`
 	Type  IntegrationType `json:"type"`

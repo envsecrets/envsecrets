@@ -12,24 +12,12 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
-	"github.com/envsecrets/envsecrets/internal/integrations/graphql"
 )
 
-func Setup(ctx context.ServiceContext, client *clients.GQLClient, options *SetupOptions) (*commons.Integration, error) {
-
-	//	Create a new record in Hasura.
-	return graphql.Insert(ctx, client, &commons.AddIntegrationOptions{
-		OrgID:          options.OrgID,
-		InstallationID: options.InstallationID,
-		Type:           commons.Github,
-	})
-}
-
-func ListEntities(ctx context.ServiceContext, integration *commons.Integration) (interface{}, error) {
+func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Get installation's access token
-	auth, err := GetInstallationAccessToken(ctx, integration.InstallationID)
+	auth, err := GetInstallationAccessToken(ctx, options.InstallationID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +99,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 				//	Github Responses:
 				//	201 -> New secret created
 				//	204 -> Existing secret updated
-				if response.StatusCode != 201 && response.StatusCode != 204 {
+				if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusNoContent {
 					return errors.New("failed to push secret to github repo")
 				}
 				return nil
@@ -130,7 +118,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 				//	Github Responses:
 				//	201 (Created) -> New variable created
 				//	409 (Conflict) -> Variable exists
-				if response.StatusCode == 409 {
+				if response.StatusCode == http.StatusConflict {
 
 					//	Delete the variable and recreate it.
 					if err := deleteRepositoryVariable(ctx, client, slug, key); err != nil {

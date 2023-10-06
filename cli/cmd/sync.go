@@ -41,7 +41,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
 	"github.com/envsecrets/envsecrets/internal/events"
-	integrationCommons "github.com/envsecrets/envsecrets/internal/integrations/commons"
+	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
 	"github.com/manifoldco/promptui"
@@ -104,7 +104,7 @@ to quickly create a Cobra application.`,
 			Data: &kpMap,
 		}
 
-		options.IntegrationType = integrationCommons.IntegrationType(integrationType)
+		options.IntegrationType = integrations.IntegrationType(integrationType)
 
 		//	Fetch the list of events with their respective type of integrations.
 		if options.IntegrationType == "" {
@@ -115,7 +115,7 @@ to quickly create a Cobra application.`,
 				log.Fatal("failed to fetch active integrations for your environment")
 			}
 
-			var types []integrationCommons.IntegrationType
+			var types []integrations.IntegrationType
 			for _, item := range *events {
 				types = append(types, item.Integration.Type)
 			}

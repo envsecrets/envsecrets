@@ -7,11 +7,10 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *commons.AddIntegrationOptions) (*commons.Integration, error) {
+func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *AddIntegrationOptions) (*Integration, error) {
 
 	req := graphql.NewRequest(`
 	mutation MyMutation($org_id: uuid!, $installation_id: String, $type: String!, $credentials: String) {
@@ -46,7 +45,7 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []commons.Integration
+	var resp []Integration
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -54,7 +53,7 @@ func Insert(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return &resp[0], nil
 }
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Integration, error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Integration, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -82,7 +81,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Integration
+	var resp Integration
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -90,7 +89,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	return &resp, nil
 }
 
-func List(ctx context.ServiceContext, client *clients.GQLClient, options *commons.ListIntegrationFilters) (*commons.Integrations, error) {
+func List(ctx context.ServiceContext, client *clients.GQLClient, options *ListIntegrationFilters) ([]Integration, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($org_id: uuid!, $type: String!) {
@@ -116,15 +115,15 @@ func List(ctx context.ServiceContext, client *clients.GQLClient, options *common
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp commons.Integrations
+	var resp []Integration
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
 
-	return &resp, nil
+	return resp, nil
 }
 
-func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateDetailsOptions) error {
+func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateDetailsOptions) error {
 
 	errorMessage := "Failed to update entity details"
 
@@ -154,7 +153,7 @@ func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, option
 	return nil
 }
 
-func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateCredentialsOptions) error {
+func UpdateCredentials(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateCredentialsOptions) error {
 
 	errorMessage := "Failed to update integration credentials"
 

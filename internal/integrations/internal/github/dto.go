@@ -1,9 +1,6 @@
 package github
 
 import (
-	"fmt"
-
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
@@ -54,13 +51,6 @@ type Repository struct {
 	} `json:"owner"`
 }
 
-func (r *Repository) ToEntity() *commons.Entity {
-	return &commons.Entity{
-		ID:         fmt.Sprint(r.ID),
-		Slug:       r.FullName,
-		URL:        r.HTMLURL,
-		Type:       commons.Github,
-		Name:       r.Name,
-		ParentName: r.Owner.Login,
-	}
+type ListOptions struct {
+	InstallationID string
 }
