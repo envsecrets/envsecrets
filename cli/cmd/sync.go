@@ -52,14 +52,13 @@ var integrationType string
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "sync --env [your-remote-environment-name]",
+	Short: "Push your secrets to third-party services",
+	Long: `This command decrypts your secrets on client side
+and pushes them to the chosen third-party service that is activated on that environment.
+For example, Github Actions, AWS Secrets Manager, etc.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+You can activate your connected integrations on the "integrations" page of your dashboard.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
