@@ -6,7 +6,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/invites/commons"
+	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/golang-jwt/jwt/v4"
@@ -16,7 +16,7 @@ import (
 func AcceptHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.AcceptRequestOptions
+	var payload AcceptOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -34,7 +34,7 @@ func AcceptHandler(c echo.Context) error {
 	})
 
 	//	Call the service function.
-	if err := GetService().Accept(ctx, client, payload.ID); err != nil {
+	if err := invites.GetService().Accept(ctx, client, payload.ID); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to accept the invite",
 			Error:   err.Error(),
@@ -55,7 +55,7 @@ func AcceptHandler(c echo.Context) error {
 func SendHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.SendRequestOptions
+	var payload SendOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -89,7 +89,7 @@ func SendHandler(c echo.Context) error {
 	}
 
 	//	Call the service function.
-	if err := GetService().Send(ctx, client, &commons.SendOptions{
+	if err := invites.GetService().Send(ctx, client, &invites.SendOptions{
 		OrgID:        payload.OrgID,
 		RoleID:       payload.RoleID,
 		InviteeEmail: payload.InviteeEmail,

@@ -3,10 +3,10 @@ package graphql
 import "time"
 
 type Integration struct {
-	ID             string    `json:"id,omitempty" graphql:"id,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty" graphql:"created_at,omitempty"`
-	UpdatedAt      time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
-	UserID         string    `json:"user_id,omitempty" graphql:"user_id,omitempty"`
+	ID             string    `json:"id,omitempty"`
+	CreatedAt      time.Time `json:"created_at,omitempty"`
+	UpdatedAt      time.Time `json:"updated_at,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
 	OrgID          string    `json:"org_id"`
 	InstallationID string    `json:"installation_id"`
 	Type           string    `json:"type"`

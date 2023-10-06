@@ -39,7 +39,7 @@ func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient
 	req.Var("id", id)
 
 	var response struct {
-		Subscription Subscription `graphql:"subscriptions_by_pk"`
+		Subscription Subscription `json:"subscriptions_by_pk"`
 	}
 
 	return &response.Subscription, nil
@@ -97,8 +97,8 @@ func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLCli
 
 	var response struct {
 		Query struct {
-			Returning []Subscription `graphql:"returning"`
-		} `graphql:"insert_subscriptions"`
+			Returning []Subscription `json:"returning"`
+		} `json:"insert_subscriptions"`
 	}
 
 	if err := client.Do(ctx, req, &response); err != nil {

@@ -8,11 +8,11 @@ import (
 )
 
 type Environment struct {
-	ID        string    `json:"id,omitempty" graphql:"id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty" graphql:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at,omitempty"`
-	Name      string    `json:"name,omitempty" graphql:"name,omitempty"`
-	ProjectID string    `json:"project_id,omitempty" graphql:"project_id"`
+	ID        string    `json:"id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	ProjectID string    `json:"project_id,omitempty"`
 	UserID    string    `json:"user_id"`
 }
 

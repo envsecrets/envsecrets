@@ -1,7 +1,6 @@
-package commons
+package invites
 
 import (
-	"encoding/json"
 	"time"
 
 	organisations "github.com/envsecrets/envsecrets/internal/organisations"
@@ -25,30 +24,18 @@ type Invite struct {
 	Accepted bool `json:"accepted,omitempty"`
 }
 
-func (w *Invite) Marshal() ([]byte, error) {
-	return json.Marshal(&w)
-}
-
-func (w *Invite) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, &w)
-}
-
 type CreateOptions struct {
-	OrgID         string `json:"org_id,omitempty" graphql:"org_id,omitempty"`
-	Scope         string `json:"scope,omitempty" graphql:"scope"`
-	ReceiverEmail string `json:"receiver_email,omitempty" graphql:"receiver_email"`
+	OrgID         string `json:"org_id,omitempty"`
+	Scope         string `json:"scope,omitempty"`
+	ReceiverEmail string `json:"receiver_email,omitempty"`
 }
 
 type ListOptions struct {
-	//	OrgID          string                     `json:"org_id,omitempty" graphql:"org_id"`
-	Accepted bool `json:"accepted,omitempty" graphql:"accepted"`
+	//	OrgID          string                     `json:"org_id,omitempty"`
+	Accepted bool `json:"accepted,omitempty"`
 }
 
 type CreateResponse struct {
-	ID string `json:"id,omitempty" graphql:"id,omitempty"`
-}
-
-type AcceptRequestOptions struct {
 	ID string `json:"id,omitempty"`
 }
 
@@ -58,13 +45,6 @@ type UpdateOptions struct {
 
 type SetUpdateOptions struct {
 	Accepted bool `json:"accepted,omitempty"`
-}
-
-type SendRequestOptions struct {
-	OrgID           string `json:"org_id,omitempty"`
-	RoleID          string `json:"role_id,omitempty"`
-	InviteeEmail    string `json:"invitee_email,omitempty"`
-	InviterPassword string `json:"inviter_password,omitempty"`
 }
 
 type SendOptions struct {

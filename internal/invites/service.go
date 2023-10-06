@@ -2,32 +2,56 @@ package invites
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/invites/commons"
-	"github.com/envsecrets/envsecrets/internal/invites/graphql"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/users"
+	"github.com/machinebox/graphql"
 )
 
 type Service interface {
-	Get(context.ServiceContext, *clients.GQLClient, string) (*commons.Invite, error)
-	Send(context.ServiceContext, *clients.GQLClient, *commons.SendOptions) error
+	Get(context.ServiceContext, *clients.GQLClient, string) (*Invite, error)
+	Send(context.ServiceContext, *clients.GQLClient, *SendOptions) error
 	Accept(context.ServiceContext, *clients.GQLClient, string) error
-	Update(context.ServiceContext, *clients.GQLClient, string, *commons.UpdateOptions) error
+	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) error
 }
 
-type DefaultInviteService struct{}
+type DefaultService struct{}
 
-func (*DefaultInviteService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.Invite, error) {
-	return graphql.Get(ctx, client, id)
+func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Invite, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		invites_by_pk(id: $id) {
+			id
+			key
+			org_id
+			role_id
+			email
+			accepted
+		}
+	  }	  
+	`)
+
+	req.Var("id", id)
+
+	var response struct {
+		Invite Invite `json:"invites_by_pk"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response.Invite, nil
 }
 
-func (*DefaultInviteService) Send(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SendOptions) error {
+func (*DefaultService) Send(ctx context.ServiceContext, client *clients.GQLClient, options *SendOptions) error {
 
 	//	Add the admin header to graphql client to be able to fetch the invitee's public key.
 	client.Headers = append(client.Headers, clients.XHasuraAdminSecretHeader)
@@ -46,7 +70,16 @@ func (*DefaultInviteService) Send(ctx context.ServiceContext, client *clients.GQ
 		return err
 	}
 
-	return graphql.Insert(ctx, client, []commons.InsertOptions{
+	//	Insert the invite.
+	req := graphql.NewRequest(`
+	mutation MyMutation($objects: [invites_insert_input!]!) {
+		insert_invites(objects: $objects) {
+		  affected_rows
+		}
+	  }			
+	`)
+
+	req.Var("objects", []InsertOptions{
 		{
 			Key:    base64.StdEncoding.EncodeToString(inviteeKeyCopy),
 			OrgID:  options.OrgID,
@@ -55,6 +88,23 @@ func (*DefaultInviteService) Send(ctx context.ServiceContext, client *clients.GQ
 			UserID: options.InviterID,
 		},
 	})
+
+	var response struct {
+		Query struct {
+			AffectedRows int `json:"affected_rows"`
+		} `json:"insert_invites"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	//	Validate the mutation as been written to the database
+	if response.Query.AffectedRows == 0 {
+		return errors.New("no rows affected")
+	}
+
+	return nil
 }
 
 // ---	Flow ---
@@ -62,10 +112,10 @@ func (*DefaultInviteService) Send(ctx context.ServiceContext, client *clients.GQ
 // 2. Copy the encrypted key copy from the invite row.
 // 3. Insert new membership in the organisation for the invitee, their key copy and the assigned role from invite row.
 // 4. Mark the invite accepted.
-func (d *DefaultInviteService) Accept(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
+func (d *DefaultService) Accept(ctx context.ServiceContext, client *clients.GQLClient, id string) error {
 
 	//	Get the invite
-	invite, err := graphql.Get(ctx, client, id)
+	invite, err := d.Get(ctx, client, id)
 	if err != nil {
 		return err
 	}
@@ -95,8 +145,8 @@ func (d *DefaultInviteService) Accept(ctx context.ServiceContext, client *client
 	}
 
 	//	Mark the invite accepted.
-	if err := d.Update(ctx, client, id, &commons.UpdateOptions{
-		Set: commons.SetUpdateOptions{
+	if err := d.Update(ctx, client, id, &UpdateOptions{
+		Set: SetUpdateOptions{
 			Accepted: true,
 		},
 	}); err != nil {
@@ -114,6 +164,33 @@ func (d *DefaultInviteService) Accept(ctx context.ServiceContext, client *client
 	return nil
 }
 
-func (*DefaultInviteService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *commons.UpdateOptions) error {
-	return graphql.Update(ctx, client, id, options)
+func (*DefaultService) Update(ctx context.ServiceContext, client *clients.GQLClient, id string, options *UpdateOptions) error {
+
+	req := graphql.NewRequest(`
+	mutation MyMutation($id: uuid!, $set: invites_set_input) {
+		update_invites(where: {id: {_eq: $id}}, _set: $set) {
+		  affected_rows
+		}
+	  }			 
+	`)
+
+	req.Var("id", id)
+	req.Var("set", options.Set)
+
+	var response struct {
+		Query struct {
+			AffectedRows int `json:"affected_rows"`
+		} `json:"update_invites"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return err
+	}
+
+	//	Validate the mutation as been written to the database
+	if response.Query.AffectedRows == 0 {
+		return errors.New("no rows affected")
+	}
+
+	return nil
 }

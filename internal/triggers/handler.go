@@ -9,7 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
-	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
+	"github.com/envsecrets/envsecrets/internal/invites"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/mail"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
@@ -575,7 +575,7 @@ func InviteInserted(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var row inviteCommons.Invite
+	var row invites.Invite
 	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",

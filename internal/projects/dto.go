@@ -6,11 +6,11 @@ import (
 )
 
 type Project struct {
-	ID        string    `json:"id" graphql:"id"`
-	CreatedAt time.Time `json:"created_at,omitempty" graphql:"created_at"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" graphql:"updated_at"`
-	Name      string    `json:"name,omitempty" graphql:"name"`
-	OrgID     string    `json:"org_id,omitempty" graphql:"org_id"`
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	OrgID     string    `json:"org_id,omitempty"`
 	UserID    string    `json:"user_id"`
 }
 
@@ -23,14 +23,14 @@ func (w *Project) Unmarshal(data []byte) error {
 }
 
 type CreateOptions struct {
-	OrgID string `graphql:"org_id" json:"org_id"`
-	Name  string `graphql:"name" json:"name"`
+	OrgID string `json:"org_id"`
+	Name  string `json:"name"`
 }
 
 type UpdateOptions struct {
-	Name string `json:"name" graphql:"name"`
+	Name string `json:"name"`
 }
 
 type ListOptions struct {
-	OrgID string `graphql:"org_id" json:"org_id"`
+	OrgID string `json:"org_id"`
 }
