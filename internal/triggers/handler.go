@@ -15,7 +15,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/roles"
 	"github.com/envsecrets/envsecrets/internal/secrets"
@@ -363,8 +362,8 @@ func OrganisationCreated(c echo.Context) error {
 	_, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
 		OrgID: row.ID,
 		Name:  "viewer",
-		Permissions: permissionCommons.Permissions{
-			Projects: permissionCommons.CRUD{
+		Permissions: roles.Permissions{
+			Projects: roles.CRUD{
 				Read: true,
 			},
 		},
@@ -379,14 +378,14 @@ func OrganisationCreated(c echo.Context) error {
 	_, err = roles.Insert(ctx, client, &roles.RoleInsertOptions{
 		OrgID: row.ID,
 		Name:  "editor",
-		Permissions: permissionCommons.Permissions{
-			Projects: permissionCommons.CRUD{
+		Permissions: roles.Permissions{
+			Projects: roles.CRUD{
 				Create: true,
 				Read:   true,
 				Update: true,
 				Delete: true,
 			},
-			Environments: permissionCommons.CRUD{
+			Environments: roles.CRUD{
 				Create: true,
 				Update: true,
 				Delete: true,
@@ -403,26 +402,26 @@ func OrganisationCreated(c echo.Context) error {
 	adminRole, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
 		OrgID: row.ID,
 		Name:  "admin",
-		Permissions: permissionCommons.Permissions{
-			Integrations: permissionCommons.CRUD{
+		Permissions: roles.Permissions{
+			Integrations: roles.CRUD{
 				Create: true,
 				Read:   true,
 				Update: true,
 				Delete: true,
 			},
-			Permissions: permissionCommons.CRUD{
+			Permissions: roles.CRUD{
 				Create: true,
 				Read:   true,
 				Update: true,
 				Delete: true,
 			},
-			Projects: permissionCommons.CRUD{
+			Projects: roles.CRUD{
 				Create: true,
 				Read:   true,
 				Update: true,
 				Delete: true,
 			},
-			Environments: permissionCommons.CRUD{
+			Environments: roles.CRUD{
 				Create: true,
 				Update: true,
 				Delete: true,
