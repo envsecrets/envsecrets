@@ -104,7 +104,7 @@ to quickly create a Cobra application.`,
 			Data: &kpMap,
 		}
 
-		options.IntegrationType = integrations.IntegrationType(integrationType)
+		options.IntegrationType = integrations.Type(integrationType)
 
 		//	Fetch the list of events with their respective type of integrations.
 		if options.IntegrationType == "" {
@@ -115,7 +115,7 @@ to quickly create a Cobra application.`,
 				log.Fatal("failed to fetch active integrations for your environment")
 			}
 
-			var types []integrations.IntegrationType
+			var types []integrations.Type
 			for _, item := range *events {
 				types = append(types, item.Integration.Type)
 			}

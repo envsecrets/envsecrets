@@ -24,9 +24,9 @@ import (
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*Integration, error)
 	List(context.ServiceContext, *clients.GQLClient, *ListIntegrationFilters) (*Integrations, error)
-	ListEntities(context.ServiceContext, *clients.GQLClient, IntegrationType, string, map[string]interface{}) (interface{}, error)
-	ListSubEntities(context.ServiceContext, *clients.GQLClient, IntegrationType, string, url.Values) (interface{}, error)
-	Setup(context.ServiceContext, *clients.GQLClient, IntegrationType, *SetupOptions) (*Integration, error)
+	ListEntities(context.ServiceContext, *clients.GQLClient, Type, string, map[string]interface{}) (interface{}, error)
+	ListSubEntities(context.ServiceContext, *clients.GQLClient, Type, string, url.Values) (interface{}, error)
+	Setup(context.ServiceContext, *clients.GQLClient, Type, *SetupOptions) (*Integration, error)
 	Sync(context.ServiceContext, *clients.GQLClient, *SyncOptions) error
 }
 
@@ -43,7 +43,7 @@ func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient
 		ID:             result.ID,
 		OrgID:          result.OrgID,
 		InstallationID: result.InstallationID,
-		Type:           IntegrationType(result.Type),
+		Type:           Type(result.Type),
 		Credentials:    result.Credentials,
 		CreatedAt:      result.CreatedAt,
 		UpdatedAt:      result.UpdatedAt,
@@ -68,7 +68,7 @@ func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClien
 			ID:             item.ID,
 			OrgID:          item.OrgID,
 			InstallationID: item.InstallationID,
-			Type:           IntegrationType(item.Type),
+			Type:           Type(item.Type),
 			Credentials:    item.Credentials,
 			CreatedAt:      item.CreatedAt,
 			UpdatedAt:      item.UpdatedAt,
@@ -79,7 +79,7 @@ func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClien
 	return &integrations, nil
 }
 
-func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType IntegrationType, integrationID string, options map[string]interface{}) (interface{}, error) {
+func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, integrationID string, options map[string]interface{}) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -149,7 +149,7 @@ func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.
 	}
 }
 
-func (*DefaultService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType IntegrationType, integrationID string, params url.Values) (interface{}, error) {
+func (*DefaultService) ListSubEntities(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, integrationID string, params url.Values) (interface{}, error) {
 
 	//	Fetch installation ID for integration.
 	integration, err := graphql.Get(ctx, client, integrationID)
@@ -187,7 +187,7 @@ func (*DefaultService) ListSubEntities(ctx context.ServiceContext, client *clien
 	}
 }
 
-func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType IntegrationType, options *SetupOptions) (*Integration, error) {
+func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClient, integrationType Type, options *SetupOptions) (*Integration, error) {
 
 	//	Initialize the options to insert a new row of our integration in database.
 	var data struct {
@@ -314,7 +314,7 @@ func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClien
 		}
 	}
 
-	switch IntegrationType(integration.Type) {
+	switch Type(integration.Type) {
 	case Github:
 		return github.Sync(ctx, &github.SyncOptions{
 			InstallationID: integration.InstallationID,

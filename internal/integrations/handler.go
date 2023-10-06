@@ -16,7 +16,7 @@ func SetupCallbackHandler(c echo.Context) error {
 
 	//	Extract the entity type
 	integration_type := c.Param(INTEGRATION_TYPE)
-	serviceType := IntegrationType(integration_type)
+	serviceType := Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
@@ -76,7 +76,7 @@ func SetupHandler(c echo.Context) error {
 
 	//	Extract the entity type
 	integration_type := c.Param(INTEGRATION_TYPE)
-	serviceType := IntegrationType(integration_type)
+	serviceType := Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
@@ -119,7 +119,7 @@ func ListEntitiesHandler(c echo.Context) error {
 
 	//	Extract the entity type
 	integration_type := c.Param(INTEGRATION_TYPE)
-	serviceType := IntegrationType(integration_type)
+	serviceType := Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}
@@ -161,7 +161,7 @@ func ListSubEntitiesHandler(c echo.Context) error {
 
 	//	Extract the entity type
 	integration_type := c.Param(INTEGRATION_TYPE)
-	serviceType := IntegrationType(integration_type)
+	serviceType := Type(integration_type)
 	if !serviceType.IsValid() {
 		return errors.New("invalid integration type")
 	}

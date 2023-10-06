@@ -31,21 +31,21 @@ type ListOptions struct {
 }
 
 type SyncWithPasswordRequestOptions struct {
-	IntegrationType integrations.IntegrationType `json:"integration_type,omitempty"`
-	Password        string                       `json:"password" validate:"required"`
-	Version         *int                         `json:"version,omitempty"`
+	IntegrationType integrations.Type `json:"integration_type,omitempty"`
+	Password        string            `json:"password" validate:"required"`
+	Version         *int              `json:"version,omitempty"`
 
 	// Name of the secret to sync.
 	Key string `json:"key,omitempty"`
 }
 
 type SyncRequestOptions struct {
-	IntegrationType integrations.IntegrationType `json:"integration_type,omitempty"`
-	Data            *keypayload.KPMap            `json:"data"`
+	IntegrationType integrations.Type `json:"integration_type,omitempty"`
+	Data            *keypayload.KPMap `json:"data"`
 }
 
 type SyncOptions struct {
 	EnvID           string
-	IntegrationType integrations.IntegrationType
+	IntegrationType integrations.Type
 	Secrets         *keypayload.KPMap
 }

@@ -1,8 +1,8 @@
 package integrations
 
-type IntegrationType string
+type Type string
 
-func (t *IntegrationType) IsValid() bool {
+func (t *Type) IsValid() bool {
 	for _, item := range AllowedIntegrations {
 		if *t == item {
 			return true
@@ -12,14 +12,14 @@ func (t *IntegrationType) IsValid() bool {
 }
 
 const (
-	Github   IntegrationType = "github"
-	Gitlab   IntegrationType = "gitlab"
-	Vercel   IntegrationType = "vercel"
-	ASM      IntegrationType = "asm"
-	GSM      IntegrationType = "gsm"
-	CircleCI IntegrationType = "circleci"
-	Supabase IntegrationType = "supabase"
-	Netlify  IntegrationType = "netlify"
+	Github   Type = "github"
+	Gitlab   Type = "gitlab"
+	Vercel   Type = "vercel"
+	ASM      Type = "asm"
+	GSM      Type = "gsm"
+	CircleCI Type = "circleci"
+	Supabase Type = "supabase"
+	Netlify  Type = "netlify"
 )
 
 const (
@@ -28,5 +28,5 @@ const (
 )
 
 var (
-	AllowedIntegrations = []IntegrationType{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify}
+	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify}
 )

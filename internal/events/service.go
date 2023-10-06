@@ -86,7 +86,7 @@ func GetByEnvironment(ctx context.ServiceContext, client *clients.GQLClient, env
 	return &resp, nil
 }
 
-func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clients.GQLClient, env_id string, integration_type integrations.IntegrationType) (*commons.Events, error) {
+func GetByEnvironmentAndIntegrationType(ctx context.ServiceContext, client *clients.GQLClient, env_id string, integration_type integrations.Type) (*commons.Events, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($env_id: uuid!, $integration_type: String!) {

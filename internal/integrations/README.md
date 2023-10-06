@@ -17,5 +17,9 @@ Mandatory files:
 
 To add a new integration:
 
-1. Register it's unique `IntegrationType` constant in `commons.go`. For example: `const Github IntegrationType = "github"`
-1. 
+1. Register it's unique `Type` constant in `commons.go`. For example:
+   ```
+   const Github IntegrationType = "github"
+   ```
+1. Create an independent package in `/internal` directory for all operations of that integration. This package cannot be referenced outside the service level definitions. Take inspiration from `github` package.
+1. Call your new integration's functions from the service by adding it to all the relevant switch cases in `service.go` file. 
