@@ -9,7 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keyvalue"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
-	tokenCommons "github.com/envsecrets/envsecrets/internal/tokens/commons"
+	"github.com/envsecrets/envsecrets/internal/tokens"
 )
 
 type Secret struct {
@@ -325,8 +325,8 @@ type GetOptions struct {
 }
 
 type GetResponse struct {
-	Secret *Secret             `json:"secret"`
-	Token  *tokenCommons.Token `json:"token,omitempty"`
+	Secret *Secret       `json:"secret"`
+	Token  *tokens.Token `json:"token,omitempty"`
 }
 
 /*

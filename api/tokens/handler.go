@@ -11,7 +11,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	"github.com/envsecrets/envsecrets/internal/tokens/commons"
+	"github.com/envsecrets/envsecrets/internal/tokens"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
@@ -19,7 +19,7 @@ import (
 func CreateHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.CreateRequestOptions
+	var payload CreateOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -69,7 +69,7 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
-	token, err := GetService().Create(ctx, client, &commons.CreateOptions{
+	token, err := tokens.GetService().Create(ctx, client, &tokens.CreateOptions{
 		OrgKey: orgKey,
 		EnvID:  payload.EnvID,
 		Expiry: expiry,

@@ -1,4 +1,4 @@
-package commons
+package tokens
 
 import "time"
 
@@ -17,13 +17,6 @@ type Token struct {
 // IsExpired checks whether the token is expired or not.
 func (t *Token) IsExpired() bool {
 	return t.Expiry.Before(time.Now())
-}
-
-type CreateRequestOptions struct {
-	Password string `json:"password"`
-	EnvID    string `json:"env_id"`
-	Expiry   string `json:"expiry"`
-	Name     string `json:"name,omitempty"`
 }
 
 type CreateOptions struct {
