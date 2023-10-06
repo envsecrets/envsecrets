@@ -9,7 +9,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
-	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
 	inviteCommons "github.com/envsecrets/envsecrets/internal/invites/commons"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/mail"
@@ -546,7 +545,7 @@ func ProjectInserted(c echo.Context) error {
 	//	Create default environments for this new project.
 	envs := []string{"dev", "test", "staging", "prod"}
 	for _, item := range envs {
-		if _, err := environments.CreateWithUserID(ctx, client, &environmentCommons.CreateOptions{
+		if _, err := environments.CreateWithUserID(ctx, client, &environments.CreateOptions{
 			Name:      item,
 			ProjectID: row.ID,
 			UserID:    row.UserID,

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
+	"github.com/envsecrets/envsecrets/internal/environments"
 	organisationCommons "github.com/envsecrets/envsecrets/internal/organisations/commons"
 	"github.com/envsecrets/envsecrets/internal/projects"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
@@ -107,8 +107,8 @@ type EnvironmentPermissions struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 
-	EnvID       string                         `json:"env_id,omitempty"`
-	Environment environmentCommons.Environment `json:"environment,omitempty"`
+	EnvID       string                   `json:"env_id,omitempty"`
+	Environment environments.Environment `json:"environment,omitempty"`
 
 	User   userCommons.User `json:"user,omitempty"`
 	UserID string           `json:"user_id,omitempty"`

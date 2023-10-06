@@ -39,7 +39,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/envsecrets/envsecrets/internal/clients"
-	environmentCommons "github.com/envsecrets/envsecrets/internal/environments/commons"
+	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
@@ -99,7 +99,7 @@ You can activate your connected integrations on the "integrations" page of your 
 		//	Encode all the values before sending them to the server.
 		kpMap.Encode()
 
-		options := environmentCommons.SyncRequestOptions{
+		options := environments.SyncRequestOptions{
 			Data: &kpMap,
 		}
 

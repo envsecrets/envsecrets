@@ -6,7 +6,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/environments/commons"
+	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
@@ -28,7 +28,7 @@ import (
 func SyncWithPasswordHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	envID := c.Param(commons.ENV_ID)
+	envID := c.Param(ENV_ID)
 	if envID == "" {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "invalid environment ID",
@@ -37,7 +37,7 @@ func SyncWithPasswordHandler(c echo.Context) error {
 	}
 
 	//	Unmarshal the incoming payload
-	var payload commons.SyncWithPasswordRequestOptions
+	var payload environments.SyncWithPasswordRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -105,7 +105,7 @@ func SyncWithPasswordHandler(c echo.Context) error {
 	}
 
 	//	Call the service function.
-	if err := Sync(ctx, client, &commons.SyncOptions{
+	if err := environments.Sync(ctx, client, &environments.SyncOptions{
 		EnvID:           envID,
 		IntegrationType: payload.IntegrationType,
 		Secrets:         &decrypted.Data,
@@ -124,7 +124,7 @@ func SyncWithPasswordHandler(c echo.Context) error {
 func SyncHandler(c echo.Context) error {
 
 	//	Extract the entity type
-	envID := c.Param(commons.ENV_ID)
+	envID := c.Param(ENV_ID)
 	if envID == "" {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "invalid environment ID",
@@ -133,7 +133,7 @@ func SyncHandler(c echo.Context) error {
 	}
 
 	//	Unmarshal the incoming payload
-	var payload commons.SyncRequestOptions
+	var payload environments.SyncRequestOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -159,7 +159,7 @@ func SyncHandler(c echo.Context) error {
 	}
 
 	//	Call the service function.
-	if err := Sync(ctx, client, &commons.SyncOptions{
+	if err := environments.Sync(ctx, client, &environments.SyncOptions{
 		EnvID:           envID,
 		Secrets:         payload.Data,
 		IntegrationType: payload.IntegrationType,
