@@ -6,7 +6,7 @@ import (
 
 func AddRoutes(sg *echo.Group) {
 
-	group := sg.Group("/keys")
+	//group := sg.Group("/keys")
 
-	group.GET("/public-key", nil)
+	//group.GET("/public-key", nil)
 }
