@@ -1,4 +1,4 @@
-package commons
+package payments
 
 type CreateCheckoutSessionOptions struct {
 	OrgID    string `query:"org_id"`

@@ -3,7 +3,7 @@ package payments
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	"github.com/envsecrets/envsecrets/internal/payments/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	"github.com/envsecrets/envsecrets/internal/users"
 	"github.com/golang-jwt/jwt/v4"
@@ -25,10 +24,9 @@ import (
 func CreateCheckoutSession(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.CreateCheckoutSessionOptions
+	var payload CreateCheckoutSessionOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-
 			Message: "failed to parse the body",
 		})
 	}
@@ -90,8 +88,8 @@ func CreateCheckoutSession(c echo.Context) error {
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
-		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/settings/billing"),
-		CancelURL:  stripe.String(os.Getenv("FE_URL") + "/settings/billing"),
+		SuccessURL: stripe.String(os.Getenv("FE_URL") + "/billing"),
+		CancelURL:  stripe.String(os.Getenv("FE_URL") + "/billing"),
 	}
 
 	stripe.Key = os.Getenv("STRIPE_KEY")
@@ -115,7 +113,7 @@ func CheckoutWebhook(c echo.Context) error {
 
 	defer c.Request().Body.Close()
 
-	body, err := ioutil.ReadAll(c.Request().Body)
+	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		return c.String(http.StatusServiceUnavailable, fmt.Sprintf("Error reading request body: %v\n", err))
 	}
@@ -153,7 +151,7 @@ func CheckoutWebhook(c echo.Context) error {
 			OrgID:          session.ClientReferenceID,
 			SubscriptionID: session.Subscription.ID,
 		}); err != nil {
-			return c.String(http.StatusBadRequest, fmt.Sprintf("failed to register the new subscription: %s", err.Error))
+			return c.String(http.StatusBadRequest, fmt.Sprintf("failed to register the new subscription: %s", err.Error()))
 		}
 
 	} else if event.Type == "customer.subscription.updated" {
