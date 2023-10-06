@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys"
@@ -21,17 +20,17 @@ import (
 )
 
 type Service interface {
-	ToggleMFA(context.ServiceContext, *clients.NhostClient, *commons.ToggleMFAOptions) error
-	GenerateTOTPQR(context.ServiceContext, *clients.NhostClient) (*commons.GenerateQRResponse, error)
-	SigninWithMFA(context.ServiceContext, *clients.NhostClient, *commons.SigninWithMFAOptions) (*commons.SigninResponse, error)
-	SigninWithPassword(context.ServiceContext, *clients.NhostClient, *commons.SigninWithPasswordOptions) (*commons.SigninResponse, error)
-	DecryptKeysFromSession(context.ServiceContext, *clients.GQLClient, *commons.DecryptKeysFromSessionOptions) (*keyCommons.Payload, error)
+	ToggleMFA(context.ServiceContext, *clients.NhostClient, *ToggleMFAOptions) error
+	GenerateTOTPQR(context.ServiceContext, *clients.NhostClient) (*GenerateQRResponse, error)
+	SigninWithMFA(context.ServiceContext, *clients.NhostClient, *SigninWithMFAOptions) (*SigninResponse, error)
+	SigninWithPassword(context.ServiceContext, *clients.NhostClient, *SigninWithPasswordOptions) (*SigninResponse, error)
+	DecryptKeysFromSession(context.ServiceContext, *clients.GQLClient, *DecryptKeysFromSessionOptions) (*keyCommons.Payload, error)
 }
 
 type DefaultService struct{}
 
 // Remember: Passing a nil value to the "ActiveMFAType" option will deactivate MFA.
-func (*DefaultService) ToggleMFA(ctx context.ServiceContext, client *clients.NhostClient, options *commons.ToggleMFAOptions) error {
+func (*DefaultService) ToggleMFA(ctx context.ServiceContext, client *clients.NhostClient, options *ToggleMFAOptions) error {
 
 	body, err := json.Marshal(options)
 	if err != nil {
@@ -48,7 +47,7 @@ func (*DefaultService) ToggleMFA(ctx context.ServiceContext, client *clients.Nho
 	return client.Run(ctx, req, nil)
 }
 
-func (*DefaultService) GenerateTOTPQR(ctx context.ServiceContext, client *clients.NhostClient) (*commons.GenerateQRResponse, error) {
+func (*DefaultService) GenerateTOTPQR(ctx context.ServiceContext, client *clients.NhostClient) (*GenerateQRResponse, error) {
 
 	//	Initialize a new request
 	req, err := http.NewRequest(http.MethodGet, client.BaseURL+"/v1/mfa/totp/generate", nil)
@@ -65,13 +64,13 @@ func (*DefaultService) GenerateTOTPQR(ctx context.ServiceContext, client *client
 		return nil, err
 	}
 
-	return &commons.GenerateQRResponse{
+	return &GenerateQRResponse{
 		Secret: response.Secret,
 		Image:  response.Image,
 	}, nil
 }
 
-func (*DefaultService) SigninWithMFA(ctx context.ServiceContext, client *clients.NhostClient, options *commons.SigninWithMFAOptions) (*commons.SigninResponse, error) {
+func (*DefaultService) SigninWithMFA(ctx context.ServiceContext, client *clients.NhostClient, options *SigninWithMFAOptions) (*SigninResponse, error) {
 
 	body, err := json.Marshal(options)
 	if err != nil {
@@ -85,18 +84,18 @@ func (*DefaultService) SigninWithMFA(ctx context.ServiceContext, client *clients
 	}
 
 	//	Send the request to Nhost signin endpoint.
-	var response commons.NhostSigninResponse
+	var response NhostSigninResponse
 	if err := client.Run(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	return &commons.SigninResponse{
+	return &SigninResponse{
 		MFA:     response.MFA,
 		Session: response.Session,
 	}, nil
 }
 
-func (*DefaultService) SigninWithPassword(ctx context.ServiceContext, client *clients.NhostClient, options *commons.SigninWithPasswordOptions) (*commons.SigninResponse, error) {
+func (*DefaultService) SigninWithPassword(ctx context.ServiceContext, client *clients.NhostClient, options *SigninWithPasswordOptions) (*SigninResponse, error) {
 
 	body, err := json.Marshal(options)
 	if err != nil {
@@ -110,25 +109,25 @@ func (*DefaultService) SigninWithPassword(ctx context.ServiceContext, client *cl
 	}
 
 	//	Send the request to Nhost signin endpoint.
-	var response commons.NhostSigninResponse
+	var response NhostSigninResponse
 	if err := client.Run(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
 	//	Check whether the user has MFA enabled.
 	if response.MFA != nil {
-		return &commons.SigninResponse{
+		return &SigninResponse{
 			MFA: response.MFA,
 		}, nil
 	}
 
-	return &commons.SigninResponse{
+	return &SigninResponse{
 		MFA:     response.MFA,
 		Session: response.Session,
 	}, nil
 }
 
-func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *commons.SignupOptions) error {
+func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *SignupOptions) error {
 
 	//	Signup on Nhost
 	if err := nhost.Signup(ctx, &nhost.SignupOptions{
@@ -176,9 +175,9 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *comm
 	return nil
 }
 
-func UpdatePassword(ctx context.ServiceContext, client *clients.HTTPClient, options *commons.UpdatePasswordOptions) error {
+func UpdatePassword(ctx context.ServiceContext, client *clients.HTTPClient, options *UpdatePasswordOptions) error {
 
-	body, err := options.Marshal()
+	body, err := json.Marshal(options)
 	if err != nil {
 		return err
 	}
@@ -192,7 +191,7 @@ func UpdatePassword(ctx context.ServiceContext, client *clients.HTTPClient, opti
 	return client.Run(ctx, req, nil)
 }
 
-func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client *clients.GQLClient, options *commons.DecryptKeysFromSessionOptions) (*keyCommons.Payload, error) {
+func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client *clients.GQLClient, options *DecryptKeysFromSessionOptions) (*keyCommons.Payload, error) {
 
 	//	Extract the user's ID from the session.
 	temp, err := json.Marshal(options.Session["user"].(map[string]interface{}))
@@ -223,5 +222,4 @@ func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client
 	}
 
 	return pair, nil
-
 }

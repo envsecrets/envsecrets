@@ -1,16 +1,9 @@
-package commons
+package auth
 
 import (
 	"encoding/json"
 	"errors"
 )
-
-type SigninRequestOptions struct {
-	Email    string `json:"email,omitempty"`
-	OTP      string `json:"otp,omitempty"`
-	Ticket   string `json:"ticket,omitempty"`
-	Password string `json:"password,omitempty"`
-}
 
 type SigninWithPasswordOptions struct {
 	Email    string `json:"email"`
@@ -31,10 +24,6 @@ func (o *SigninWithMFAOptions) JSONMarshal() ([]byte, error) {
 	}
 
 	return json.Marshal(o)
-}
-
-type ToggleMFARequestOptions struct {
-	Code string `json:"code"`
 }
 
 type ToggleMFAOptions struct {
@@ -85,10 +74,6 @@ type SignupOptions struct {
 type UpdatePasswordOptions struct {
 	NewPassword string `json:"newPassword,omitempty"`
 	OldPassword string `json:"oldPassword,omitempty"`
-}
-
-func (o *UpdatePasswordOptions) Marshal() ([]byte, error) {
-	return json.Marshal(o)
 }
 
 type DecryptKeysFromSessionOptions struct {

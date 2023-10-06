@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
-	"github.com/envsecrets/envsecrets/internal/auth/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys"
@@ -18,7 +17,7 @@ import (
 func SigninHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.SigninRequestOptions
+	var payload SigninOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -31,18 +30,19 @@ func SigninHandler(c echo.Context) error {
 	//	Initialize a new HTTP client
 	client := clients.NewNhostClient(&clients.NhostConfig{})
 
-	//	Call the appropriate service handler.
-	service := GetService()
+	//	Get the auth service.
+	service := auth.GetService()
 
-	var response *commons.SigninResponse
+	//	Call the appropriate service handler.
+	var response *auth.SigninResponse
 	var err error
 	if payload.Ticket == "" {
-		response, err = service.SigninWithPassword(ctx, client, &commons.SigninWithPasswordOptions{
+		response, err = service.SigninWithPassword(ctx, client, &auth.SigninWithPasswordOptions{
 			Email:    payload.Email,
 			Password: payload.Password,
 		})
 	} else {
-		response, err = service.SigninWithMFA(ctx, client, &commons.SigninWithMFAOptions{
+		response, err = service.SigninWithMFA(ctx, client, &auth.SigninWithMFAOptions{
 			Ticket: payload.Ticket,
 			OTP:    payload.OTP,
 		})
@@ -72,7 +72,7 @@ func SigninHandler(c echo.Context) error {
 	})
 
 	//	Extract and decrypt keys from user's session.
-	pair, err := service.DecryptKeysFromSession(ctx, gqlClient, &commons.DecryptKeysFromSessionOptions{
+	pair, err := service.DecryptKeysFromSession(ctx, gqlClient, &auth.DecryptKeysFromSessionOptions{
 		Session:  response.Session,
 		Password: payload.Password,
 	})
@@ -97,7 +97,7 @@ func SigninHandler(c echo.Context) error {
 func SignupHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.SignupOptions
+	var payload SignupOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -116,7 +116,11 @@ func SignupHandler(c echo.Context) error {
 	})
 
 	//	Call the service handler.
-	if err := Signup(ctx, client, &payload); err != nil {
+	if err := auth.Signup(ctx, client, &auth.SignupOptions{
+		Email:    payload.Email,
+		Password: payload.Password,
+		Name:     payload.Name,
+	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to register the user",
 			Error:   err.Error(),
@@ -132,7 +136,7 @@ func SignupHandler(c echo.Context) error {
 func UpdatePasswordHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.UpdatePasswordOptions
+	var payload UpdatePasswordOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -150,7 +154,7 @@ func UpdatePasswordHandler(c echo.Context) error {
 
 	//	Extract the user's email from JWT
 	token := c.Get("user").(*jwt.Token)
-	claims := token.Claims.(*auth.Claims)
+	claims := token.Claims.(*Claims)
 
 	//	Check whether user has keys.
 	_, err := keys.GetByUserID(ctx, client, claims.Hasura.UserID)
@@ -199,7 +203,10 @@ func UpdatePasswordHandler(c echo.Context) error {
 	})
 
 	//	Call the service handler.
-	if err := UpdatePassword(ctx, httpClient, &payload); err != nil {
+	if err := auth.UpdatePassword(ctx, httpClient, &auth.UpdatePasswordOptions{
+		OldPassword: payload.OldPassword,
+		NewPassword: payload.NewPassword,
+	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to update the password",
 			Error:   err.Error(),
@@ -222,7 +229,7 @@ func GenerateQRHandler(c echo.Context) error {
 	})
 
 	//	Call the appropriate service handler.
-	response, err := GetService().GenerateTOTPQR(ctx, client)
+	response, err := auth.GetService().GenerateTOTPQR(ctx, client)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to generate QR Code.",
@@ -236,7 +243,7 @@ func GenerateQRHandler(c echo.Context) error {
 func ToggleMFAHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
-	var payload commons.ToggleMFARequestOptions
+	var payload ToggleMFAOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -252,18 +259,18 @@ func ToggleMFAHandler(c echo.Context) error {
 	})
 
 	//	Prepare service options.
-	options := commons.ToggleMFAOptions{
+	options := auth.ToggleMFAOptions{
 		Code: payload.Code,
 	}
 
 	//	If it is a POST request, activate MFA.
 	//	If it is a DELETE request, deactivate MFA.
 	if c.Request().Method == http.MethodPost {
-		options.ActiveMFAType = commons.TOTP
+		options.ActiveMFAType = auth.TOTP
 	}
 
 	//	Call the appropriate service handler.
-	err := GetService().ToggleMFA(ctx, client, &options)
+	err := auth.GetService().ToggleMFA(ctx, client, &options)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to toggle MFA.",

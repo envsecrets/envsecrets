@@ -1,4 +1,4 @@
-package commons
+package auth
 
 type MFAType string
 

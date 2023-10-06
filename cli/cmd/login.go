@@ -40,7 +40,6 @@ import (
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
-	authCommons "github.com/envsecrets/envsecrets/internal/auth/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/manifoldco/promptui"
@@ -108,7 +107,7 @@ var loginCmd = &cobra.Command{
 		})
 
 		//	Call the appropriate service handler.
-		response, err := auth.GetService().SigninWithPassword(commons.DefaultContext, client, &authCommons.SigninWithPasswordOptions{
+		response, err := auth.GetService().SigninWithPassword(commons.DefaultContext, client, &auth.SigninWithPasswordOptions{
 			Email:    email,
 			Password: password,
 		})
@@ -138,7 +137,7 @@ var loginCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
-			response, err = auth.GetService().SigninWithMFA(commons.DefaultContext, client, &authCommons.SigninWithMFAOptions{
+			response, err = auth.GetService().SigninWithMFA(commons.DefaultContext, client, &auth.SigninWithMFAOptions{
 				Ticket: response.MFA["ticket"].(string),
 				OTP:    totp,
 			})
@@ -181,7 +180,7 @@ var loginCmd = &cobra.Command{
 		})
 
 		//	Extract and decrypt keys from user's session.
-		pair, err := auth.GetService().DecryptKeysFromSession(commons.DefaultContext, gqlClient, &authCommons.DecryptKeysFromSessionOptions{
+		pair, err := auth.GetService().DecryptKeysFromSession(commons.DefaultContext, gqlClient, &auth.DecryptKeysFromSessionOptions{
 			Session:  response.Session,
 			Password: password,
 		})
