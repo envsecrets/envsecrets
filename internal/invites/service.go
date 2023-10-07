@@ -125,6 +125,21 @@ func (d *DefaultService) Accept(ctx context.ServiceContext, client *clients.GQLC
 		return fmt.Errorf("invite already accepted")
 	}
 
+	//	Get the organisation's invite limit.
+	inviteLimit, err := organisations.GetService().GetInviteLimit(ctx, client, invite.OrgID)
+	if err != nil {
+		return err
+	}
+
+	if inviteLimit == nil {
+		return fmt.Errorf("invite limit not set")
+	}
+
+	//	If the invite limit is 0, return an error.
+	if *inviteLimit == 0 {
+		return fmt.Errorf("invite limit reached")
+	}
+
 	//	Get the invitee user.
 	user, err := users.GetByEmail(ctx, client, invite.Email)
 	if err != nil {

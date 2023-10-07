@@ -11,6 +11,7 @@ import (
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*Organisation, error)
 	GetByEnvironment(context.ServiceContext, *clients.GQLClient, string) (*Organisation, error)
+	GetInviteLimit(context.ServiceContext, *clients.GQLClient, string) (*int, error)
 	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Organisation, error)
 	List(context.ServiceContext, *clients.GQLClient) (*[]Organisation, error)
 	UpdateInviteLimit(context.ServiceContext, *clients.GQLClient, *UpdateInviteLimitOptions) error
@@ -63,6 +64,29 @@ func (*DefaultService) GetByEnvironment(ctx context.ServiceContext, client *clie
 	}
 
 	return &response.Organisations[0], nil
+}
+
+func (*DefaultService) GetInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, id string) (*int, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		organisations_by_pk(id: $id) {
+			invite_limit
+		}
+	  }	  
+	`)
+
+	req.Var("id", id)
+
+	var response struct {
+		Organisation *Organisation `json:"organisations_by_pk"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return response.Organisation.InviteLimit, nil
 }
 
 func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient) (*[]Organisation, error) {
