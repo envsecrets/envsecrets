@@ -36,6 +36,8 @@ func (i *Integration) GetTitle() string {
 		return "Supabase"
 	case Netlify:
 		return "Netlify"
+	case Railway:
+		return "Railway"
 	default:
 		return ""
 	}
@@ -60,6 +62,8 @@ func (i *Integration) GetSubtitle() string {
 		return "Your Supabase project where we sync this environment's secrets."
 	case Netlify:
 		return "Your Netlify project where we sync this environment's secrets."
+	case Railway:
+		return "Your Railway project's environment where we sync this environment's secrets."
 	default:
 		return ""
 	}
@@ -84,6 +88,8 @@ func (i *Integration) GetDescription() string {
 		return "Make your secrets natively available in your Supabase project's environment variables."
 	case Netlify:
 		return "Make your secrets natively available in your Netlify project's environment variables."
+	case Railway:
+		return "Make your secrets natively available in your Railway project's environment variables."
 	default:
 		return ""
 	}

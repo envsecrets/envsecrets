@@ -20,8 +20,9 @@ const (
 	CircleCI Type = "circleci"
 	Supabase Type = "supabase"
 	Netlify  Type = "netlify"
+	Railway  Type = "railway"
 )
 
 var (
-	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify}
+	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway}
 )
