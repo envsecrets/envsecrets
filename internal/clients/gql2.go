@@ -1,9 +1,9 @@
 package clients
 
 import (
-	"context"
 	"os"
 
+	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -12,11 +12,18 @@ import (
 type GQLClient2 struct {
 	*graphql.Client
 	BaseURL       string
-	Authorization string
+	Authorization *Authorization
 	log           *logrus.Logger
 }
 
-func NewGQLClient2(config *GQLConfig) *GQLClient2 {
+type GQL2Config struct {
+	Type          ClientType
+	BaseURL       string
+	Authorization *Authorization
+	Logger        *logrus.Logger
+}
+
+func NewGQLClient2(config *GQL2Config) *GQLClient2 {
 
 	var response GQLClient2
 
@@ -32,19 +39,14 @@ func NewGQLClient2(config *GQLConfig) *GQLClient2 {
 		response.BaseURL = os.Getenv(string(NHOST_GRAPHQL_URL))
 	}
 
-	config.CustomHeaders = append(config.CustomHeaders, CustomHeader{
-		Key:   "content-type",
-		Value: "application/json",
-	})
-
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{
-			AccessToken: response.Authorization,
-			TokenType:   "Bearer",
+			AccessToken: response.Authorization.Token,
+			TokenType:   string(response.Authorization.TokenType),
 		},
 	)
 
-	httpClient := oauth2.NewClient(context.Background(), src)
+	httpClient := oauth2.NewClient(context.NewContext(&context.Config{Type: context.APIContext}), src)
 
 	client := graphql.NewClient(response.BaseURL, httpClient)
 	response.Client = client

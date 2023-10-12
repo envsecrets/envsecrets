@@ -13,9 +13,12 @@ const API = "https://backboard.railway.app/graphql/v2"
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
 
 	//	Initialize a new GraphQL client.
-	client := clients.NewGQLClient2(&clients.GQLConfig{
-		BaseURL:       API,
-		Authorization: options.Credentials["token"].(string),
+	client := clients.NewGQLClient2(&clients.GQL2Config{
+		BaseURL: API,
+		Authorization: &clients.Authorization{
+			Token:     options.Credentials["token"].(string),
+			TokenType: clients.Bearer,
+		},
 	})
 
 	var query struct {
@@ -74,9 +77,12 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 
 	//	Initialize a new GraphQL client.
-	client := clients.NewGQLClient2(&clients.GQLConfig{
-		BaseURL:       API,
-		Authorization: options.Credentials["token"].(string),
+	client := clients.NewGQLClient2(&clients.GQL2Config{
+		BaseURL: API,
+		Authorization: &clients.Authorization{
+			Token:     options.Credentials["token"].(string),
+			TokenType: clients.Bearer,
+		},
 	})
 
 	//type uuid string
