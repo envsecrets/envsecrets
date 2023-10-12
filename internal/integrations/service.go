@@ -17,6 +17,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gitlab"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/netlify"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/railway"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/supabase"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
 )
@@ -144,6 +145,11 @@ func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
+	case Railway:
+		return railway.ListEntities(ctx, &railway.ListOptions{
+			Credentials: credentials,
+			OrgID:       integration.OrgID,
+		})
 	default:
 		return nil, errors.New("invalid integration type")
 	}
@@ -251,6 +257,12 @@ func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClie
 			"token": fmt.Sprint(options.Options["token"]),
 		}
 
+	case Railway:
+
+		data.Credentials = map[string]interface{}{
+			"token": fmt.Sprint(options.Options["token"]),
+		}
+
 	case Supabase:
 
 		data.Credentials = map[string]interface{}{
@@ -337,6 +349,12 @@ func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClien
 		})
 	case CircleCI:
 		return circleci.Sync(ctx, &circleci.SyncOptions{
+			Credentials:   credentials,
+			Data:          options.Data,
+			EntityDetails: options.EntityDetails,
+		})
+	case Railway:
+		return railway.Sync(ctx, &railway.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,

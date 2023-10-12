@@ -43,6 +43,9 @@ func (e *Event) GetEntityLink() string {
 		*/
 	case integrations.Netlify:
 		return fmt.Sprintf("https://app.netlify.com/sites/%s/settings/env", e.EntityDetails["name"])
+	case integrations.Railway:
+		project := e.EntityDetails["project"].(map[string]interface{})
+		return fmt.Sprintf("https://railway.app/project/%s/settings/variables", project["id"])
 	default:
 		return ""
 	}
@@ -67,6 +70,10 @@ func (e *Event) GetEntityTitle() string {
 		return e.EntityDetails["name"].(string)
 	case integrations.Netlify:
 		return e.EntityDetails["name"].(string)
+	case integrations.Railway:
+		project := e.EntityDetails["project"].(map[string]interface{})
+		environment := e.EntityDetails["environment"].(map[string]interface{})
+		return project["name"].(string) + "/" + environment["name"].(string)
 	default:
 		return ""
 	}
@@ -77,7 +84,7 @@ func (e *Event) GetEntityType() string {
 	switch e.Integration.Type {
 	case integrations.Github:
 		return "repository"
-	case integrations.Vercel, integrations.CircleCI, integrations.Supabase:
+	case integrations.Vercel, integrations.CircleCI, integrations.Supabase, integrations.Railway:
 		return "project"
 	case integrations.Gitlab:
 		return "project/group"

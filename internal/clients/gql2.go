@@ -1,10 +1,12 @@
 package clients
 
 import (
+	"context"
 	"os"
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 type GQLClient2 struct {
@@ -18,6 +20,10 @@ func NewGQLClient2(config *GQLConfig) *GQLClient2 {
 
 	var response GQLClient2
 
+	if config == nil {
+		return &response
+	}
+
 	response.BaseURL = config.BaseURL
 	response.Authorization = config.Authorization
 
@@ -26,11 +32,19 @@ func NewGQLClient2(config *GQLConfig) *GQLClient2 {
 		response.BaseURL = os.Getenv(string(NHOST_GRAPHQL_URL))
 	}
 
-	httpClient := NewHTTPClient(&HTTPConfig{
-		Authorization: response.Authorization,
-		CustomHeaders: config.CustomHeaders,
-		Headers:       config.Headers,
+	config.CustomHeaders = append(config.CustomHeaders, CustomHeader{
+		Key:   "content-type",
+		Value: "application/json",
 	})
+
+	src := oauth2.StaticTokenSource(
+		&oauth2.Token{
+			AccessToken: response.Authorization,
+			TokenType:   "Bearer",
+		},
+	)
+
+	httpClient := oauth2.NewClient(context.Background(), src)
 
 	client := graphql.NewClient(response.BaseURL, httpClient)
 	response.Client = client
@@ -39,10 +53,6 @@ func NewGQLClient2(config *GQLConfig) *GQLClient2 {
 		response.log = config.Logger
 	} else {
 		response.log = logrus.New()
-	}
-
-	if config == nil {
-		return &response
 	}
 
 	return &response
