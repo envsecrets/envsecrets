@@ -129,6 +129,29 @@ func Execute() {
 		log.Debug(err)
 		os.Exit(1)
 	}
+
+	/* 	const fmTemplate = `---
+	title: "%s"
+	description: %s
+	---
+	`
+
+		filePrepender := func(filename string) string {
+			name := filepath.Base(filename)
+			base := strings.TrimSuffix(name, path.Ext(name))
+			return fmt.Sprintf(fmTemplate, strings.Replace(base, "_", " ", -1), base)
+		}
+
+		linkHandler := func(name string) string {
+			base := strings.TrimSuffix(name, path.Ext(name))
+			return "/commands/" + strings.ToLower(base) + "/"
+		}
+
+		if err := doc.GenMarkdownTreeCustom(rootCmd, "./docs", filePrepender, linkHandler); err != nil {
+			log.Debug(err)
+			os.Exit(1)
+		}
+	*/
 }
 
 type myFormatter struct {
