@@ -21,8 +21,9 @@ const (
 	Supabase Type = "supabase"
 	Netlify  Type = "netlify"
 	Railway  Type = "railway"
+	Hasura   Type = "hasura"
 )
 
 var (
-	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway}
+	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway, Hasura}
 )
