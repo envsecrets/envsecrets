@@ -48,7 +48,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var integrationType string
+var all bool
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -99,29 +99,42 @@ You can activate your connected integrations on the "integrations" page of your 
 		//	Encode all the values before sending them to the server.
 		kpMap.Encode()
 
-		options := environments.SyncRequestOptions{
-			Data: &kpMap,
+		options := environments.SyncOptions{
+			Pairs: &kpMap,
 		}
 
-		options.IntegrationType = integrations.Type(integrationType)
-
 		//	Fetch the list of events with their respective type of integrations.
-		if options.IntegrationType == "" {
+		if !all {
 
-			events, err := events.GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.Secret.EnvID)
+			events, err := events.GetService().GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.Secret.EnvID)
 			if err != nil {
 				log.Debug(err)
 				log.Fatal("failed to fetch active integrations for your environment")
 			}
 
-			var types []integrations.Type
-			for _, item := range *events {
-				types = append(types, item.Integration.Type)
+			type item struct {
+				ID    string
+				Title string
+				Type  integrations.Type
+			}
+
+			var items []item
+			for _, event := range *events {
+				items = append(items, item{
+					ID:    event.ID,
+					Title: event.GetEntityTitle(),
+					Type:  event.Integration.Type,
+				})
 			}
 
 			selection := promptui.Select{
-				Label: "Platform to sync your secrets to",
-				Items: types,
+				Label: "Which platform do you want to sync your secrets to?",
+				Items: items,
+				Templates: &promptui.SelectTemplates{
+					Active:   `{{ ">" | blue }} [{{ .Type }}] {{ .Title }}`,
+					Inactive: `[{{ .Type }}] {{ .Title }}`,
+					Selected: `{{ "✔" | green }} [{{ .Type }}] {{ .Title }}`,
+				},
 			}
 
 			index, _, err := selection.Run()
@@ -129,7 +142,7 @@ You can activate your connected integrations on the "integrations" page of your 
 				os.Exit(1)
 			}
 
-			options.IntegrationType = types[index]
+			options.EventIDs = []string{(*events)[index].ID}
 		}
 
 		body, err := json.Marshal(&options)
@@ -154,7 +167,7 @@ You can activate your connected integrations on the "integrations" page of your 
 			log.Fatal(response.Error)
 		}
 
-		log.Info("Successfully synced secrets")
+		log.Info("Successfully synced secrets to connected services")
 	},
 }
 
@@ -169,10 +182,8 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// syncCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	syncCmd.Flags().BoolVarP(&all, "all", "a", false, "Bypass selection and sync to all integrations connected to the environment")
 	syncCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret; -1 for latest version")
-	syncCmd.Flags().StringVarP(&password, "password", "p", "", "Your envsecrets account password")
-	syncCmd.Flags().StringVarP(&integrationType, "type", "t", "", "Type of integration to push secrets to")
 	syncCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to sync the secrets to.")
 	syncCmd.MarkFlagRequired("env")
 }

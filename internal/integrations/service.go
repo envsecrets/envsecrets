@@ -323,10 +323,10 @@ func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClie
 	}, nil
 }
 
-func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
+func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
 
 	//	Get the integration to which this event belong to.
-	integration, err := graphql.Get(ctx, client, options.IntegrationID)
+	integration, err := d.Get(ctx, client, options.IntegrationID)
 	if err != nil {
 		return err
 	}
@@ -441,6 +441,6 @@ func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClien
 		return nil
 
 	default:
-		return errors.New("failed to sync secrets")
+		return errors.New("invalid integration type")
 	}
 }

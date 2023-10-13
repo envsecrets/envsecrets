@@ -37,7 +37,7 @@ func ActionsGetHandler(c echo.Context) error {
 		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
 	})
 
-	events, err := events.GetByEnvironment(ctx, client, inputs.EnvID)
+	events, err := events.GetService().GetByEnvironment(ctx, client, inputs.EnvID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to get the events",

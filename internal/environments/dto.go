@@ -3,7 +3,6 @@ package environments
 import (
 	"time"
 
-	"github.com/envsecrets/envsecrets/internal/integrations"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
@@ -30,22 +29,8 @@ type ListOptions struct {
 	ProjectID string `json:"project_id"`
 }
 
-type SyncWithPasswordRequestOptions struct {
-	IntegrationType integrations.Type `json:"integration_type,omitempty"`
-	Password        string            `json:"password" validate:"required"`
-	Version         *int              `json:"version,omitempty"`
-
-	// Name of the secret to sync.
-	Key string `json:"key,omitempty"`
-}
-
-type SyncRequestOptions struct {
-	IntegrationType integrations.Type `json:"integration_type,omitempty"`
-	Data            *keypayload.KPMap `json:"data"`
-}
-
 type SyncOptions struct {
-	EnvID           string
-	IntegrationType integrations.Type
-	Secrets         *keypayload.KPMap
+	EnvID    string
+	EventIDs []string
+	Pairs    *keypayload.KPMap
 }

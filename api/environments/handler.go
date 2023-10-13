@@ -37,7 +37,7 @@ func SyncWithPasswordHandler(c echo.Context) error {
 	}
 
 	//	Unmarshal the incoming payload
-	var payload environments.SyncWithPasswordRequestOptions
+	var payload SyncWithPasswordOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -109,9 +109,9 @@ func SyncWithPasswordHandler(c echo.Context) error {
 
 	//	Call the service function.
 	if err := service.Sync(ctx, client, &environments.SyncOptions{
-		EnvID:           envID,
-		IntegrationType: payload.IntegrationType,
-		Secrets:         &decrypted.Data,
+		EnvID:    envID,
+		EventIDs: payload.EventIDs,
+		Pairs:    &decrypted.Data,
 	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to sync the secrets",
@@ -136,7 +136,7 @@ func SyncHandler(c echo.Context) error {
 	}
 
 	//	Unmarshal the incoming payload
-	var payload environments.SyncRequestOptions
+	var payload SyncOptions
 	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the body",
@@ -154,21 +154,18 @@ func SyncHandler(c echo.Context) error {
 	})
 
 	//	Decode the values before sending them further.
-	if err := payload.Data.Decode(); err != nil {
+	if err := payload.Pairs.Decode(); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to decode the secrets",
 			Error:   err.Error(),
 		})
 	}
 
-	//	Get the environments service.
-	service := environments.GetService()
-
 	//	Call the service function.
-	if err := service.Sync(ctx, client, &environments.SyncOptions{
-		EnvID:           envID,
-		Secrets:         payload.Data,
-		IntegrationType: payload.IntegrationType,
+	if err := environments.GetService().Sync(ctx, client, &environments.SyncOptions{
+		EnvID:    envID,
+		Pairs:    payload.Pairs,
+		EventIDs: payload.EventIDs,
 	}); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "Failed to sync the secrets",

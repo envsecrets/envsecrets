@@ -236,32 +236,35 @@ func (*DefaultService) Delete(ctx context.ServiceContext, client *clients.GQLCli
 // This function assumed that the secrets being supplied are already decrypted.
 func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClient, options *SyncOptions) error {
 
-	var eventList *events.Events
-	var err error
-	if options.IntegrationType != "" {
-		eventList, err = events.GetByEnvironmentAndIntegrationType(ctx, client, options.EnvID, options.IntegrationType)
+	var list []events.Event
+	if options.EventIDs == nil {
+		events, err := events.GetService().GetByEnvironment(ctx, client, options.EnvID)
 		if err != nil {
 			return err
 		}
+		list = *events
 	} else {
-		eventList, err = events.GetByEnvironment(ctx, client, options.EnvID)
-		if err != nil {
-			return err
+		for _, item := range options.EventIDs {
+			event, err := events.GetService().Get(ctx, client, item)
+			if err != nil {
+				return err
+			}
+			list = append(list, *event)
 		}
 	}
 
-	if eventList == nil || len(*eventList) == 0 {
-		return errors.New("there are no events in this environment to sync this secret with")
+	if len(list) == 0 {
+		return errors.New("no events found to sync secrets with")
 	}
 
 	//	Get the integration service
 	integrationService := integrations.GetService()
-	for _, event := range *eventList {
+	for _, event := range list {
 		if err := integrationService.Sync(ctx, client, &integrations.SyncOptions{
 			IntegrationID: event.Integration.ID,
 			EventID:       event.ID,
 			EntityDetails: event.EntityDetails,
-			Data:          options.Secrets,
+			Data:          options.Pairs,
 		}); err != nil {
 			return err
 		}
