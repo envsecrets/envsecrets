@@ -21,7 +21,7 @@ import (
 	"github.com/stripe/stripe-go/v74/webhook"
 )
 
-func CreateCheckoutSession(c echo.Context) error {
+func CreateCheckoutSessionHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload CreateCheckoutSessionOptions
@@ -54,9 +54,24 @@ func CreateCheckoutSession(c echo.Context) error {
 		})
 	}
 
+	//	Should be minimum 1 quantity.
 	quantity := payload.Quantity
 	if quantity == 0 {
 		quantity = 1
+	}
+
+	//	Choose the monthly plan by default.
+	if payload.Plan == "" {
+		payload.Plan = Monthly
+	}
+
+	//	Initialize the appropriate Stripe Price ID.
+	var priceID string
+	switch payload.Plan {
+	case Monthly:
+		priceID = os.Getenv("STRIPE_MONTHLY_PLAN_PRICE_ID")
+	case Annual:
+		priceID = os.Getenv("STRIPE_ANNUAL_PLAN_PRICE_ID")
 	}
 
 	params := &stripe.CheckoutSessionParams{
@@ -83,7 +98,7 @@ func CreateCheckoutSession(c echo.Context) error {
 				},
 
 				// Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-				Price:    stripe.String(os.Getenv("STRIPE_PRICE_ID")),
+				Price:    stripe.String(priceID),
 				Quantity: stripe.Int64(quantity),
 			},
 		},
@@ -109,7 +124,7 @@ func CreateCheckoutSession(c echo.Context) error {
 	})
 }
 
-func CheckoutWebhook(c echo.Context) error {
+func CheckoutWebhookHandler(c echo.Context) error {
 
 	defer c.Request().Body.Close()
 
@@ -156,7 +171,6 @@ func CheckoutWebhook(c echo.Context) error {
 		}); err != nil {
 			return c.String(http.StatusBadRequest, fmt.Sprintf("failed to register the new subscription: %s", err.Error()))
 		}
-
 	} else if event.Type == "customer.subscription.updated" {
 
 		var subscription stripe.Subscription
@@ -213,35 +227,3 @@ func CheckoutWebhook(c echo.Context) error {
 
 	return c.String(http.StatusOK, "webhook processed successfully")
 }
-
-/* func retrieveSessionItems(session_id string) (*[]stripe.LineItem, error) {
-
-	req, err := http.NewRequest(http.MethodGet, "https://api.stripe.com/v1/checkout/sessions/"+session_id+"/line_items", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth(os.Getenv("STRIPE_KEY"), "")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	result, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var response struct {
-		Data []stripe.LineItem `json:"data"`
-	}
-	if err := json.Unmarshal(result, &response); err != nil {
-		return nil, err
-	}
-
-	return &response.Data, nil
-}
-*/
