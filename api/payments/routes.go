@@ -13,12 +13,12 @@ func AddRoutes(sg *echo.Group) {
 	client := payments.Group("/client")
 
 	//	Set the group's routes.
-	client.GET("/session", CreateCheckoutSession)
+	client.GET("/session", CreateCheckoutSessionHandler)
 
 	//	Server group.
 	//	To be called with webhook header.
 	server := payments.Group("/server")
 
 	//	Set the group's routes.
-	server.POST("/webhook", CheckoutWebhook)
+	server.POST("/webhook", CheckoutWebhookHandler)
 }
