@@ -38,6 +38,10 @@ func (i *Integration) GetTitle() string {
 		return "Netlify"
 	case Railway:
 		return "Railway"
+	case Hasura:
+		return "Hasura"
+	case Nhost:
+		return "Nhost"
 	default:
 		return ""
 	}
@@ -64,6 +68,10 @@ func (i *Integration) GetSubtitle() string {
 		return "Your Netlify project where we sync this environment's secrets."
 	case Railway:
 		return "Your Railway project's environment where we sync this environment's secrets."
+	case Hasura:
+		return "Your Hasura project where we sync this environment's secrets."
+	case Nhost:
+		return "Your Nhost app where we sync this environment's secrets."
 	default:
 		return ""
 	}
@@ -90,6 +98,10 @@ func (i *Integration) GetDescription() string {
 		return "Make your secrets natively available in your Netlify project's environment variables."
 	case Railway:
 		return "Make your secrets natively available in your Railway project's environment variables."
+	case Hasura:
+		return "Make your secrets natively available in your Hasura project's environment variables."
+	case Nhost:
+		return "Make your secrets natively available in your Nhost app's environment variables."
 	default:
 		return ""
 	}

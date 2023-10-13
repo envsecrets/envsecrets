@@ -1,6 +1,8 @@
 package nhost
 
 import (
+	"fmt"
+
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -23,7 +25,6 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 			ID        string `json:"id"`
 			Slug      string `json:"slug"`
 			Workspace struct {
-				ID   string `json:"id"`
 				Slug string `json:"slug"`
 			} `json:"workspace"`
 		} `json:"apps"`
@@ -33,7 +34,16 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 		return nil, err
 	}
 
-	return &query.Apps, nil
+	//	Transform the response.
+	var response []map[string]interface{}
+	for _, app := range query.Apps {
+		response = append(response, map[string]interface{}{
+			"id":   app.ID,
+			"name": fmt.Sprintf("%s/%s", app.Workspace.Slug, app.Slug),
+		})
+	}
+
+	return &response, nil
 }
 
 func Sync(ctx context.ServiceContext, options *SyncOptions) error {
