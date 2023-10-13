@@ -44,7 +44,7 @@ func NewNhostClient(config *NhostConfig) *NhostClient {
 
 	response.BaseURL = config.BaseURL
 	if response.BaseURL == "" {
-		response.BaseURL = os.Getenv("NHOST_AUTH_URL")
+		response.BaseURL = os.Getenv("NHOST_AUTH_URL") + "/v1"
 	}
 	response.CustomHeaders = config.CustomHeaders
 	response.Authorization = config.Authorization

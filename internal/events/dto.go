@@ -48,6 +48,9 @@ func (e *Event) GetEntityLink() string {
 		return fmt.Sprintf("https://railway.app/project/%s/settings/variables", project["id"])
 	case integrations.Hasura:
 		return fmt.Sprintf("https://cloud.hasura.io/project/%s/env-vars", e.EntityDetails["id"])
+	case integrations.Nhost:
+		workspace := e.EntityDetails["workspace"].(map[string]interface{})
+		return fmt.Sprintf("https://app.nhost.io/%s/%s/settings/secrets", e.EntityDetails["slug"], workspace["slug"])
 	default:
 		return ""
 	}
@@ -74,6 +77,8 @@ func (e *Event) GetEntityTitle() string {
 		return e.EntityDetails["name"].(string)
 	case integrations.Hasura:
 		return e.EntityDetails["name"].(string)
+	case integrations.Nhost:
+		return e.EntityDetails["slug"].(string) + "/" + e.EntityDetails["workspace"].(map[string]interface{})["slug"].(string)
 	case integrations.Railway:
 		project := e.EntityDetails["project"].(map[string]interface{})
 		environment := e.EntityDetails["environment"].(map[string]interface{})
@@ -96,6 +101,8 @@ func (e *Event) GetEntityType() string {
 		return "secret"
 	case integrations.Netlify:
 		return "site"
+	case integrations.Nhost:
+		return "app"
 	default:
 		return ""
 	}

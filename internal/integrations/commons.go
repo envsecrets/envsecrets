@@ -22,8 +22,9 @@ const (
 	Netlify  Type = "netlify"
 	Railway  Type = "railway"
 	Hasura   Type = "hasura"
+	Nhost    Type = "nhost"
 )
 
 var (
-	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway, Hasura}
+	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway, Hasura, Nhost}
 )
