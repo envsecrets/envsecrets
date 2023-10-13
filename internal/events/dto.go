@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/envsecrets/envsecrets/internal/integrations"
+	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
 type Type string
@@ -109,4 +110,9 @@ func (e *Event) GetEntityType() string {
 
 type ActionsGetOptions struct {
 	EnvID string `json:"env_id,omitempty"`
+}
+
+type SyncOptions struct {
+	ID string
+	KP *keypayload.KPMap
 }

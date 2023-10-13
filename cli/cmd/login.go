@@ -102,7 +102,7 @@ var loginCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		client := clients.NewNhostClient(&clients.NhostConfig{
-			BaseURL: configCommons.NHOST_AUTH_URL,
+			BaseURL: configCommons.NHOST_AUTH_URL + "/v1",
 			Logger:  log,
 		})
 
@@ -121,7 +121,7 @@ var loginCmd = &cobra.Command{
 
 			//	Ask the user for TOTP.
 			prompt := promptui.Prompt{
-				Label:       "OTP",
+				Label:       "MFA OTP",
 				Mask:        '*',
 				HideEntered: true,
 				Validate: func(input string) error {
