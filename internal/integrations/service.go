@@ -18,6 +18,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/hasura"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/netlify"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/nhost"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/railway"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/supabase"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
@@ -156,6 +157,10 @@ func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.
 			Credentials: credentials,
 			OrgID:       integration.OrgID,
 		})
+	case Nhost:
+		return nhost.ListEntities(ctx, &nhost.ListOptions{
+			Credentials: credentials,
+		})
 	default:
 		return nil, errors.New("invalid integration type")
 	}
@@ -275,6 +280,12 @@ func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClie
 			"token": fmt.Sprint(options.Options["token"]),
 		}
 
+	case Nhost:
+
+		data.Credentials = map[string]interface{}{
+			"token": fmt.Sprint(options.Options["token"]),
+		}
+
 	case Supabase:
 
 		data.Credentials = map[string]interface{}{
@@ -373,6 +384,12 @@ func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClien
 		})
 	case Hasura:
 		return hasura.Sync(ctx, &hasura.SyncOptions{
+			Credentials:   credentials,
+			Data:          options.Data,
+			EntityDetails: options.EntityDetails,
+		})
+	case Nhost:
+		return nhost.Sync(ctx, &nhost.SyncOptions{
 			Credentials:   credentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,

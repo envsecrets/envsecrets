@@ -5,6 +5,10 @@ import (
 	"errors"
 )
 
+type SigninWithPATOptions struct {
+	PAT string `json:"personalAccessToken"`
+}
+
 type SigninWithPasswordOptions struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

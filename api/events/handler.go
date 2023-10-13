@@ -50,6 +50,7 @@ func ActionsGetHandler(c echo.Context) error {
 
 	for _, event := range *events {
 		payload := make(map[string]interface{})
+		payload["id"] = event.ID
 		payload["title"] = event.Integration.GetTitle()
 		payload["type"] = event.Integration.Type
 		//payload["description"] = event.Integration.GetDescription()

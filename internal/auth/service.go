@@ -24,6 +24,7 @@ type Service interface {
 	GenerateTOTPQR(context.ServiceContext, *clients.NhostClient) (*GenerateQRResponse, error)
 	SigninWithMFA(context.ServiceContext, *clients.NhostClient, *SigninWithMFAOptions) (*SigninResponse, error)
 	SigninWithPassword(context.ServiceContext, *clients.NhostClient, *SigninWithPasswordOptions) (*SigninResponse, error)
+	SigninWithPAT(context.ServiceContext, *clients.NhostClient, *SigninWithPATOptions) (*SigninResponse, error)
 	DecryptKeysFromSession(context.ServiceContext, *clients.GQLClient, *DecryptKeysFromSessionOptions) (*keyCommons.Payload, error)
 }
 
@@ -38,7 +39,7 @@ func (*DefaultService) ToggleMFA(ctx context.ServiceContext, client *clients.Nho
 	}
 
 	//	Initialize a new request
-	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/v1/user/mfa", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/user/mfa", bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func (*DefaultService) ToggleMFA(ctx context.ServiceContext, client *clients.Nho
 func (*DefaultService) GenerateTOTPQR(ctx context.ServiceContext, client *clients.NhostClient) (*GenerateQRResponse, error) {
 
 	//	Initialize a new request
-	req, err := http.NewRequest(http.MethodGet, client.BaseURL+"/v1/mfa/totp/generate", nil)
+	req, err := http.NewRequest(http.MethodGet, client.BaseURL+"/mfa/totp/generate", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (*DefaultService) SigninWithMFA(ctx context.ServiceContext, client *clients
 	}
 
 	//	Initialize a new request
-	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/v1/signin/mfa/totp", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/signin/mfa/totp", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (*DefaultService) SigninWithPassword(ctx context.ServiceContext, client *cl
 	}
 
 	//	Initialize a new request
-	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/v1/signin/email-password", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/signin/email-password", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +120,31 @@ func (*DefaultService) SigninWithPassword(ctx context.ServiceContext, client *cl
 		return &SigninResponse{
 			MFA: response.MFA,
 		}, nil
+	}
+
+	return &SigninResponse{
+		MFA:     response.MFA,
+		Session: response.Session,
+	}, nil
+}
+
+func (*DefaultService) SigninWithPAT(ctx context.ServiceContext, client *clients.NhostClient, options *SigninWithPATOptions) (*SigninResponse, error) {
+
+	body, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Initialize a new request
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/signin/pat", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	//	Send the request to Nhost signin endpoint.
+	var response NhostSigninResponse
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
 	}
 
 	return &SigninResponse{
