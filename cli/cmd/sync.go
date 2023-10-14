@@ -36,9 +36,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/internal/secrets"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/events"
 	"github.com/envsecrets/envsecrets/internal/integrations"
@@ -151,7 +151,7 @@ You can activate your connected integrations on the "integrations" page of your 
 			commons.Log.Fatal("failed to marshal your HTTP request body")
 		}
 
-		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.Secret.EnvID+"/sync", bytes.NewBuffer(body))
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, clients.API+"/v1/environments/"+commons.Secret.EnvID+"/sync", bytes.NewBuffer(body))
 		if err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("failed to create your HTTP request")

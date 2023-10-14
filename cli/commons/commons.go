@@ -9,7 +9,6 @@ import (
 )
 
 var VERSION string
-var API string
 
 var Log = logrus.New()
 

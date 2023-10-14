@@ -2,6 +2,7 @@ package hasura
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -81,6 +82,15 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 		"hash":      *currentHash,
 		"envs":      envs,
 	}); err != nil {
+
+		//	Important
+		//	If no changes are made to the environment variables, Hasura will return an error.
+		//	Example: Message: nothing changed in config, Locations: [], Extensions: map[code:legacyError id:667e5887-ca15-4981-b837-5a2c40631c0e]
+		//	We need to ignore this error.
+		if strings.Contains(err.Error(), "nothing changed in config") {
+			return nil
+		}
+
 		return err
 	}
 

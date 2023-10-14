@@ -150,6 +150,12 @@ var exportCmd = &cobra.Command{
 
 			result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient.GQLClient, &getOptions)
 			if err != nil {
+
+				//	If the dotenv file is not found, skip the error.
+				if os.IsNotExist(err) {
+					return
+				}
+
 				commons.Log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
 					commons.Log.Warn("You haven't set any secrets in this environment")

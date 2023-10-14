@@ -2,6 +2,8 @@ package clients
 
 // URLs
 var NHOST_GRAPHQL_URL string
+var NHOST_AUTH_URL string
+var API string
 
 type CustomHeader struct {
 	Key   string

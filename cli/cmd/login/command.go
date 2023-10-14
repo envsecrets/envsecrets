@@ -33,7 +33,6 @@ package login
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/commons"
@@ -49,6 +48,8 @@ const (
 	KEY_BYTES = 32
 )
 
+var email, password string
+
 // Cmd represents the login command
 var Cmd = &cobra.Command{
 	Use:   "login",
@@ -56,31 +57,30 @@ var Cmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		inputs := []textinput.Model{}
-
-		if !cmd.Flag("email").Changed {
+		if len(email) == 0 {
 			i := getEmailInput()
-			i.Focus()
-			inputs = append(inputs, i)
+			m := model{input: &i, heading: "Your envsecrets account email"}
+			if _, err := tea.NewProgram(m).Run(); err != nil {
+				cobra.CheckErr(err)
+			}
+
+			email = i.Value()
 		}
 
-		if !cmd.Flag("password").Changed {
-			inputs = append(inputs, getPasswordInput())
-		}
+		if len(password) == 0 {
+			i := getPasswordInput()
+			m := model{input: &i, heading: "Your envsecrets account password"}
+			if _, err := tea.NewProgram(m).Run(); err != nil {
+				cobra.CheckErr(err)
+			}
 
-		m := model{inputs: inputs}
-		if _, err := tea.NewProgram(m).Run(); err != nil {
-			commons.Log.Fatal(err)
+			password = i.Value()
 		}
-
-		email := inputs[0].Value()
-		password := inputs[1].Value()
 
 		//	Proceed to login the user.
 
 		client := clients.NewNhostClient(&clients.NhostConfig{
-			BaseURL: configCommons.NHOST_AUTH_URL + "/v1",
-			Logger:  commons.Log,
+			Logger: commons.Log,
 		})
 
 		//	Call the appropriate service handler.
@@ -97,10 +97,9 @@ var Cmd = &cobra.Command{
 		if response.MFA != nil {
 
 			i := getOTPInput()
-			i.Focus()
-			m := model{inputs: []textinput.Model{i}}
+			m := model{input: &i}
 			if _, err := tea.NewProgram(m).Run(); err != nil {
-				commons.Log.Fatal(err)
+				cobra.CheckErr(err)
 			}
 
 			totp := i.Value()
@@ -123,8 +122,7 @@ var Cmd = &cobra.Command{
 		}
 
 		if err := utils.MapToStruct(response.Session, &session); err != nil {
-			commons.Log.Debug(err)
-			commons.Log.Fatal("Failed to map the configuration")
+			cobra.CheckErr(err)
 		}
 
 		//	Save the account config
@@ -143,7 +141,7 @@ var Cmd = &cobra.Command{
 		//	Initialize a new GQL client with the user's access token.
 		gqlClient := clients.NewGQLClient(&clients.GQLConfig{
 			BaseURL:       clients.NHOST_GRAPHQL_URL,
-			Authorization: fmt.Sprintf("Bearer %s", response.Session["accessToken"].(string)),
+			Authorization: fmt.Sprintf("Bearer %s", session.AccessToken),
 			Logger:        commons.Log,
 		})
 
@@ -180,6 +178,6 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	Cmd.Flags().StringP("email", "e", "", "Your envsecrets account email")
-	Cmd.Flags().StringP("password", "p", "", "Your envsecrets account password")
+	Cmd.Flags().StringVarP(&email, "email", "e", "", "Your envsecrets account email")
+	Cmd.Flags().StringVarP(&password, "password", "p", "", "Your envsecrets account password")
 }

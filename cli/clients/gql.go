@@ -1,9 +1,6 @@
 package clients
 
 import (
-	"os"
-
-	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -27,7 +24,7 @@ type GQLConfig struct {
 func NewGQLClient(config *GQLConfig) *GQLClient {
 
 	client := clients.NewGQLClient(&clients.GQLConfig{
-		BaseURL:       os.Getenv(string(NHOST_GRAPHQL_URL)),
+		BaseURL:       NHOST_GRAPHQL_URL,
 		Authorization: config.Authorization,
 	})
 
@@ -65,7 +62,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 			accountConfig := accountConfigPayload.(*configCommons.Account)
 
-			authResponse, refreshErr := auth.RefreshToken(map[string]interface{}{
+			authResponse, refreshErr := RefreshToken(map[string]interface{}{
 				"refreshToken": accountConfig.RefreshToken,
 			})
 

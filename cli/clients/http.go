@@ -7,7 +7,6 @@ import (
 
 	"errors"
 
-	"github.com/envsecrets/envsecrets/cli/auth"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -123,7 +122,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
 
-		authResponse, refreshErr := auth.RefreshToken(map[string]interface{}{
+		authResponse, refreshErr := RefreshToken(map[string]interface{}{
 			"refreshToken": accountConfig.RefreshToken,
 		})
 
