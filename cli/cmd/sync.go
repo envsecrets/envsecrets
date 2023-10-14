@@ -77,7 +77,7 @@ You can activate your connected integrations on the "integrations" page of your 
 			getOptions.Version = &version
 		}
 
-		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient.GQLClient, &getOptions)
 		if err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to fetch the value")
@@ -106,7 +106,7 @@ You can activate your connected integrations on the "integrations" page of your 
 		//	Fetch the list of events with their respective type of integrations.
 		if !all {
 
-			events, err := events.GetService().GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.Secret.EnvID)
+			events, err := events.GetService().GetByEnvironment(commons.DefaultContext, commons.GQLClient.GQLClient, commons.Secret.EnvID)
 			if err != nil {
 				commons.Log.Debug(err)
 				commons.Log.Fatal("failed to fetch active integrations for your environment")

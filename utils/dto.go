@@ -1,4 +1,4 @@
-package commons
+package utils
 
 type JWTSecret struct {
 	Type string `json:"type"`

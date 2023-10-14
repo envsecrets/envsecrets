@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
@@ -20,7 +19,8 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
+	"github.com/envsecrets/envsecrets/internal/users"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -302,7 +302,7 @@ func UserInserted(c echo.Context) error {
 	}
 
 	//	Unmarshal the data interface to our required entity.
-	var user userCommons.User
+	var user users.User
 	if err := MapToStruct(payload.Event.Data.New, &user); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to unmarshal new data",
@@ -436,7 +436,7 @@ func OrganisationCreated(c echo.Context) error {
 	}
 
 	//	Generate a symmetric key for cryptographic operations in this organisation.
-	keyBytes, err := globalCommons.GenerateRandomBytes(KEY_BYTES)
+	keyBytes, err := utils.GenerateRandomBytes(KEY_BYTES)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
 			Message: "Failed to generate symmetric key for this org",

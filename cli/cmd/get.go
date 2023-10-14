@@ -66,7 +66,7 @@ var getCmd = &cobra.Command{
 			getOptions.Version = &version
 		}
 
-		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient.GQLClient, &getOptions)
 		if err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to fetch the value")

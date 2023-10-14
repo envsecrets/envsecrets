@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
-	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/sirupsen/logrus"
 
@@ -14,33 +14,26 @@ import (
 )
 
 type GQLClient struct {
-	*graphql.Client
-	BaseURL       string
-	Authorization string
-	Headers       []Header
-	CustomHeaders []CustomHeader
-	log           *logrus.Logger
+	*clients.GQLClient
+	log *logrus.Logger
 }
 
 type GQLConfig struct {
 	BaseURL       string
 	Authorization string
-	Headers       []Header
-	CustomHeaders []CustomHeader
 	Logger        *logrus.Logger
 }
 
 func NewGQLClient(config *GQLConfig) *GQLClient {
 
-	var response GQLClient
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		BaseURL:       os.Getenv(string(NHOST_GRAPHQL_URL)),
+		Authorization: config.Authorization,
+	})
 
-	response.Headers = config.Headers
-	response.CustomHeaders = config.CustomHeaders
-	response.BaseURL = os.Getenv(string(commons.NHOST_GRAPHQL_URL))
-	response.Authorization = config.Authorization
-
-	client := graphql.NewClient(response.BaseURL)
-	response.Client = client
+	response := GQLClient{
+		GQLClient: client,
+	}
 
 	if config.Logger != nil {
 		response.log = config.Logger
@@ -48,27 +41,13 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 		response.log = logrus.New()
 	}
 
-	if config == nil {
-		return &response
-	}
-
 	return &response
 }
 
 func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp interface{}) error {
 
-	//	Set Authorization Header
-	if c.Authorization != "" {
-		req.Header.Set(string(AuthorizationHeader), c.Authorization)
-	}
-
-	//	Set custom headers
-	for _, item := range c.CustomHeaders {
-		req.Header.Add(item.Key, item.Value)
-	}
-
 	//	Parse the error
-	if err := c.Run(ctx, req, &resp); err != nil {
+	if err := c.GQLClient.Do(ctx, req, &resp); err != nil {
 		apiError := ParseExternal(err)
 
 		//	If it's a JWTExpired error,
@@ -110,7 +89,7 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 				c.Authorization = "Bearer " + authResponse.Session.AccessToken
 			}
 
-			return c.Do(ctx, req, &resp)
+			return c.GQLClient.Do(ctx, req, &resp)
 
 		default:
 			return apiError.ToError()

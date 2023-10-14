@@ -5,12 +5,12 @@ import (
 	"errors"
 	"io"
 
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/keys/graphql"
 	"github.com/envsecrets/envsecrets/internal/memberships"
+	"github.com/envsecrets/envsecrets/utils"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/nacl/secretbox"
@@ -109,7 +109,7 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 	}
 
 	//	Generate a separate random symmetric key
-	protectionKeyBytes, err := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	protectionKeyBytes, err := utils.GenerateRandomBytes(commons.KEY_BYTES)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 	}
 
 	//	Generate random 32 byte salt
-	saltBytes, err := globalCommons.GenerateRandomBytes(commons.KEY_BYTES)
+	saltBytes, err := utils.GenerateRandomBytes(commons.KEY_BYTES)
 	if err != nil {
 		return nil, err
 	}

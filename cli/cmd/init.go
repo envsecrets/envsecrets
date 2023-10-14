@@ -101,7 +101,7 @@ var initCmd = &cobra.Command{
 		if len(organisationID) == 0 {
 
 			//	Check whether user has access to at least 1 organisation.
-			orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient)
+			orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient)
 			if err != nil {
 				commons.Log.Debug(err)
 				commons.Log.Fatal("Failed to fetch your organisations")
@@ -133,7 +133,7 @@ var initCmd = &cobra.Command{
 		//	Setup project
 		if len(projectID) == 0 {
 
-			projectsList, err := projects.GetService().List(commons.DefaultContext, commons.GQLClient, &projects.ListOptions{
+			projectsList, err := projects.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient, &projects.ListOptions{
 				OrgID: organisation.ID,
 			})
 			if err != nil {
@@ -170,7 +170,7 @@ var initCmd = &cobra.Command{
 			} else {
 
 				//	Create new item
-				item, err := projects.GetService().Create(commons.DefaultContext, commons.GQLClient, &projects.CreateOptions{
+				item, err := projects.GetService().Create(commons.DefaultContext, commons.GQLClient.GQLClient, &projects.CreateOptions{
 					OrgID: organisation.ID,
 					Name:  result,
 				})
@@ -189,7 +189,7 @@ var initCmd = &cobra.Command{
 		}
 
 		//	Pull the user's copy of organisation key.
-		key, err := memberships.GetKey(commons.DefaultContext, commons.GQLClient, &memberships.GetKeyOptions{
+		key, err := memberships.GetKey(commons.DefaultContext, commons.GQLClient.GQLClient, &memberships.GetKeyOptions{
 			OrgID:  organisation.ID,
 			UserID: commons.AccountConfig.User.ID,
 		})

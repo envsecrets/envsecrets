@@ -253,7 +253,7 @@ func InitializeSecret(log *logrus.Logger) {
 	}
 
 	//	Initialize the local secret.
-	secret, err := secrets.GetService().Init(commons.DefaultContext, commons.GQLClient, remoteConfig)
+	secret, err := secrets.GetService().Init(commons.DefaultContext, commons.GQLClient.GQLClient, remoteConfig)
 	if err != nil {
 		commons.Log.Error(err)
 		commons.Log.Fatal("Failed to initialize the local secret")

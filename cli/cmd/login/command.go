@@ -39,9 +39,9 @@ import (
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/users"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -84,7 +84,7 @@ var Cmd = &cobra.Command{
 		})
 
 		//	Call the appropriate service handler.
-		response, err := auth.GetService().SigninWithPassword(commons.DefaultContext, client, &auth.SigninWithPasswordOptions{
+		response, err := auth.GetService().SigninWithPassword(commons.DefaultContext, client.NhostClient, &auth.SigninWithPasswordOptions{
 			Email:    email,
 			Password: password,
 		})
@@ -105,7 +105,7 @@ var Cmd = &cobra.Command{
 
 			totp := i.Value()
 
-			response, err = auth.GetService().SigninWithMFA(commons.DefaultContext, client, &auth.SigninWithMFAOptions{
+			response, err = auth.GetService().SigninWithMFA(commons.DefaultContext, client.NhostClient, &auth.SigninWithMFAOptions{
 				Ticket: response.MFA["ticket"].(string),
 				OTP:    totp,
 			})
@@ -122,7 +122,7 @@ var Cmd = &cobra.Command{
 			User                 users.User `json:"user"`
 		}
 
-		if err := globalCommons.MapToStruct(response.Session, &session); err != nil {
+		if err := utils.MapToStruct(response.Session, &session); err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to map the configuration")
 		}
@@ -142,13 +142,13 @@ var Cmd = &cobra.Command{
 
 		//	Initialize a new GQL client with the user's access token.
 		gqlClient := clients.NewGQLClient(&clients.GQLConfig{
-			BaseURL:       commons.NHOST_GRAPHQL_URL,
+			BaseURL:       clients.NHOST_GRAPHQL_URL,
 			Authorization: fmt.Sprintf("Bearer %s", response.Session["accessToken"].(string)),
 			Logger:        commons.Log,
 		})
 
 		//	Extract and decrypt keys from user's session.
-		pair, err := auth.GetService().DecryptKeysFromSession(commons.DefaultContext, gqlClient, &auth.DecryptKeysFromSessionOptions{
+		pair, err := auth.GetService().DecryptKeysFromSession(commons.DefaultContext, gqlClient.GQLClient, &auth.DecryptKeysFromSessionOptions{
 			Session:  response.Session,
 			Password: password,
 		})

@@ -120,7 +120,7 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Encrypt the values.
 		Encrypt()
 
-		if err := secrets.GetService().Set(commons.DefaultContext, commons.GQLClient, commons.Secret); err != nil {
+		if err := secrets.GetService().Set(commons.DefaultContext, commons.GQLClient.GQLClient, commons.Secret); err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to set the secrets")
 		}

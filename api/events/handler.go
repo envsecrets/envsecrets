@@ -3,10 +3,10 @@ package events
 import (
 	"net/http"
 
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/events"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,7 +22,7 @@ func ActionsGetHandler(c echo.Context) error {
 
 	//	Extract the arguments out of action payload.
 	var inputs events.ActionsGetOptions
-	if err := globalCommons.MapToStruct(payload.Input.Args, &inputs); err != nil {
+	if err := utils.MapToStruct(payload.Input.Args, &inputs); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
 			Message: "failed to parse the inputs",
 		})

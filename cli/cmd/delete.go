@@ -64,7 +64,7 @@ var deleteCmd = &cobra.Command{
 			options.Version = &version
 		}
 
-		secret, err := secrets.GetService().Delete(commons.DefaultContext, commons.GQLClient, options)
+		secret, err := secrets.GetService().Delete(commons.DefaultContext, commons.GQLClient.GQLClient, options)
 		if err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to delete secret")

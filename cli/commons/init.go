@@ -1,9 +1,9 @@
 package commons
 
 import (
+	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/config"
 	"github.com/envsecrets/envsecrets/cli/config/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func Initialize(log *logrus.Logger) {
 
 	//	Initialize GQL client
 	GQLClient = clients.NewGQLClient(&clients.GQLConfig{
-		BaseURL: NHOST_GRAPHQL_URL,
+		BaseURL: clients.NHOST_GRAPHQL_URL,
 		Logger:  log,
 	})
 

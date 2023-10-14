@@ -60,7 +60,7 @@ var listCmd = &cobra.Command{
 			options.Version = &version
 		}
 
-		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient, &options)
+		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient, &options)
 		if err != nil {
 			commons.Log.Debug(err)
 			if err.Error() == string(clients.ErrorTypeRecordNotFound) {

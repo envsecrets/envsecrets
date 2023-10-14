@@ -91,7 +91,7 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			getOptions.Version = &version
 		}
 
-		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient.GQLClient, &getOptions)
 		if err != nil {
 			commons.Log.Debug(err)
 			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {

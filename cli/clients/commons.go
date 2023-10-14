@@ -1,5 +1,8 @@
 package clients
 
+// URLs
+var NHOST_GRAPHQL_URL string
+
 type CustomHeader struct {
 	Key   string
 	Value string

@@ -1,54 +1,41 @@
 package clients
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"os"
 
+	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/sirupsen/logrus"
 )
 
 type NhostClient struct {
-	*http.Client
-	Authorization   string
-	CustomHeaders   []CustomHeader
-	log             *logrus.Logger
-	ResponseHandler func(*http.Response) error
-	BaseURL         string
+	*clients.NhostClient
+	log *logrus.Logger
 }
 
 type NhostConfig struct {
-	Authorization   string
-	Headers         []Header
-	CustomHeaders   []CustomHeader
-	Logger          *logrus.Logger
-	ResponseHandler func(*http.Response) error
-	BaseURL         string
+	Authorization string
+	Logger        *logrus.Logger
+	BaseURL       string
 }
 
 func NewNhostClient(config *NhostConfig) *NhostClient {
 
-	var response NhostClient
-	response.Client = &http.Client{}
-	response.log = logrus.New()
+	client := clients.NewNhostClient(&clients.NhostConfig{
+		BaseURL:       os.Getenv(string(NHOST_GRAPHQL_URL)),
+		Authorization: config.Authorization,
+	})
 
-	if config == nil {
-		return &response
+	response := NhostClient{
+		NhostClient: client,
 	}
 
 	if config.Logger != nil {
 		response.log = config.Logger
+	} else {
+		response.log = logrus.New()
 	}
-
-	response.BaseURL = config.BaseURL
-	if response.BaseURL == "" {
-		response.BaseURL = os.Getenv("NHOST_AUTH_URL") + "/v1"
-	}
-	response.CustomHeaders = config.CustomHeaders
-	response.Authorization = config.Authorization
-	response.ResponseHandler = config.ResponseHandler
 
 	return &response
 }
@@ -57,40 +44,5 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 
 	c.log.Debug("[NhostClient] Request to: ", req.URL.String())
 
-	//	Set content-type header
-	req.Header.Set("content-type", "application/json")
-
-	//	Set Authorization Header
-	if c.Authorization != "" {
-		req.Header.Set(string(AuthorizationHeader), c.Authorization)
-	}
-
-	//	Set custom headers
-	for _, item := range c.CustomHeaders {
-		req.Header.Set(item.Key, item.Value)
-	}
-
-	req.Header.Get("content-type")
-
-	//	Make the request
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if response != nil {
-
-		defer resp.Body.Close()
-
-		result, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		if err := json.Unmarshal(result, &response); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return c.NhostClient.Run(ctx, req, &response)
 }

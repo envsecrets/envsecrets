@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	globalCommons "github.com/envsecrets/envsecrets/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/utils"
 )
 
 func GetSecret(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.GetResponse, error) {
@@ -56,7 +56,7 @@ func GetSecret(ctx context.ServiceContext, client *clients.HTTPClient, options *
 	}
 
 	var data secretCommons.GetResponse
-	if err := globalCommons.MapToStruct(response.Data, &data); err != nil {
+	if err := utils.MapToStruct(response.Data, &data); err != nil {
 		return nil, err
 	}
 
