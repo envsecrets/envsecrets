@@ -68,7 +68,7 @@ var exportCmd = &cobra.Command{
 		}
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -84,13 +84,13 @@ var exportCmd = &cobra.Command{
 
 			result, err := internal.GetSecret(commons.DefaultContext, commons.HTTPClient, options)
 			if err != nil {
-				log.Debug(err)
+				commons.Log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-					log.Error("You haven't set any secrets in this environment")
-					log.Info("Use `envs set --help` for more information")
+					commons.Log.Error("You haven't set any secrets in this environment")
+					commons.Log.Info("Use `envs set --help` for more information")
 					os.Exit(1)
 				} else {
-					log.Fatal("Failed to fetch the secrets")
+					commons.Log.Fatal("Failed to fetch the secrets")
 				}
 			}
 
@@ -100,22 +100,22 @@ var exportCmd = &cobra.Command{
 			//	Decode the key.
 			keyBytes, err := base64.StdEncoding.DecodeString(result.Token.Key)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decode the key")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to decode the key")
 			}
 
 			//	Decode the token.
 			token, err := hex.DecodeString(XTokenHeader)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decode the token")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to decode the token")
 			}
 
 			//	Decrypt the token.
 			orgKeyBytes, err := tokens.GetService().Decrypt(commons.DefaultContext, commons.GQLClient, token, keyBytes)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the token")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to decrypt the token")
 			}
 
 			//	Convert the key to [32]byte.
@@ -124,8 +124,8 @@ var exportCmd = &cobra.Command{
 
 			//	Decrypt the secrets.
 			if err := result.Secret.Decrypt(orgKey); err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to decrypt the secret")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to decrypt the secret")
 			}
 
 			//	Temporary copy-over.
@@ -150,13 +150,13 @@ var exportCmd = &cobra.Command{
 
 			result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 			if err != nil {
-				log.Debug(err)
+				commons.Log.Debug(err)
 				if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-					log.Warn("You haven't set any secrets in this environment")
-					log.Info("Use `envs set --help` for more information")
+					commons.Log.Warn("You haven't set any secrets in this environment")
+					commons.Log.Info("Use `envs set --help` for more information")
 					os.Exit(1)
 				} else {
-					log.Fatal("Failed to fetch the secrets")
+					commons.Log.Fatal("Failed to fetch the secrets")
 				}
 			}
 
@@ -175,8 +175,8 @@ var exportCmd = &cobra.Command{
 
 			f, err := os.OpenFile(exportfile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to open file: ", exportfile)
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to open file: ", exportfile)
 			}
 
 			defer f.Close()
@@ -185,14 +185,14 @@ var exportCmd = &cobra.Command{
 			default:
 
 				if _, err := f.WriteString(buffer.String()); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to export values to file")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to export values to file")
 				}
 
 			case ".csv":
 
-				log.Error("This file format is not yet supported")
-				log.Info("Use `--help` for more information")
+				commons.Log.Error("This file format is not yet supported")
+				commons.Log.Info("Use `--help` for more information")
 				os.Exit(1)
 
 			case ".json":
@@ -202,13 +202,13 @@ var exportCmd = &cobra.Command{
 
 				result, err := json.MarshalIndent(data, "", "\t")
 				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to marshal the values before exporting to file")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to marshal the values before exporting to file")
 				}
 
 				if _, err := f.Write(result); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to export values to file")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to export values to file")
 				}
 
 			case ".yaml":
@@ -218,13 +218,13 @@ var exportCmd = &cobra.Command{
 
 				result, err := data.MarshalYAML()
 				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to marshal the values before exporting to file")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to marshal the values before exporting to file")
 				}
 
 				if _, err := f.Write(result); err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to export values to file")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to export values to file")
 				}
 
 			}

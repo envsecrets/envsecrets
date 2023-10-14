@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
+	"github.com/envsecrets/envsecrets/cli/cmd/login"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	projectConfig "github.com/envsecrets/envsecrets/cli/config/project"
@@ -63,8 +64,8 @@ var initCmd = &cobra.Command{
 		//	If the user is not already authenticated,
 		//	log them in first.
 		if !auth.IsLoggedIn() {
-			loginCmd.PreRunE(cmd, args)
-			loginCmd.Run(cmd, args)
+			login.Cmd.PreRunE(cmd, args)
+			login.Cmd.Run(cmd, args)
 		}
 
 		return nil
@@ -102,8 +103,8 @@ var initCmd = &cobra.Command{
 			//	Check whether user has access to at least 1 organisation.
 			orgs, err := organisations.GetService().List(commons.DefaultContext, commons.GQLClient)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch your organisations")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to fetch your organisations")
 			}
 
 			var orgsStringList []string
@@ -136,8 +137,8 @@ var initCmd = &cobra.Command{
 				OrgID: organisation.ID,
 			})
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to fetch yours projects")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to fetch yours projects")
 			}
 
 			var projectsStringList []string
@@ -174,15 +175,15 @@ var initCmd = &cobra.Command{
 					Name:  result,
 				})
 				if err != nil {
-					log.Debug(err)
-					log.Fatal("Failed to create the project")
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to create the project")
 				}
 
 				project.ID = item.ID
 				project.Name = fmt.Sprint(item.Name)
 
 				//	Wait until default environments are not created.
-				log.Info("Creating your default environments. Wait for 5 seconds...")
+				commons.Log.Info("Creating your default environments. Wait for 5 seconds...")
 				time.Sleep(5 * time.Second)
 			}
 		}
@@ -193,8 +194,8 @@ var initCmd = &cobra.Command{
 			UserID: commons.AccountConfig.User.ID,
 		})
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the encryption key")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to fetch the encryption key")
 		}
 
 		//	Write selected entities to project config
@@ -204,12 +205,12 @@ var initCmd = &cobra.Command{
 			Key:       key,
 			//AutoCapitalize: true,
 		}); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to save new project configuration locally")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to save new project configuration locally")
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Info("You can now set your secrets using `envs set`")
+		commons.Log.Info("You can now set your secrets using `envs set`")
 	},
 }
 

@@ -35,6 +35,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/envsecrets/envsecrets/cli/cmd/login"
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
@@ -44,8 +45,6 @@ import (
 )
 
 var debug bool
-
-var log = logrus.New()
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -86,13 +85,13 @@ Upgrade the CLI:
 		*/
 
 		//	Initialize configuration
-		commons.Initialize(log)
+		commons.Initialize(commons.Log)
 
 		/* 		//	If the user is not already authenticated,
 		   		//	log them in first.
 		   		if args[0] != "login" {
 		   			if !auth.IsLoggedIn() {
-		   				loginCmd.Run(cmd, args)
+		   				login.Cmd.Run(cmd, args)
 		   			}
 		   		}
 		*/
@@ -126,7 +125,7 @@ func LoadConfig(path string) (config *commons.Config, err error) {
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Debug(err)
+		commons.Log.Debug(err)
 		os.Exit(1)
 	}
 
@@ -148,7 +147,7 @@ func Execute() {
 		}
 
 		if err := doc.GenMarkdownTreeCustom(rootCmd, "./docs", filePrepender, linkHandler); err != nil {
-			log.Debug(err)
+			commons.Log.Debug(err)
 			os.Exit(1)
 		}
 	*/
@@ -176,13 +175,13 @@ func (f *myFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 // setUpLogs set the log output ans the log level
 func setUpLogs(out io.Writer, level string) error {
-	log.SetOutput(out)
+	commons.Log.SetOutput(out)
 	lvl, err := logrus.ParseLevel(level)
 	if err != nil {
 		return err
 	}
-	log.SetLevel(lvl)
-	log.SetFormatter(&myFormatter{logrus.TextFormatter{
+	commons.Log.SetLevel(lvl)
+	commons.Log.SetFormatter(&myFormatter{logrus.TextFormatter{
 		FullTimestamp:          true,
 		TimestampFormat:        "2006-01-02 15:04:05",
 		ForceColors:            true,
@@ -193,6 +192,10 @@ func setUpLogs(out io.Writer, level string) error {
 }
 
 func init() {
+
+	//	Register child commands
+	rootCmd.AddCommand(login.Cmd)
+
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -214,10 +217,10 @@ func InitializeSecret(log *logrus.Logger) {
 	if environmentName != "" {
 
 		if !config.GetService().Exists(configCommons.AccountConfig) {
-			loginCmd.Run(rootCmd, []string{})
+			login.Cmd.Run(rootCmd, []string{})
 		}
 
-		log.Debug("Reading project config...")
+		commons.Log.Debug("Reading project config...")
 
 		//	Fetch the project config
 		projectConfig, err := config.GetService().Load(configCommons.ProjectConfig)
@@ -229,10 +232,10 @@ func InitializeSecret(log *logrus.Logger) {
 				initCmd.PreRunE(rootCmd, []string{})
 				initCmd.Run(rootCmd, []string{})
 
-				InitializeSecret(log)
+				InitializeSecret(commons.Log)
 
 			} else {
-				log.Fatal(err)
+				commons.Log.Fatal(err)
 			}
 		} else {
 			commons.ProjectConfig = projectConfig.(*configCommons.Project)
@@ -240,7 +243,7 @@ func InitializeSecret(log *logrus.Logger) {
 
 		//	If the project config does not exist, throw an error.
 		if commons.ProjectConfig == nil {
-			log.Fatal("Project configuration not found")
+			commons.Log.Fatal("Project configuration not found")
 		}
 
 		remoteConfig = &secrets.RemoteConfig{
@@ -252,8 +255,8 @@ func InitializeSecret(log *logrus.Logger) {
 	//	Initialize the local secret.
 	secret, err := secrets.GetService().Init(commons.DefaultContext, commons.GQLClient, remoteConfig)
 	if err != nil {
-		log.Error(err)
-		log.Fatal("Failed to initialize the local secret")
+		commons.Log.Error(err)
+		commons.Log.Fatal("Failed to initialize the local secret")
 	}
 
 	commons.Secret = secret

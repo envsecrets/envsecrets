@@ -62,7 +62,7 @@ You can activate your connected integrations on the "integrations" page of your 
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -79,8 +79,8 @@ You can activate your connected integrations on the "integrations" page of your 
 
 		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the value")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to fetch the value")
 		}
 
 		commons.Secret = result
@@ -108,8 +108,8 @@ You can activate your connected integrations on the "integrations" page of your 
 
 			events, err := events.GetService().GetByEnvironment(commons.DefaultContext, commons.GQLClient, commons.Secret.EnvID)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("failed to fetch active integrations for your environment")
+				commons.Log.Debug(err)
+				commons.Log.Fatal("failed to fetch active integrations for your environment")
 			}
 
 			type item struct {
@@ -147,27 +147,27 @@ You can activate your connected integrations on the "integrations" page of your 
 
 		body, err := json.Marshal(&options)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("failed to marshal your HTTP request body")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("failed to marshal your HTTP request body")
 		}
 
 		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodPost, commons.API+"/v1/environments/"+commons.Secret.EnvID+"/sync", bytes.NewBuffer(body))
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("failed to create your HTTP request")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("failed to create your HTTP request")
 		}
 
 		var response clients.APIResponse
 		err = commons.HTTPClient.Run(commons.DefaultContext, req, &response)
 		if err != nil {
-			log.Fatal(err)
+			commons.Log.Fatal(err)
 		}
 
 		if response.Error != "" {
-			log.Fatal(response.Error)
+			commons.Log.Fatal(response.Error)
 		}
 
-		log.Info("Successfully synced secrets to connected services")
+		commons.Log.Info("Successfully synced secrets to connected services")
 	},
 }
 

@@ -16,7 +16,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/nhost"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/users"
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 )
 
 type Service interface {
@@ -225,7 +224,7 @@ func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client
 		return nil, err
 	}
 
-	var user userCommons.User
+	var user users.User
 	if err := json.Unmarshal([]byte(temp), &user); err != nil {
 		return nil, err
 	}

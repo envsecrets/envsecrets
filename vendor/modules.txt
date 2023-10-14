@@ -28,6 +28,9 @@ github.com/andybalholm/cascadia
 # github.com/aokoli/goutils v1.0.1
 ## explicit
 github.com/aokoli/goutils
+# github.com/atotto/clipboard v0.1.4
+## explicit
+github.com/atotto/clipboard
 # github.com/aws/aws-sdk-go-v2 v1.18.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2
@@ -116,9 +119,27 @@ github.com/aws/smithy-go/rand
 github.com/aws/smithy-go/time
 github.com/aws/smithy-go/transport/http
 github.com/aws/smithy-go/transport/http/internal/io
+# github.com/aymanbagabas/go-osc52/v2 v2.0.1
+## explicit; go 1.16
+github.com/aymanbagabas/go-osc52/v2
+# github.com/charmbracelet/bubbles v0.16.1
+## explicit; go 1.17
+github.com/charmbracelet/bubbles/cursor
+github.com/charmbracelet/bubbles/key
+github.com/charmbracelet/bubbles/runeutil
+github.com/charmbracelet/bubbles/textinput
+# github.com/charmbracelet/bubbletea v0.24.2
+## explicit; go 1.17
+github.com/charmbracelet/bubbletea
+# github.com/charmbracelet/lipgloss v0.7.1
+## explicit; go 1.17
+github.com/charmbracelet/lipgloss
 # github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 ## explicit
 github.com/chzyer/readline
+# github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81
+## explicit; go 1.13
+github.com/containerd/console
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
@@ -219,6 +240,9 @@ github.com/labstack/gommon/bytes
 github.com/labstack/gommon/color
 github.com/labstack/gommon/log
 github.com/labstack/gommon/random
+# github.com/lucasb-eyer/go-colorful v1.2.0
+## explicit; go 1.12
+github.com/lucasb-eyer/go-colorful
 # github.com/machinebox/graphql v0.2.2
 ## explicit
 github.com/machinebox/graphql
@@ -235,18 +259,40 @@ github.com/matcornic/hermes/v2
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.17
+# github.com/mattn/go-isatty v0.0.19
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.3
+# github.com/mattn/go-localereader v0.0.1
 ## explicit
+github.com/mattn/go-localereader
+# github.com/mattn/go-runewidth v0.0.15
+## explicit; go 1.9
 github.com/mattn/go-runewidth
+# github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6
+## explicit; go 1.17
+github.com/muesli/ansi
+github.com/muesli/ansi/compressor
+# github.com/muesli/cancelreader v0.2.2
+## explicit; go 1.17
+github.com/muesli/cancelreader
+# github.com/muesli/reflow v0.3.0
+## explicit; go 1.13
+github.com/muesli/reflow/ansi
+github.com/muesli/reflow/truncate
+github.com/muesli/reflow/wordwrap
+github.com/muesli/reflow/wrap
+# github.com/muesli/termenv v0.15.2
+## explicit; go 1.17
+github.com/muesli/termenv
 # github.com/olekukonko/tablewriter v0.0.1
 ## explicit
 github.com/olekukonko/tablewriter
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/rivo/uniseg v0.4.4
+## explicit; go 1.18
+github.com/rivo/uniseg
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
@@ -344,12 +390,18 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.12.0
+# golang.org/x/sync v0.4.0
+## explicit; go 1.17
+golang.org/x/sync/errgroup
+# golang.org/x/sys v0.13.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
-golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/term v0.13.0
+## explicit; go 1.17
+golang.org/x/term
 # golang.org/x/text v0.13.0
 ## explicit; go 1.17
 golang.org/x/text/secure/bidirule

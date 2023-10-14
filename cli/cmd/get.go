@@ -46,7 +46,7 @@ var getCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -68,8 +68,8 @@ var getCmd = &cobra.Command{
 
 		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to fetch the value")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to fetch the value")
 		}
 
 		commons.Secret = result
@@ -78,7 +78,7 @@ var getCmd = &cobra.Command{
 		DecryptAndDecode()
 
 		if commons.Secret.Get(key) == nil {
-			log.Fatal("No value found for this key")
+			commons.Log.Fatal("No value found for this key")
 		}
 
 		fmt.Printf("%v", commons.Secret.Get(key).Value)

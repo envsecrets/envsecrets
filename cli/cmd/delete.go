@@ -45,7 +45,7 @@ var deleteCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,16 +66,16 @@ var deleteCmd = &cobra.Command{
 
 		secret, err := secrets.GetService().Delete(commons.DefaultContext, commons.GQLClient, options)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to delete secret")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to delete secret")
 		}
 
 		if secret.Version != nil {
-			log.Infoln("Latest version is now", *secret.Version)
+			commons.Log.Infoln("Latest version is now", *secret.Version)
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Infof("Key %s deleted", args[0])
+		commons.Log.Infof("Key %s deleted", args[0])
 	},
 }
 

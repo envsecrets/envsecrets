@@ -10,7 +10,7 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/nhost"
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
+	"github.com/envsecrets/envsecrets/internal/users"
 )
 
 type LoginResponse struct {
@@ -22,10 +22,10 @@ type LoginResponse struct {
 }
 
 type NhostSession struct {
-	AccessToken          string           `json:"accessToken"`
-	AccessTokenExpiresIn int              `json:"accessTokenExpiresIn"`
-	RefreshToken         string           `json:"refreshToken"`
-	User                 userCommons.User `json:"user"`
+	AccessToken          string     `json:"accessToken"`
+	AccessTokenExpiresIn int        `json:"accessTokenExpiresIn"`
+	RefreshToken         string     `json:"refreshToken"`
+	User                 users.User `json:"user"`
 }
 
 func Login(payload map[string]interface{}) (*LoginResponse, error) {
