@@ -13,7 +13,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/users"
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/matcornic/hermes/v2"
 
 	gomail "gopkg.in/mail.v2"
@@ -31,7 +30,7 @@ var (
 type Service interface {
 	Invite(context.ServiceContext, *commons.InvitationOptions) error
 	SendKey(context.ServiceContext, *commons.SendKeyOptions) error
-	SendWelcomeEmail(context.ServiceContext, *userCommons.User) error
+	SendWelcomeEmail(context.ServiceContext, *users.User) error
 }
 
 type DefaultMailService struct{}
@@ -204,7 +203,7 @@ func (*DefaultMailService) SendKey(ctx context.ServiceContext, options *commons.
 	return nil
 }
 
-func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *userCommons.User) error {
+func (*DefaultMailService) SendWelcomeEmail(ctx context.ServiceContext, user *users.User) error {
 
 	//	Initialize commons variables
 	FROM = os.Getenv("SMTP_USERNAME")

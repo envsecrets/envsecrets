@@ -48,7 +48,7 @@ var listCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -60,15 +60,15 @@ var listCmd = &cobra.Command{
 			options.Version = &version
 		}
 
-		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient, &options)
+		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient, &options)
 		if err != nil {
-			log.Debug(err)
+			commons.Log.Debug(err)
 			if err.Error() == string(clients.ErrorTypeRecordNotFound) {
-				log.Warn("You haven't set any secrets in this environment")
-				log.Info("Use `envs set --help` for more information")
+				commons.Log.Warn("You haven't set any secrets in this environment")
+				commons.Log.Info("Use `envs set --help` for more information")
 				os.Exit(1)
 			}
-			log.Fatal("Failed to list the secrets")
+			commons.Log.Fatal("Failed to list the secrets")
 		}
 
 		for _, key := range secrets.Keys() {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/keys"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/machinebox/graphql"
 )
 
@@ -79,7 +79,7 @@ func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLCli
 	exp := now.Add(options.Expiry)
 
 	//	Generate a symmetric key for cryptographic operations in this organisation.
-	keyBytes, err := globalCommons.GenerateRandomBytes(KEY_BYTES)
+	keyBytes, err := utils.GenerateRandomBytes(KEY_BYTES)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLCli
 	}
 
 	//	Hash the token to store it in our DB.
-	hash := globalCommons.SHA256Hash(token)
+	hash := utils.SHA256Hash(token)
 
 	if _, err := create(ctx, client, &CreateGraphQLOptions{
 		EnvID:  options.EnvID,

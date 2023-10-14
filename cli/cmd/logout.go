@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/config"
 	accountConfig "github.com/envsecrets/envsecrets/cli/config/account"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
@@ -44,20 +45,20 @@ var logoutCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if err := config.GetService().Delete(configCommons.ProjectConfig); err != nil {
-			log.Debug(err)
-			log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
-			log.Fatal("Failed to log you out")
+			commons.Log.Debug(err)
+			commons.Log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
+			commons.Log.Fatal("Failed to log you out")
 		}
 
 		if err := config.GetService().Delete(configCommons.AccountConfig); err != nil {
-			log.Debug(err)
-			log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
-			log.Fatal("Failed to log you out")
+			commons.Log.Debug(err)
+			commons.Log.Info("Please manually delete the file: ", accountConfig.CONFIG_LOC)
+			commons.Log.Fatal("Failed to log you out")
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		log.Warn("You have been logged out")
-		log.Info("Use `envs login` to login again")
+		commons.Log.Warn("You have been logged out")
+		commons.Log.Info("Use `envs login` to login again")
 	},
 }
 

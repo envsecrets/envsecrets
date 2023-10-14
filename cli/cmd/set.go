@@ -59,7 +59,7 @@ NOTE: This command auto-capitalizes your keys.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 
@@ -74,8 +74,8 @@ NOTE: This command auto-capitalizes your keys.`,
 		if importFile != "" {
 			filedata, err := os.ReadFile(importFile)
 			if err != nil {
-				log.Debug(err)
-				log.Fatal("Failed to read file: ", importFile)
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to read file: ", importFile)
 			}
 
 			switch filepath.Ext(importFile) {
@@ -90,15 +90,15 @@ NOTE: This command auto-capitalizes your keys.`,
 
 					key, payload, err := readPair(item)
 					if err != nil {
-						log.Error("Error on line ", index, " of your file")
-						log.Fatal(err)
+						commons.Log.Error("Error on line ", index, " of your file")
+						commons.Log.Fatal(err)
 					}
 					commons.Secret.Set(key, payload)
 				}
 
 			case ".csv", ".json", ".yaml":
-				log.Error("This file format is not yet supported")
-				log.Info("Use `--help` for more information")
+				commons.Log.Error("This file format is not yet supported")
+				commons.Log.Info("Use `--help` for more information")
 				os.Exit(1)
 
 			}
@@ -106,12 +106,12 @@ NOTE: This command auto-capitalizes your keys.`,
 
 			//	Run sanity checks
 			if len(args) < 1 {
-				log.Fatal("Invalid key=value pair")
+				commons.Log.Fatal("Invalid key=value pair")
 			}
 
 			key, payload, err := readPair(args[0])
 			if err != nil {
-				log.Fatal(err)
+				commons.Log.Fatal(err)
 			}
 
 			commons.Secret.Set(key, payload)
@@ -120,17 +120,17 @@ NOTE: This command auto-capitalizes your keys.`,
 		//	Encrypt the values.
 		Encrypt()
 
-		if err := secrets.GetService().Set(commons.DefaultContext, commons.GQLClient, commons.Secret); err != nil {
-			log.Debug(err)
-			log.Fatal("Failed to set the secrets")
+		if err := secrets.GetService().Set(commons.DefaultContext, commons.GQLClient.GQLClient, commons.Secret); err != nil {
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to set the secrets")
 		}
 
 		if commons.Secret.EnvID != "" {
 			if commons.Secret.Version != nil {
-				log.Infof("Secrets set! Latest version in remote `%s` is now %d ", environmentName, *commons.Secret.Version)
+				commons.Log.Infof("Secrets set! Latest version in remote `%s` is now %d ", environmentName, *commons.Secret.Version)
 			}
 		} else {
-			log.Info("Secrets set in local environment!")
+			commons.Log.Info("Secrets set in local environment!")
 		}
 	},
 }
