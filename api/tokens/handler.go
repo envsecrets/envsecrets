@@ -11,7 +11,6 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
-	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	"github.com/envsecrets/envsecrets/internal/tokens"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -48,51 +47,12 @@ func CreateHandler(c echo.Context) error {
 	//	Initialize the tokens service.
 	service := tokens.GetService()
 
-	//
-	//	Abuse limit validation
-	//
-	//	Before creating the token,
-	//	we need to check whether the organisation's plan hasn't exceeded the abuse limit.
-	//	If the number of list is greater than the allowed limit, proceed to check whether the organisation has an active subscription.
-	//	Otherwise, approve the inputs and allow for creation of the project.
-	list, err := service.List(ctx, client, &tokens.ListOptions{
-		EnvID: payload.EnvID,
-	})
-	if err != nil {
+	//	Validate abuse limits
+	if err := validateInput(ctx, client, payload.EnvID); err != nil {
 		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to fetch the tokens",
+			Message: "Your current plan does not allow creating more tokens.",
 			Error:   err.Error(),
 		})
-	}
-
-	if len(list) >= FREE_TIER_LIMIT_NUMBER_OF_TOKENS {
-
-		//	Validate whether the organisation an active premium subscription.
-		//	We do this by fetching the subscriptions by the organisation ID.
-		//	We then check if any subscription is active.
-		subscriptions, err := subscriptions.GetService().GetByOrgID(ctx, client, organisation.ID)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "failed to get the subscriptions",
-				Error:   err.Error(),
-			})
-		}
-
-		//	If there are no subscriptions, or if even a single subscription is not active, return an error.
-		if len(*subscriptions) == 0 {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "Your current plan does not allow creating more tokens.",
-				Error:   clients.ErrBreachingAbuseLimit.Error(),
-			})
-		}
-
-		active := subscriptions.IsActiveAny()
-		if !active {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "Your current plan does not allow creating more tokens.",
-				Error:   clients.ErrBreachingAbuseLimit.Error(),
-			})
-		}
 	}
 
 	//	Extract the user's email from JWT
