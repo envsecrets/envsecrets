@@ -51,6 +51,8 @@ func (e *Event) GetEntityLink() string {
 		return fmt.Sprintf("https://cloud.hasura.io/project/%s/env-vars", e.EntityDetails["id"])
 	case integrations.Nhost:
 		return fmt.Sprintf("https://app.nhost.io/%s/settings/secrets", e.EntityDetails["name"])
+	case integrations.Heroku:
+		return fmt.Sprintf("https://dashboard.heroku.com/apps/%s/settings", e.EntityDetails["name"])
 	default:
 		return ""
 	}
@@ -79,6 +81,8 @@ func (e *Event) GetEntityTitle() string {
 		return e.EntityDetails["name"].(string)
 	case integrations.Nhost:
 		return e.EntityDetails["name"].(string)
+	case integrations.Heroku:
+		return e.EntityDetails["name"].(string)
 	case integrations.Railway:
 		project := e.EntityDetails["project"].(map[string]interface{})
 		environment := e.EntityDetails["environment"].(map[string]interface{})
@@ -101,7 +105,7 @@ func (e *Event) GetEntityType() string {
 		return "secret"
 	case integrations.Netlify:
 		return "site"
-	case integrations.Nhost:
+	case integrations.Nhost, integrations.Heroku:
 		return "app"
 	default:
 		return ""

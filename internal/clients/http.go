@@ -38,6 +38,7 @@ func NewHTTPClient(config *HTTPConfig) *HTTPClient {
 	response.Client = &http.Client{}
 
 	if config == nil {
+		response.log = logrus.New()
 		return &response
 	}
 
@@ -89,8 +90,6 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 	for _, item := range c.CustomHeaders {
 		req.Header.Set(item.Key, item.Value)
 	}
-
-	req.Header.Get("content-type")
 
 	//	Make the request
 	resp, err := c.Do(req)

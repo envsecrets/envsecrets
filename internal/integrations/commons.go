@@ -23,8 +23,9 @@ const (
 	Railway  Type = "railway"
 	Hasura   Type = "hasura"
 	Nhost    Type = "nhost"
+	Heroku   Type = "heroku"
 )
 
 var (
-	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway, Hasura, Nhost}
+	AllowedIntegrations = []Type{Github, Gitlab, Vercel, ASM, CircleCI, GSM, Supabase, Netlify, Railway, Hasura, Nhost, Heroku}
 )
