@@ -170,6 +170,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
+	runCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
 	runCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }

@@ -63,6 +63,12 @@ var listCmd = &cobra.Command{
 		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient, &options)
 		if err != nil {
 			commons.Log.Debug(err)
+
+			//	If the dotenv file is not found, skip the error.
+			if os.IsNotExist(err) {
+				return
+			}
+
 			if err.Error() == string(clients.ErrorTypeRecordNotFound) {
 				commons.Log.Warn("You haven't set any secrets in this environment")
 				commons.Log.Info("Use `envs set --help` for more information")
