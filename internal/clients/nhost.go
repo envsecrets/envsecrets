@@ -72,8 +72,6 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 		req.Header.Set(item.Key, item.Value)
 	}
 
-	req.Header.Get("content-type")
-
 	//	Make the request
 	resp, err := c.Do(req)
 	if err != nil {

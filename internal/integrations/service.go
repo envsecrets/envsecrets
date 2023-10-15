@@ -17,6 +17,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gitlab"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/gsm"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/hasura"
+	"github.com/envsecrets/envsecrets/internal/integrations/internal/heroku"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/netlify"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/nhost"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/railway"
@@ -117,6 +118,12 @@ func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.
 		return gitlab.ListEntities(ctx, &gitlab.ListOptions{
 			Credentials:   credentials,
 			Type:          gitlab.EntityType(options["type"].(string)),
+			OrgID:         integration.OrgID,
+			IntegrationID: integration.ID,
+		})
+	case Heroku:
+		return heroku.ListEntities(ctx, &heroku.ListOptions{
+			Credentials:   credentials,
 			OrgID:         integration.OrgID,
 			IntegrationID: integration.ID,
 		})
@@ -227,6 +234,17 @@ func (*DefaultService) Setup(ctx context.ServiceContext, client *clients.GQLClie
 	case Gitlab:
 
 		credentials, err := gitlab.PrepareCredentials(ctx, &gitlab.PrepareCredentialsOptions{
+			Code: fmt.Sprint(options.Options["code"]),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		data.Credentials = credentials
+
+	case Heroku:
+
+		credentials, err := heroku.PrepareCredentials(ctx, &heroku.PrepareCredentialsOptions{
 			Code: fmt.Sprint(options.Options["code"]),
 		})
 		if err != nil {
@@ -358,6 +376,14 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 		})
 	case Gitlab:
 		return gitlab.Sync(ctx, &gitlab.SyncOptions{
+			Credentials:   credentials,
+			EntityDetails: options.EntityDetails,
+			Data:          options.Data,
+			IntegrationID: options.IntegrationID,
+			OrgID:         integration.OrgID,
+		})
+	case Heroku:
+		return heroku.Sync(ctx, &heroku.SyncOptions{
 			Credentials:   credentials,
 			EntityDetails: options.EntityDetails,
 			Data:          options.Data,

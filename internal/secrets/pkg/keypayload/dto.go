@@ -133,7 +133,7 @@ func (m KPMap) Decrypted(key [32]byte) (KPMap, error) {
 
 // Returns a new key=value mapping.
 func (m KPMap) ToKVMap() *keyvalue.KVMap {
-	var result keyvalue.KVMap
+	result := keyvalue.KVMap{}
 	for name, payload := range m {
 		result.Set(name, payload.Value)
 	}
