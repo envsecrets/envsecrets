@@ -13,13 +13,49 @@ import (
 )
 
 type Service interface {
+	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) ([]byte, error)
 	Get(context.ServiceContext, *clients.GQLClient, string) (*Token, error)
 	GetByHash(context.ServiceContext, *clients.GQLClient, string) (*Token, error)
-	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) ([]byte, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) ([]*Token, error)
 	Decrypt(context.ServiceContext, *clients.GQLClient, []byte, []byte) ([]byte, error)
 }
 
 type DefaultService struct{}
+
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) ([]byte, error) {
+
+	now := time.Now()
+	exp := now.Add(options.Expiry)
+
+	//	Generate a symmetric key for cryptographic operations in this organisation.
+	keyBytes, err := utils.GenerateRandomBytes(KEY_BYTES)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Encrypt the org key using newly generated symmetric key
+	var key [32]byte
+	copy(key[:], keyBytes)
+	token, err := keys.SealSymmetrically(options.OrgKey, key)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Hash the token to store it in our DB.
+	hash := utils.SHA256Hash(token)
+
+	if _, err := create(ctx, client, &CreateGraphQLOptions{
+		EnvID:  options.EnvID,
+		Name:   options.Name,
+		Expiry: exp,
+		Key:    keyBytes,
+		Hash:   hash,
+	}); err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
 
 func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*Token, error) {
 
@@ -73,39 +109,27 @@ func (*DefaultService) GetByHash(ctx context.ServiceContext, client *clients.GQL
 	return &response.Tokens[0], nil
 }
 
-func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) ([]byte, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) ([]*Token, error) {
 
-	now := time.Now()
-	exp := now.Add(options.Expiry)
+	req := graphql.NewRequest(`
+	query MyQuery($where: tokens_bool_exp) {
+		tokens(where: $where) {
+		  id
+		  name
+		}
+	  }	  
+	`)
 
-	//	Generate a symmetric key for cryptographic operations in this organisation.
-	keyBytes, err := utils.GenerateRandomBytes(KEY_BYTES)
-	if err != nil {
+	req.Var("where", options)
+
+	var response struct {
+		Tokens []*Token `json:"tokens"`
+	}
+	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	//	Encrypt the org key using newly generated symmetric key
-	var key [32]byte
-	copy(key[:], keyBytes)
-	token, err := keys.SealSymmetrically(options.OrgKey, key)
-	if err != nil {
-		return nil, err
-	}
-
-	//	Hash the token to store it in our DB.
-	hash := utils.SHA256Hash(token)
-
-	if _, err := create(ctx, client, &CreateGraphQLOptions{
-		EnvID:  options.EnvID,
-		Name:   options.Name,
-		Expiry: exp,
-		Key:    keyBytes,
-		Hash:   hash,
-	}); err != nil {
-		return nil, err
-	}
-
-	return token, nil
+	return response.Tokens, nil
 }
 
 func (*DefaultService) Decrypt(ctx context.ServiceContext, client *clients.GQLClient, token, keyBytes []byte) ([]byte, error) {
