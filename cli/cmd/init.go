@@ -142,7 +142,7 @@ var initCmd = &cobra.Command{
 			}
 
 			var projectsStringList []string
-			for _, item := range *projectsList {
+			for _, item := range projectsList {
 				projectsStringList = append(projectsStringList, item.Name)
 			}
 
@@ -160,9 +160,9 @@ var initCmd = &cobra.Command{
 
 			if index > -1 {
 
-				for itemIndex, item := range *projectsList {
+				for itemIndex := range projectsList {
 					if itemIndex == index {
-						project = item
+						project = *projectsList[itemIndex]
 						break
 					}
 				}

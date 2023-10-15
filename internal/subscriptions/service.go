@@ -13,6 +13,7 @@ import (
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*Subscription, error)
 	GetBySubscriptionID(context.ServiceContext, *clients.GQLClient, string) (*Subscription, error)
+	GetByOrgID(context.ServiceContext, *clients.GQLClient, string) (*Subscriptions, error)
 	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Subscription, error)
 	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Subscription, error)
 	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Subscription, error)
@@ -77,6 +78,30 @@ func (*DefaultService) GetBySubscriptionID(ctx context.ServiceContext, client *c
 	}
 
 	return &resp[0], nil
+}
+
+// Fetches the rows with matching organisation ID
+func (*DefaultService) GetByOrgID(ctx context.ServiceContext, client *clients.GQLClient, org_id string) (*Subscriptions, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		subscriptions(where: {org_id: {_eq: $id}}) {
+		  id
+		  status
+		}
+	  }			
+	`)
+
+	req.Var("id", org_id)
+
+	var response struct {
+		Subscriptions Subscriptions `json:"subscriptions"`
+	}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response.Subscriptions, nil
 }
 
 // Create a new subscription

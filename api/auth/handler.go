@@ -154,7 +154,7 @@ func UpdatePasswordHandler(c echo.Context) error {
 
 	//	Extract the user's email from JWT
 	token := c.Get("user").(*jwt.Token)
-	claims := token.Claims.(*Claims)
+	claims := token.Claims.(*clients.Claims)
 
 	//	Check whether user has keys.
 	_, err := keys.GetByUserID(ctx, client, claims.Hasura.UserID)
