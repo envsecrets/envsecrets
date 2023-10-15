@@ -10,8 +10,10 @@ const (
 
 func AddRoutes(sg *echo.Group) {
 
-	group := sg.Group("/environments/:" + ENV_ID)
+	group := sg.Group("/environments")
+	group.POST("/validate-input", ValidateInputHandler)
 
-	group.POST("/sync-password", SyncWithPasswordHandler)
-	group.POST("/sync", SyncHandler)
+	environment := group.Group("/:" + ENV_ID)
+	environment.POST("/sync-password", SyncWithPasswordHandler)
+	environment.POST("/sync", SyncHandler)
 }

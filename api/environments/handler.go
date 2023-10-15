@@ -10,11 +10,109 @@ import (
 	"github.com/envsecrets/envsecrets/internal/keys"
 	keysCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/organisations"
+	"github.com/envsecrets/envsecrets/internal/projects"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/internal/subscriptions"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/golang-jwt/jwt/v4"
 	echo "github.com/labstack/echo/v4"
 )
+
+func ValidateInputHandler(c echo.Context) error {
+
+	//	Unmarshal the incoming payload
+	var payload clients.HasuraInputValidationPayload
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+			Message: "failed to parse the body",
+			Extensions: &clients.HasuraActionsResponseExtensions{
+				Error: err,
+			},
+		})
+	}
+
+	//	Unmarshal the data interface to our required entity.
+	var rows []environments.Environment
+	if err := utils.MapToStruct(payload.Data.Input, &rows); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+			Message: "failed to unmarshal new data",
+			Extensions: &clients.HasuraActionsResponseExtensions{
+				Error: err,
+			},
+		})
+	}
+
+	// Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	// Initialize new Hasura client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Type:          clients.HasuraClientType,
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+	})
+
+	//	Check the number of existing environments for the organisation.
+	//	If the number of environments is greater than the allowed limit, proceed to check whether the organisation has an active subscription.
+	//	Otherwise, approve the inputs and allow for creation of the project.
+	for _, row := range rows {
+		environments, err := environments.GetService().List(ctx, client, &environments.ListOptions{
+			ProjectID: row.ProjectID,
+		})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+				Message: "failed to get the environments",
+				Extensions: &clients.HasuraActionsResponseExtensions{
+					Error: err,
+				},
+			})
+		}
+
+		//	If the number of environments is greater than the allowed limit, proceed to check whether the organisation has an active subscription.
+		//	Otherwise, approve the inputs and allow for creation of the project.
+		if len(environments) < FREE_TIER_LIMIT_NUMBER_OF_ENVIRONMENTS {
+			continue
+		}
+
+		organisation, err := projects.GetService().GetOrganisation(ctx, client, row.ProjectID)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+				Message: "failed to get the organisation",
+			})
+		}
+
+		//	Validate whether the organisation an active premium subscription.
+		//	We do this by fetching the subscriptions by the organisation ID.
+		//	We then check if any subscription is active.
+		subscriptions, err := subscriptions.GetService().GetByOrgID(ctx, client, organisation.ID)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+				Message: "failed to get the subscriptions",
+				Extensions: &clients.HasuraActionsResponseExtensions{
+					Error: err,
+				},
+			})
+		}
+
+		//	If there are no subscriptions, or if even a single subscription is not active, return an error.
+		if len(*subscriptions) == 0 {
+			return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+				Message: clients.ErrBreachingAbuseLimit.Error(),
+			})
+		}
+
+		active := subscriptions.IsActiveAny()
+		if !active {
+			return c.JSON(http.StatusBadRequest, &clients.HasuraActionResponse{
+				Message: clients.ErrBreachingAbuseLimit.Error(),
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, &clients.HasuraActionResponse{
+		Message: "inputs validated and permitted",
+	})
+}
 
 // --- Flow ---
 //

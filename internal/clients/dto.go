@@ -55,8 +55,8 @@ type Claims struct {
 }
 
 type HasuraActionResponse struct {
-	Message    string                          `json:"message"`
-	Extensions HasuraActionsResponseExtensions `json:"extensions,omitempty"`
+	Message    string                           `json:"message"`
+	Extensions *HasuraActionsResponseExtensions `json:"extensions,omitempty"`
 }
 
 type HasuraActionsResponseExtensions struct {
