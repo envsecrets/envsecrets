@@ -475,35 +475,6 @@ func OrganisationCreated(c echo.Context) error {
 		})
 	}
 
-	/* 	//	Add envsecrets as a bot
-	   	botPublicKeyBytes, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PUBLIC_KEY"))
-	   	if err != nil {
-	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-	   			Message: "Failed to base64 decode server's public key",
-	   			Error:   err.Error(),
-	   		})
-	   	}
-
-	   	var botPublicKey [32]byte
-	   	copy(botPublicKey[:], botPublicKeyBytes)
-	   	result, err = keys.SealAsymmetricallyAnonymous(keyBytes, botPublicKey)
-	   	if err != nil {
-	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-	   			Message: "Failed to seal org's symmetric key with bot's public key",
-	   			Error:   err.Error(),
-	   		})
-	   	}
-
-	   	if err := organisations.UpdateServerKeyCopy(ctx, client, &organisations.UpdateServerKeyCopyOptions{
-	   		OrgID: row.ID,
-	   		Key:   base64.StdEncoding.EncodeToString(result),
-	   	}); err != nil {
-	   		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-	   			Message: "Failed to save server's key copy",
-	   			Error:   err.Error(),
-	   		})
-	   	}
-	*/
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully generated symmetric key and created default roles",
 	})
