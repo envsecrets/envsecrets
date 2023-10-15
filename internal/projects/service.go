@@ -5,13 +5,15 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/machinebox/graphql"
 )
 
 type Service interface {
 	Get(context.ServiceContext, *clients.GQLClient, string) (*Project, error)
+	GetOrganisation(context.ServiceContext, *clients.GQLClient, string) (*organisations.Organisation, error)
 	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Project, error)
-	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Project, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) ([]*Project, error)
 	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Project, error)
 	Delete(context.ServiceContext, *clients.GQLClient, string) error
 }
@@ -42,6 +44,33 @@ func (*DefaultService) Get(ctx context.ServiceContext, client *clients.GQLClient
 	}
 
 	return &response.Project, nil
+}
+
+// Get an organisation by it's project ID
+func (*DefaultService) GetOrganisation(ctx context.ServiceContext, client *clients.GQLClient, id string) (*organisations.Organisation, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery($id: uuid!) {
+		projects_by_pk(id: $id) {
+			organisation {
+				id
+				name
+			}
+		}
+	  }	  
+	`)
+
+	req.Var("id", id)
+
+	var response struct {
+		Project Project `json:"projects_by_pk"`
+	}
+
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response.Project.Organisation, nil
 }
 
 // Create a new project
@@ -79,7 +108,7 @@ func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLCli
 }
 
 // List projects
-func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Project, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) ([]*Project, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -93,14 +122,14 @@ func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClien
 	req.Var("id", options.OrgID)
 
 	var response struct {
-		Projects []Project `json:"projects"`
+		Projects []*Project `json:"projects"`
 	}
 
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	return &response.Projects, nil
+	return response.Projects, nil
 }
 
 // Update a project by ID

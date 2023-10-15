@@ -16,7 +16,7 @@ type Service interface {
 	GetByNameAndProjectID(context.ServiceContext, *clients.GQLClient, string, string) (*Environment, error)
 	Create(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Environment, error)
 	CreateWithUserID(context.ServiceContext, *clients.GQLClient, *CreateOptions) (*Environment, error)
-	List(context.ServiceContext, *clients.GQLClient, *ListOptions) (*[]Environment, error)
+	List(context.ServiceContext, *clients.GQLClient, *ListOptions) ([]*Environment, error)
 	Update(context.ServiceContext, *clients.GQLClient, string, *UpdateOptions) (*Environment, error)
 	Delete(context.ServiceContext, *clients.GQLClient, string) error
 	Sync(context.ServiceContext, *clients.GQLClient, *SyncOptions) error
@@ -161,36 +161,27 @@ func (*DefaultService) GetByNameAndProjectID(ctx context.ServiceContext, client 
 }
 
 // List environments
-func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) (*[]Environment, error) {
+func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClient, options *ListOptions) ([]*Environment, error) {
 
 	req := graphql.NewRequest(`
-	query MyQuery($id: uuid!) {
-		environments(where: {project_id: {_eq: $id}}) {
+	query MyQuery($where: environments_bool_exp) {
+		environments(where: $where) {
 		  id
 		  name
 		}
 	  }	  
 	`)
 
-	req.Var("id", options.ProjectID)
+	req.Var("where", options)
 
-	var response map[string]interface{}
+	var response struct {
+		Environments []*Environment `json:"environments"`
+	}
 	if err := client.Do(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	returning, err := json.Marshal(response["environments"])
-	if err != nil {
-		return nil, err
-	}
-
-	//	Unmarshal the response from "returning"
-	var resp []Environment
-	if err := json.Unmarshal(returning, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+	return response.Environments, nil
 }
 
 // Update a environment by ID

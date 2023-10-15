@@ -44,6 +44,17 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
+	//	Initialize the tokens service.
+	service := tokens.GetService()
+
+	//	Validate abuse limits
+	if err := validateInput(ctx, client, payload.EnvID); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Your current plan does not allow creating more tokens.",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Extract the user's email from JWT
 	jwt := c.Get("user").(*jwt.Token)
 	claims := jwt.Claims.(*auth.Claims)
@@ -69,7 +80,7 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
-	token, err := tokens.GetService().Create(ctx, client, &tokens.CreateOptions{
+	token, err := service.Create(ctx, client, &tokens.CreateOptions{
 		OrgKey: orgKey,
 		EnvID:  payload.EnvID,
 		Expiry: expiry,

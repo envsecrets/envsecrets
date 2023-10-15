@@ -1,6 +1,7 @@
 package environments
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
@@ -26,7 +27,20 @@ type UpdateOptions struct {
 }
 
 type ListOptions struct {
-	ProjectID string `json:"project_id"`
+	ProjectID string `json:"project_id,omitempty"`
+}
+
+// Custom marshaller for list options/filters.
+func (o *ListOptions) MarshalJSON() ([]byte, error) {
+
+	data := make(map[string]interface{})
+	if o.ProjectID != "" {
+		data["project_id"] = map[string]interface{}{
+			"_eq": o.ProjectID,
+		}
+	}
+
+	return json.Marshal(data)
 }
 
 type SyncOptions struct {

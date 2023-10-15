@@ -45,6 +45,13 @@ insert_permissions:
       columns:
         - name
         - org_id
+      validate_input:
+        definition:
+          forward_client_headers: true
+          headers: []
+          timeout: 10
+          url: '{{API}}/v1/projects/validate-input'
+        type: http
 select_permissions:
   - role: user
     permission:

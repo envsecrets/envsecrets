@@ -2,12 +2,17 @@ package clients
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	ErrBreachingAbuseLimit error = errors.New("breaching abuse limit")
 )
 
 type ErrorType string

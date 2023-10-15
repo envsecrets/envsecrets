@@ -41,36 +41,37 @@ insert_permissions:
   - role: user
     permission:
       check:
-        _and:
+        _or:
           - project:
               organisation:
-                subscriptions:
-                  status:
-                    _eq: active
-          - _or:
-              - project:
-                  organisation:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-              - project:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - project:
-                  organisation:
-                    org_has_user:
-                      _and:
-                        - user_id:
-                            _eq: X-Hasura-User-Id
-                        - role:
-                            permissions:
-                              _contains:
-                                environments:
-                                  create: true
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - project:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - project:
+              organisation:
+                org_has_user:
+                  _and:
+                    - user_id:
+                        _eq: X-Hasura-User-Id
+                    - role:
+                        permissions:
+                          _contains:
+                            environments:
+                              create: true
       set:
         user_id: x-hasura-User-Id
       columns:
         - name
         - project_id
+      validate_input:
+        definition:
+          forward_client_headers: true
+          headers: []
+          timeout: 10
+          url: '{{API}}/v1/environments/validate-input'
+        type: http
 select_permissions:
   - role: user
     permission:

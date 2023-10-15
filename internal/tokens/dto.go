@@ -1,6 +1,9 @@
 package tokens
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Token struct {
 	ID        string    `json:"id,omitempty"`
@@ -43,4 +46,21 @@ type DecryptResponse struct {
 
 type GetGraphQLOptions struct {
 	Hash string `json:"hash"`
+}
+
+type ListOptions struct {
+	EnvID string `json:"env_id,omitempty"`
+}
+
+// Custom marshaller for list options/filters.
+func (o *ListOptions) MarshalJSON() ([]byte, error) {
+
+	data := make(map[string]interface{})
+	if o.EnvID != "" {
+		data["env_id"] = map[string]interface{}{
+			"_eq": o.EnvID,
+		}
+	}
+
+	return json.Marshal(data)
 }

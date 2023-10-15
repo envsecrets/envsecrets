@@ -8,6 +8,7 @@ import (
 	"github.com/envsecrets/envsecrets/api/integrations"
 	"github.com/envsecrets/envsecrets/api/invites"
 	"github.com/envsecrets/envsecrets/api/payments"
+	"github.com/envsecrets/envsecrets/api/projects"
 	"github.com/envsecrets/envsecrets/api/tokens"
 	"github.com/envsecrets/envsecrets/api/triggers"
 	"github.com/envsecrets/envsecrets/internal/secrets"
@@ -30,5 +31,6 @@ func AddRoutes(e *echo.Echo) {
 	payments.AddRoutes(v1Group)
 	tokens.AddRoutes(v1Group)
 	events.AddRoutes(v1Group)
+	projects.AddRoutes(v1Group)
 	//keys.AddRoutes(v1Group)
 }
