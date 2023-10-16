@@ -2,7 +2,7 @@
 
 Welcome and thank you for considering contributing to envsecrets!
 
-This document outlines the rules to follow to make the contribution process easy and effective for everyone involved. If you are ever in doubt about anything, we encourage you to reach out [via Slack](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA).
+This document outlines the rules to follow to make the contribution process easy and effective for everyone involved. If you are ever in doubt about anything, we encourage you to reach out [via Slack](https://discord.gg/4YaTFZ2xBA).
 
 ## Code of Conduct
 
