@@ -1,5 +1,5 @@
 package integrations
 
 func init() {
-	SetService(&DefaultIntegrationService{})
+	SetService(&DefaultService{})
 }

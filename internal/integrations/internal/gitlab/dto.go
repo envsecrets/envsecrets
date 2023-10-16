@@ -3,7 +3,6 @@ package gitlab
 import (
 	"encoding/json"
 
-	"github.com/envsecrets/envsecrets/internal/integrations/commons"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 )
 
@@ -26,6 +25,10 @@ type TokenRequestOptions struct {
 	RefreshToken string
 }
 
+type PrepareCredentialsOptions struct {
+	Code string
+}
+
 type TokenRefreshOptions struct {
 	RefreshToken  string
 	OrgID         string
@@ -40,9 +43,10 @@ type TokenResponse struct {
 }
 
 type ListOptions struct {
-	Credentials map[string]interface{}
-	Type        EntityType
-	Integration *commons.Integration
+	Credentials   map[string]interface{}
+	Type          EntityType
+	OrgID         string
+	IntegrationID string
 }
 
 type SyncOptions struct {

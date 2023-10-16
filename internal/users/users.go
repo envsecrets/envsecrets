@@ -6,11 +6,10 @@ import (
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
-	"github.com/envsecrets/envsecrets/internal/users/commons"
 	"github.com/machinebox/graphql"
 )
 
-func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*commons.User, error) {
+func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($id: uuid!) {
@@ -35,7 +34,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []commons.User
+	var resp []User
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}
@@ -43,7 +42,7 @@ func Get(ctx context.ServiceContext, client *clients.GQLClient, id string) (*com
 	return &resp[0], nil
 }
 
-func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*commons.User, error) {
+func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) (*User, error) {
 
 	req := graphql.NewRequest(`
 	query MyQuery($email: citext!) {
@@ -68,7 +67,7 @@ func GetByEmail(ctx context.ServiceContext, client *clients.GQLClient, email str
 	}
 
 	//	Unmarshal the response from "returning"
-	var resp []commons.User
+	var resp []User
 	if err := json.Unmarshal(returning, &resp); err != nil {
 		return nil, err
 	}

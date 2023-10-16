@@ -57,9 +57,9 @@ auth:
       enabled: false
       scope: email,photos,displayName
     github:
-      client_id: "217f243169654d7a4cfc"
-      client_secret: "994a27ccaa2f814e7f48892de0c5055eaeb6db08"
-      enabled: true
+      client_id: ""
+      client_secret: ""
+      enabled: false
       scope: user:email, read:user
       token_url: ""
       user_profile_url: ""
@@ -70,9 +70,9 @@ auth:
       enabled: false
       scope: read_user
     google:
-      client_id: "488731347840-3517mnl705bph4crhuestjsfd3ks42kg.apps.googleusercontent.com"
-      client_secret: "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"
-      enabled: true
+      client_id: ""
+      client_secret: ""
+      enabled: false
       scope: email,profile
     linkedin:
       client_id: ""

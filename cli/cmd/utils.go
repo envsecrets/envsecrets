@@ -15,15 +15,15 @@ func Encrypt() {
 	var orgKey [32]byte
 	decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.Key)
 	if err != nil {
-		log.Debug(err)
-		log.Fatal("Failed to decrypt the organisation's encryption key")
+		commons.Log.Debug(err)
+		commons.Log.Fatal("Failed to decrypt the organisation's encryption key")
 	}
 	copy(orgKey[:], decryptedOrgKey)
 
 	//	Encrypt the secrets
 	if err := commons.Secret.Encrypt(orgKey); err != nil {
-		log.Debug(err)
-		log.Fatal("Failed to encrypt secrets")
+		commons.Log.Debug(err)
+		commons.Log.Fatal("Failed to encrypt secrets")
 	}
 }
 
@@ -33,15 +33,15 @@ func Decrypt() {
 	var orgKey [32]byte
 	decryptedOrgKey, err := keys.DecryptAsymmetricallyAnonymous(commons.KeysConfig.Public, commons.KeysConfig.Private, commons.ProjectConfig.Key)
 	if err != nil {
-		log.Debug(err)
-		log.Fatal("Failed to decrypt the organisation's encryption key")
+		commons.Log.Debug(err)
+		commons.Log.Fatal("Failed to decrypt the organisation's encryption key")
 	}
 	copy(orgKey[:], decryptedOrgKey)
 
 	//	Encrypt the secrets
 	if err := commons.Secret.Decrypt(orgKey); err != nil {
-		log.Debug(err)
-		log.Fatal("Failed to decrypt the secret")
+		commons.Log.Debug(err)
+		commons.Log.Fatal("Failed to decrypt the secret")
 	}
 }
 
@@ -56,7 +56,7 @@ func DecryptAndDecode() {
 
 	//	Decode the values.
 	if err := commons.Secret.Decode(); err != nil {
-		log.Debug(err)
-		log.Fatal("Failed to decode the secret")
+		commons.Log.Debug(err)
+		commons.Log.Fatal("Failed to decode the secret")
 	}
 }

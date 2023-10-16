@@ -60,7 +60,7 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		}
 
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		// The --command flag and args are mututally exclusive
@@ -91,14 +91,14 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 			getOptions.Version = &version
 		}
 
-		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient, &getOptions)
+		result, err := secrets.GetService().Get(commons.DefaultContext, commons.GQLClient.GQLClient, &getOptions)
 		if err != nil {
-			log.Debug(err)
+			commons.Log.Debug(err)
 			if strings.Compare(err.Error(), string(clients.ErrorTypeRecordNotFound)) == 0 {
-				log.Warn("You haven't set any secrets in this environment")
-				log.Info("Use `envs set --help` for more information")
+				commons.Log.Warn("You haven't set any secrets in this environment")
+				commons.Log.Info("Use `envs set --help` for more information")
 			} else {
-				log.Fatal("Failed to fetch the secrets")
+				commons.Log.Fatal("Failed to fetch the secrets")
 			}
 		}
 
@@ -111,9 +111,9 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 		variables := commons.Secret.Data.FmtStrings()
 
 		if environmentName != "" {
-			log.Infof("Injecting secret version %d in your process from remote environment `%s`", *commons.Secret.Version, environmentName)
+			commons.Log.Infof("Injecting secret version %d in your process from remote environment `%s`", *commons.Secret.Version, environmentName)
 		} else {
-			log.Info("Injecting secrets in your process from local environment...")
+			commons.Log.Info("Injecting secrets in your process from local environment...")
 		}
 
 		//	Overwrite reserved keys
@@ -151,8 +151,8 @@ envs run --command "YOUR_COMMAND && YOUR_OTHER_COMMAND"`,
 
 		exitCode, err := internal.ExecCommand(userCmd, false, nil)
 		if err != nil {
-			log.Debug(err)
-			log.Fatal("Command execution failed or completed ungracefully")
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Command execution failed or completed ungracefully")
 		}
 
 		os.Exit(exitCode)
@@ -170,7 +170,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
+	runCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	runCmd.Flags().StringP("command", "c", "", "Command to run. Example: npm run dev")
 	runCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
-	//runCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 }

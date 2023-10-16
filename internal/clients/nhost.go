@@ -1,7 +1,9 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -44,7 +46,7 @@ func NewNhostClient(config *NhostConfig) *NhostClient {
 
 	response.BaseURL = config.BaseURL
 	if response.BaseURL == "" {
-		response.BaseURL = os.Getenv("NHOST_AUTH_URL")
+		response.BaseURL = os.Getenv("NHOST_AUTH_URL") + "/v1"
 	}
 	response.CustomHeaders = config.CustomHeaders
 	response.Authorization = config.Authorization
@@ -70,27 +72,49 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 		req.Header.Set(item.Key, item.Value)
 	}
 
-	req.Header.Get("content-type")
-
 	//	Make the request
 	resp, err := c.Do(req)
 	if err != nil {
 		return err
 	}
 
-	if response != nil {
-
-		defer resp.Body.Close()
-
-		result, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		if err := json.Unmarshal(result, &response); err != nil {
-			return err
-		}
+	//	Unmarshal any errors in the response.
+	var nhostError struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+		Status  int    `json:"status"`
 	}
 
+	if err := c.unmarshalResponse(resp, &nhostError); err != nil {
+		return err
+	}
+
+	if nhostError.Error != "" {
+		return fmt.Errorf("%v:%s:%s", nhostError.Status, nhostError.Error, nhostError.Message)
+	}
+
+	//	Unmarshal the remaining response.
+	if err := c.unmarshalResponse(resp, &response); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *NhostClient) unmarshalResponse(resp *http.Response, structure interface{}) error {
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(body, &structure); err != nil {
+		return err
+	}
+
+	//	Rewrite the response body.
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
 	return nil
 }

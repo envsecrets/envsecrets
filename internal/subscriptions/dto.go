@@ -1,7 +1,6 @@
 package subscriptions
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -12,14 +11,6 @@ type Subscription struct {
 	OrgID          string    `json:"org_id,omitempty"`
 	SubscriptionID string    `json:"subscription_id"`
 	Status         Status    `json:"status"`
-}
-
-func (w *Subscription) Marshal() ([]byte, error) {
-	return json.Marshal(&w)
-}
-
-func (w *Subscription) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, &w)
 }
 
 type CreateOptions struct {
@@ -34,4 +25,15 @@ type UpdateOptions struct {
 type ListOptions struct {
 	OrgID  string `json:"org_id"`
 	Status string `json:"status"`
+}
+
+type Subscriptions []*Subscription
+
+func (s Subscriptions) IsActiveAny() bool {
+	for index := range s {
+		if s[index].Status == "active" {
+			return true
+		}
+	}
+	return false
 }

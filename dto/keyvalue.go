@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Map representing key=value pairs.
@@ -33,6 +35,28 @@ func (m *KVMap) MarshalJSON() ([]byte, error) {
 	m.Lock()
 	defer m.Unlock()
 	return json.Marshal(m.mapping)
+}
+
+// Custom Unmarshaler.
+func (m *KVMap) UnmarshalYAML(data []byte) error {
+
+	var mapping map[string]string
+	if err := yaml.Unmarshal(data, &mapping); err != nil {
+		return err
+	}
+
+	*m = KVMap{
+		mapping: mapping,
+	}
+
+	return nil
+}
+
+// Custom Marshaller.
+func (m *KVMap) MarshalYAML() ([]byte, error) {
+	m.Lock()
+	defer m.Unlock()
+	return yaml.Marshal(m.mapping)
 }
 
 // Unmarshalls the json in provided interface.

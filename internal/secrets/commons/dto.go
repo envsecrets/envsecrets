@@ -9,6 +9,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keypayload"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/keyvalue"
 	"github.com/envsecrets/envsecrets/internal/secrets/pkg/payload"
+	"github.com/envsecrets/envsecrets/internal/tokens"
 )
 
 type Secret struct {
@@ -317,10 +318,6 @@ type GetRequestOptions struct {
 	Version *int   `query:"version"`
 }
 
-func (r *GetRequestOptions) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
 type GetOptions struct {
 	Key     string `json:"key"`
 	EnvID   string `json:"env_id"`
@@ -328,8 +325,8 @@ type GetOptions struct {
 }
 
 type GetResponse struct {
-	Secret  Secret `json:"secret"`
-	Version *int   `json:"version,omitempty"`
+	Secret *Secret       `json:"secret"`
+	Token  *tokens.Token `json:"token,omitempty"`
 }
 
 /*

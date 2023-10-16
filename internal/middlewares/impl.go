@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/envsecrets/envsecrets/cli/auth"
-	globalCommons "github.com/envsecrets/envsecrets/commons"
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/tokens"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/golang-jwt/jwt/v4"
 	echojwt "github.com/labstack/echo-jwt"
 	"github.com/labstack/echo/v4"
@@ -28,7 +28,7 @@ func WebhookHeader() echo.MiddlewareFunc {
 func JWTAuth(skipper middleware.Skipper) echo.MiddlewareFunc {
 
 	//	Load the JWT signing from env vars
-	JWT_SIGNING_KEY, err := globalCommons.GetJWTSecret()
+	JWT_SIGNING_KEY, err := utils.GetJWTSecret()
 	if err != nil {
 		log.Fatal("unable to get the JWT secret: ", err)
 	}
@@ -74,15 +74,21 @@ func TokenHeader() echo.MiddlewareFunc {
 				return false, err
 			}
 
+			//	Hash the token to fetch it from database.
+			hash := utils.SHA256Hash(payload)
+
 			//	Decrypt the token.
-			token, err := tokens.GetService().Decrypt(ctx, client, payload)
+			token, err := tokens.GetService().GetByHash(ctx, client, hash)
 			if err != nil {
 				return false, err
 			}
 
-			//	Set the environment ID in echo's context.
-			c.Set("env_id", token.EnvID)
-			c.Set("org_key", token.OrgKey)
+			//	If the token is expired, return false.
+			if token.IsExpired() {
+				return false, echo.ErrUnauthorized
+			}
+
+			c.Set("token", token)
 
 			return true, nil
 		},

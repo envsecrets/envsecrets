@@ -1,5 +1,5 @@
 package tokens
 
 func init() {
-	SetService(&DefaultTokenService{})
+	SetService(&DefaultService{})
 }

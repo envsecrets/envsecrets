@@ -47,14 +47,8 @@ var listCmd = &cobra.Command{
 	Short:   "List only the keys of your secrets",
 	PreRun: func(cmd *cobra.Command, args []string) {
 
-		//	If the user has passed a token,
-		//	avoid using email+password to authenticate them against the API.
-		if XTokenHeader != "" {
-			return
-		}
-
 		//	Initialize the common secret.
-		InitializeSecret(log)
+		InitializeSecret(commons.Log)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -66,15 +60,21 @@ var listCmd = &cobra.Command{
 			options.Version = &version
 		}
 
-		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient, &options)
+		secrets, err := secrets.GetService().List(commons.DefaultContext, commons.GQLClient.GQLClient, &options)
 		if err != nil {
-			log.Debug(err)
+			commons.Log.Debug(err)
+
+			//	If the dotenv file is not found, skip the error.
+			if os.IsNotExist(err) {
+				return
+			}
+
 			if err.Error() == string(clients.ErrorTypeRecordNotFound) {
-				log.Warn("You haven't set any secrets in this environment")
-				log.Info("Use `envs set --help` for more information")
+				commons.Log.Warn("You haven't set any secrets in this environment")
+				commons.Log.Info("Use `envs set --help` for more information")
 				os.Exit(1)
 			}
-			log.Fatal("Failed to list the secrets")
+			commons.Log.Fatal("Failed to list the secrets")
 		}
 
 		for _, key := range secrets.Keys() {
@@ -95,7 +95,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	listCmd.Flags().StringVarP(&XTokenHeader, "token", "t", "", "Environment Token")
 	listCmd.Flags().IntVarP(&version, "version", "v", -1, "Version of your secret")
 	listCmd.Flags().StringVarP(&environmentName, "env", "e", "", "Remote environment to set the secrets in. Defaults to the local environment.")
 }

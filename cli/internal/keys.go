@@ -4,14 +4,14 @@ import (
 	"encoding/base64"
 	"net/http"
 
+	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 )
 
 func GetPublicKey(ctx context.ServiceContext, client *clients.HTTPClient, email string) ([]byte, error) {
 
-	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/keys/public-key", nil)
+	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, clients.API+"/v1/keys/public-key", nil)
 	if err != nil {
 		return nil, err
 	}

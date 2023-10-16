@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/envsecrets/envsecrets/cli/clients"
 	"github.com/envsecrets/envsecrets/cli/commons"
-	globalCommons "github.com/envsecrets/envsecrets/commons"
-	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
+	"github.com/envsecrets/envsecrets/utils"
 )
 
-func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.Secret, error) {
+func GetSecret(ctx context.ServiceContext, client *clients.HTTPClient, options *GetValuesOptions) (*secretCommons.GetResponse, error) {
 
-	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, commons.API+"/v1/secrets/values", nil)
+	req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, clients.API+"/v1/secrets", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 	//	create a new HTTP client and attach it in the header.
 	if options.Token != "" {
 		client = clients.NewHTTPClient(&clients.HTTPConfig{
-			BaseURL: commons.API + "/v1",
+			BaseURL: clients.API + "/v1",
 			CustomHeaders: []clients.CustomHeader{
 				{
 					Key:   string(clients.TokenHeader),
@@ -55,8 +55,8 @@ func GetValues(ctx context.ServiceContext, client *clients.HTTPClient, options *
 		return nil, err
 	}
 
-	var data secretCommons.Secret
-	if err := globalCommons.MapToStruct(response.Data, &data); err != nil {
+	var data secretCommons.GetResponse
+	if err := utils.MapToStruct(response.Data, &data); err != nil {
 		return nil, err
 	}
 

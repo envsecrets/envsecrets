@@ -1,10 +1,7 @@
 package roles
 
 import (
-	"encoding/json"
 	"time"
-
-	permissionCommons "github.com/envsecrets/envsecrets/internal/permissions/commons"
 )
 
 type Role struct {
@@ -20,19 +17,30 @@ type Role struct {
 	Permissions string `json:"permissions,omitempty"`
 }
 
-//	Permissions structure will also have to be manually unmarshalled.
-//	Because Hasura sends stringified JSON.
-func (o *Role) GetPermissions() (*permissionCommons.Permissions, error) {
-	var response permissionCommons.Permissions
-	err := json.Unmarshal([]byte(o.Permissions), &response)
-	if err != nil {
-		return nil, err
-	}
-	return &response, nil
+type RoleInsertOptions struct {
+	OrgID       string      `json:"org_id,omitempty"`
+	Name        string      `json:"name"`
+	Permissions Permissions `json:"permissions,omitempty"`
 }
 
-type RoleInsertOptions struct {
-	OrgID       string                        `json:"org_id,omitempty"`
-	Name        string                        `json:"name"`
-	Permissions permissionCommons.Permissions `json:"permissions,omitempty"`
+type Permissions struct {
+
+	//	Other members and their permissions.
+	Permissions CRUD `json:"permissions,omitempty"`
+
+	//	Projects and their environments.
+	Projects CRUD `json:"projects,omitempty"`
+
+	//	Environments and their secrets.
+	Environments CRUD `json:"environments,omitempty"`
+
+	//	Add/Delete Integrations.
+	Integrations CRUD `json:"integrations,omitempty"`
+}
+
+type CRUD struct {
+	Create bool `json:"create,omitempty"`
+	Read   bool `json:"read,omitempty"`
+	Update bool `json:"update,omitempty"`
+	Delete bool `json:"delete,omitempty"`
 }

@@ -48,16 +48,6 @@ array_relationships:
         table:
           name: subscriptions
           schema: public
-insert_permissions:
-  - role: user
-    permission:
-      check:
-        user_id:
-          _eq: X-Hasura-User-Id
-      set:
-        user_id: x-hasura-User-Id
-      columns:
-        - name
 select_permissions:
   - role: user
     permission:

@@ -26,7 +26,6 @@ func EncryptCredentials(ctx context.ServiceContext, org_id string, payload map[s
 	var k [32]byte
 	copy(k[:], kBytes)
 
-	//	Encrypt the secrets with the server-copy of organisation's encryption key.
 	encrypted, err := keys.SealAsymmetricallyAnonymous(credentials, k)
 	if err != nil {
 		return nil, err
@@ -37,16 +36,8 @@ func EncryptCredentials(ctx context.ServiceContext, org_id string, payload map[s
 
 func DecryptCredentials(ctx context.ServiceContext, org_id string, payload []byte) ([]byte, error) {
 
-	//	Get the server's copy of organisation's encryption key.
-	kBytes, err := keys.GetOrgKeyServerCopy(ctx, org_id)
-	if err == nil {
-		var k [32]byte
-		copy(k[:], kBytes)
-		return keys.OpenSymmetrically(payload, k)
-	}
-
 	//	If the credentials were encrypted with server's public key,
-	//	us thee server's private key to decrypt the credentials.
+	//	us the server's private key to decrypt the credentials.
 	var privateKey, publicKey [32]byte
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(os.Getenv("SERVER_PRIVATE_KEY"))
 	if err != nil {

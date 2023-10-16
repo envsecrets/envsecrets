@@ -4,13 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	userCommons "github.com/envsecrets/envsecrets/internal/users/commons"
+	"github.com/envsecrets/envsecrets/internal/users"
 )
 
 type Account struct {
-	AccessToken  string           `json:"access_token" yaml:"accessToken"`
-	RefreshToken string           `json:"refresh_token" yaml:"refreshToken"`
-	User         userCommons.User `json:"user" yaml:"user"`
+	AccessToken  string     `json:"access_token" yaml:"accessToken"`
+	RefreshToken string     `json:"refresh_token" yaml:"refreshToken"`
+	User         users.User `json:"user" yaml:"user"`
 }
 
 type Project struct {

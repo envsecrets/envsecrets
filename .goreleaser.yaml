@@ -18,9 +18,9 @@ builds:
     # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
     ldflags:
       - -X github.com/envsecrets/envsecrets/cli/commons.VERSION={{.Version}}
-      - -X github.com/envsecrets/envsecrets/cli/commons.API=https://envsecrets-3dizc5e3rq-el.a.run.app
-      - -X github.com/envsecrets/envsecrets/cli/config/commons.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run
-      - -X github.com/envsecrets/envsecrets/cli/commons.NHOST_GRAPHQL_URL=https://vtlttqmxlifmlwsrvddp.graphql.eu-central-1.nhost.run/v1
+      - -X github.com/envsecrets/envsecrets/cli/clients.API=https://envsecrets-3dizc5e3rq-el.a.run.app
+      - -X github.com/envsecrets/envsecrets/cli/clients.NHOST_AUTH_URL=https://vtlttqmxlifmlwsrvddp.auth.eu-central-1.nhost.run
+      - -X github.com/envsecrets/envsecrets/cli/clients.NHOST_GRAPHQL_URL=https://vtlttqmxlifmlwsrvddp.graphql.eu-central-1.nhost.run/v1
 
 release:
   prerelease: auto
@@ -28,7 +28,7 @@ release:
   # We want to publish our binaries in a different public repository.
   github:
     owner: envsecrets
-    name: cli
+    name: envsecrets
 
 
 universal_binaries:
