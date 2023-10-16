@@ -1,6 +1,6 @@
 # envsecrets
 
-[Quickstart](https://docs.envsecrets.com/platform/quickstart) &nbsp;&nbsp;•&nbsp;&nbsp; [Homepage](https://envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Login](https://app.envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA) &nbsp;&nbsp;•&nbsp;&nbsp; [Twitter](https://twitter.com/envsecrets)
+[Quickstart](https://docs.envsecrets.com/quickstart) &nbsp;&nbsp;•&nbsp;&nbsp; [Homepage](https://envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Login](https://app.envsecrets.com) &nbsp;&nbsp;•&nbsp;&nbsp; [Community](https://discord.gg/4YaTFZ2xBA) &nbsp;&nbsp;•&nbsp;&nbsp; [Twitter](https://twitter.com/envsecrets)
 
 envsecrets is an open-source free-forever cloud account to store your environment secrets and synchronize them with third-party services.
 
@@ -34,20 +34,22 @@ Read our detailed [data model](https://docs.envsecrets.com/security) to understa
 
 Amongst many hidden gems, the platform's core features include:
 
-- 🔐 **Role-Based Access Control** <br />
+- **Role-Based Access Control** <br />
     Never let your interns get access to production secrets.
-- 🚀 **Deployment Platform Integrations** - Vercel, Docker, etc. <br />
+- **Deployment Platform Integrations** - Vercel, Docker, etc. <br />
     Push your secrets to the third-partry services where you consume them.
-- 📕 **Versioning** <br />
+- **Versioning** <br />
     Want to bring back a previous value? Rollback to an older version of your secret.
-- 🔑 **Services Tokens / API Keys** <br />
+- **Services Tokens / API Keys** <br />
     Securely export and consume your secrets in places where you cannot authenticate with your account password.
-- 🏗️ **CI/CD Integrations** - Github Actions, Circle CI, etc. <br />
+- **CI/CD Integrations** - Github Actions, Circle CI, etc. <br />
     Push your secrets to the third-partry services where you are consuming them.
-- 🛡️ **Multi-Factor Authentication** <br />
+- **Multi-Factor Authentication** <br />
     Activate TOTP based MFA in your account. Prevent attackers from accessing your secrets just because they got your password.
 
 ## Getting Started
+
+It is recommended you go through the [quickstart guide](https://docs.envsecrets/quickstart) for more detailed explaination.
 
 ### Installation
 
@@ -94,17 +96,13 @@ Download the release binary [from here](https://github.com/envsecrets/cli/releas
 - List your locally available keys.
     
     ```
-    envs set first=first
+    envs ls
     ```
 
 ### Using w/ Remote Environment
 
 1. Login to your envsecrets [cloud account](https://app.envsecrets.com).
 1. Create a new project from your dashboard.
-1. Login to your cloud account from the CLI.
-    ```
-    envs login
-    ```
 1. Now simply using the `--env` flag will run the `get/set/ls` commands on remote environments instead of your local one. To list your keys in a remote environment called `prod`, simply run:
     ```
     envs ls -e prod
@@ -130,16 +128,14 @@ Download the release binary [from here](https://github.com/envsecrets/cli/releas
 
 ## Need Help?
 
-We particularly recommend joining our [community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA) to remain updated on best practices and bug fixes. 
-
-- If you are stuck anywhere, ask our team in the community.
 - Read the [official documentation](https://docs.envsecrets.com) for tutorials and specifications.
-- If it is something specifically related to the CLI, here are the [CLI docs](https://docs.envsecrets.com/cli).
-- In case of anything confidential or legal, [email us](mailto:wahal@envsecrets.com).
+- Go through the [questions asked by others](https://github.com/orgs/envsecrets/discussions/categories/q-a) in this respository.
+- Scan the [issues](https://github.com/envsecrets/envsecrets/issues) in this repository.
+- If you are stuck anywhere, ask our team in the [community](https://discord.gg/4YaTFZ2xBA).
 
 ## Feature Requests
 
 To request enhancements or new features, you can do either of the following:
 
-- Text us in the [community](https://join.slack.com/t/envsecrets/shared_invite/zt-24djrpzpd-RegbTvnw~f__tFCx5GsqRA).
-- Open an issue in this repostory and label it `enhancement` or `feature`. Properly decribe your requirements in the issue.
+- [Open a new discussion](https://github.com/orgs/envsecrets/discussions/new?category=features-enhancements) under the "features" category. Properly decribe your requirements.
+- Text us in the [community](https://discord.gg/4YaTFZ2xBA).
