@@ -15,12 +15,22 @@ type PrepareCredentialsOptions struct {
 	Code string
 }
 
-type CodeExchangeResponse struct {
-	TokenType      string `json:"token_type"`
-	AccessToken    string `json:"access_token"`
-	InstallationID string `json:"installation_id"`
-	UserID         string `json:"user_id"`
-	TeamID         string `json:"team_id"`
+type Credentials struct {
+	TokenType      string `json:"token_type,omitempty"`
+	AccessToken    string `json:"access_token,omitempty"`
+	InstallationID string `json:"installation_id,omitempty"`
+	UserID         string `json:"user_id,omitempty"`
+	TeamID         string `json:"team_id,omitempty"`
+}
+
+func (r *Credentials) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"token_type":      r.TokenType,
+		"access_token":    r.AccessToken,
+		"installation_id": r.InstallationID,
+		"user_id":         r.UserID,
+		"team_id":         r.TeamID,
+	}
 }
 
 type InstallationAccessTokenResponse struct {
@@ -42,11 +52,11 @@ type RepositoryActionsSecretsPublicKeyResponse struct {
 }
 
 type ListOptions struct {
-	Credentials map[string]interface{}
+	Credentials *Credentials
 }
 
 type SyncOptions struct {
-	Credentials   map[string]interface{} `json:"credentials"`
+	Credentials   *Credentials           `json:"credentials"`
 	EntityDetails map[string]interface{} `json:"entity_details"`
 	Data          *keypayload.KPMap      `json:"data"`
 }

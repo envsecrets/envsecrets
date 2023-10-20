@@ -30,24 +30,19 @@ func PrepareCredentials(ctx context.ServiceContext, options *PrepareCredentialsO
 	data.Set("client_id", os.Getenv("VERCEL_CLIENT_ID"))
 	data.Set("client_secret", os.Getenv("VERCEL_CLIENT_SECRET"))
 	data.Set("code", options.Code)
-	data.Set("redirect_uri", os.Getenv("REDIRECT_DOMAIN")+"/v1/integrations/vercel/setup")
+	data.Set("redirect_uri", os.Getenv("REDIRECT_DOMAIN")+"/v1/integrations/vercel/callback/setup")
 
 	req, err := http.NewRequest(http.MethodPost, "https://api.vercel.com/v2/oauth/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	var response CodeExchangeResponse
+	var response Credentials
 	if err := httpClient.Run(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
-	return map[string]interface{}{
-		"token_type":   response.TokenType,
-		"access_token": response.AccessToken,
-		"user_id":      response.UserID,
-		"team_id":      response.TeamID,
-	}, nil
+	return response.ToMap(), nil
 }
 
 func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}, error) {
@@ -55,7 +50,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
 		Type:          clients.VercelClientType,
-		Authorization: fmt.Sprintf("%v %v", options.Credentials["token_type"], options.Credentials["access_token"]),
+		Authorization: fmt.Sprintf("%v %v", options.Credentials.TokenType, options.Credentials.AccessToken),
 	})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.vercel.com/v9/projects", nil)
@@ -65,9 +60,9 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 
 	//	If the user had integrated a team account,
 	//	then perform ther equest on behalf of that team_id.
-	if options.Credentials["team_id"] != nil {
+	if options.Credentials.TeamID != "" {
 		params := req.URL.Query()
-		params.Set("teamId", options.Credentials["team_id"].(string))
+		params.Set("teamId", options.Credentials.TeamID)
 		req.URL.RawQuery = params.Encode()
 	}
 
@@ -94,11 +89,11 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	//	Initialize a new HTTP client for Vercel.
 	client := clients.NewHTTPClient(&clients.HTTPConfig{
 		Type:          clients.VercelClientType,
-		Authorization: fmt.Sprintf("%v %v", options.Credentials["token_type"], options.Credentials["access_token"]),
+		Authorization: fmt.Sprintf("%v %v", options.Credentials.TokenType, options.Credentials.AccessToken),
 	})
 
 	//	Initialize TEAM ID
-	teamID := options.Credentials["team_id"].(string)
+	teamID := options.Credentials.TeamID
 
 	//	Prepare array of all values
 	var array []map[string]interface{}
@@ -148,7 +143,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	//	If the user had integrated a team account,
 	//	then perform ther equest on behalf of that team_id.
 	if teamID != "" {
-		params.Set("teamId", options.Credentials["team_id"].(string))
+		params.Set("teamId", options.Credentials.TeamID)
 	}
 
 	req.URL.RawQuery = params.Encode()

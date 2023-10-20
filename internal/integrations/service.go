@@ -23,6 +23,7 @@ import (
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/railway"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/supabase"
 	"github.com/envsecrets/envsecrets/internal/integrations/internal/vercel"
+	"github.com/envsecrets/envsecrets/utils"
 )
 
 type Service interface {
@@ -128,8 +129,14 @@ func (*DefaultService) ListEntities(ctx context.ServiceContext, client *clients.
 			IntegrationID: integration.ID,
 		})
 	case Vercel:
+
+		//	Umarshal the credentials to appropriate structure.
+		var vercelCredentials vercel.Credentials
+		if err := utils.MapToStruct(credentials, &vercelCredentials); err != nil {
+			return nil, err
+		}
 		return vercel.ListEntities(ctx, &vercel.ListOptions{
-			Credentials: credentials,
+			Credentials: &vercelCredentials,
 		})
 	case Supabase:
 		return supabase.ListEntities(ctx, &supabase.ListOptions{
@@ -391,8 +398,15 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 			OrgID:         integration.OrgID,
 		})
 	case Vercel:
+
+		//	Umarshal the credentials to appropriate structure.
+		var vercelCredentials vercel.Credentials
+		if err := utils.MapToStruct(credentials, &vercelCredentials); err != nil {
+			return err
+		}
+
 		return vercel.Sync(ctx, &vercel.SyncOptions{
-			Credentials:   credentials,
+			Credentials:   &vercelCredentials,
 			Data:          options.Data,
 			EntityDetails: options.EntityDetails,
 		})
