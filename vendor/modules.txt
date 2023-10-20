@@ -202,6 +202,9 @@ github.com/googleapis/gax-go/v2/internal
 # github.com/gorilla/css v1.0.0
 ## explicit
 github.com/gorilla/css/scanner
+# github.com/hashicorp/go-envparse v0.1.0
+## explicit; go 1.13
+github.com/hashicorp/go-envparse
 # github.com/hasura/go-graphql-client v0.10.0
 ## explicit; go 1.20
 github.com/hasura/go-graphql-client
