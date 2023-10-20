@@ -75,12 +75,12 @@ NOTE: This command auto-capitalizes your keys.`,
 			f, err := os.Open(importFile)
 			if err != nil {
 				commons.Log.Debug(err)
-				commons.Log.Fatal("Failed to read file: ", importFile)
+				commons.Log.Fatal("Failed to read: ", importFile)
 			}
 			pairs, err := envparse.Parse(f)
 			if err != nil {
 				commons.Log.Debug(err)
-				commons.Log.Fatal("Failed to parse file: ", importFile)
+				commons.Log.Fatal("Failed to parse: ", importFile)
 			}
 
 			for k, v := range pairs {
@@ -103,7 +103,7 @@ NOTE: This command auto-capitalizes your keys.`,
 				pairs, err := envparse.Parse(reader)
 				if err != nil {
 					commons.Log.Debug(err)
-					commons.Log.Fatal("Failed to parse file: ", importFile)
+					commons.Log.Fatal("Failed to parse: ", arg)
 				}
 
 				for k, v := range pairs {

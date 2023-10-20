@@ -11,20 +11,24 @@ import (
 
 type GQLClient struct {
 	*graphql.Client
-	BaseURL       string
-	Authorization string
-	Headers       []Header
-	CustomHeaders []CustomHeader
-	log           *logrus.Logger
+	BaseURL            string
+	Authorization      string
+	Headers            []Header
+	CustomHeaders      []CustomHeader
+	ErrorHandler       func(*GQLClient, error) error
+	RedoRequestOnError bool
+	log                *logrus.Logger
 }
 
 type GQLConfig struct {
-	Type          ClientType
-	BaseURL       string
-	Authorization string
-	Headers       []Header
-	CustomHeaders []CustomHeader
-	Logger        *logrus.Logger
+	Type               ClientType
+	BaseURL            string
+	Authorization      string
+	Headers            []Header
+	CustomHeaders      []CustomHeader
+	Logger             *logrus.Logger
+	ErrorHandler       func(*GQLClient, error) error
+	RedoRequestOnError bool
 }
 
 func NewGQLClient(config *GQLConfig) *GQLClient {
@@ -35,6 +39,8 @@ func NewGQLClient(config *GQLConfig) *GQLClient {
 	response.CustomHeaders = config.CustomHeaders
 	response.BaseURL = config.BaseURL
 	response.Authorization = config.Authorization
+	response.ErrorHandler = config.ErrorHandler
+	response.RedoRequestOnError = config.RedoRequestOnError
 
 	switch config.Type {
 	case HasuraClientType:
@@ -79,6 +85,17 @@ func (c *GQLClient) Do(ctx context.ServiceContext, req *graphql.Request, resp in
 
 	//	Parse the error
 	if err := c.Run(ctx, req, &resp); err != nil {
+
+		if c.ErrorHandler != nil {
+			if err := c.ErrorHandler(c, err); err != nil {
+				return err
+			}
+		}
+
+		if c.RedoRequestOnError {
+			return c.Do(ctx, req, &resp)
+		}
+
 		return err
 	}
 

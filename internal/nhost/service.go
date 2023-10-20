@@ -3,7 +3,7 @@ package nhost
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -35,7 +35,7 @@ func Signup(ctx context.ServiceContext, options *SignupOptions) *Error {
 		defer resp.Body.Close()
 
 		var response Error
-		result, err := ioutil.ReadAll(resp.Body)
+		result, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return &Error{Message: err.Error(), Code: http.StatusText(http.StatusBadRequest)}
 		}

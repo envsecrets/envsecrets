@@ -19,6 +19,7 @@ const (
 	ErrorTypeJSONMarshal      ErrorType = "JSONMarshal"
 	ErrorTypeJSONUnmarshal    ErrorType = "JSONUnmarshal"
 	ErrorTypeJWTExpired       ErrorType = "JWTExpired"
+	ErrorTypeMalformedHeader  ErrorType = "Malformed Authorization header"
 	ErrorTypeUnauthorized     ErrorType = "Unauthorized"
 	ErrorTypePermissionDenied ErrorType = "PermissionDenied"
 	ErrorTypeTokenRefresh     ErrorType = "TokenRefresh"
@@ -47,6 +48,7 @@ var ResponseCodeMap = map[ErrorType]int{
 	ErrorTypeJSONUnmarshal:    http.StatusBadRequest,
 	ErrorTypeJWTExpired:       http.StatusUnauthorized,
 	ErrorTypeUnauthorized:     http.StatusUnauthorized,
+	ErrorTypeMalformedHeader:  http.StatusUnauthorized,
 	ErrorTypePermissionDenied: http.StatusForbidden,
 	ErrorTypeTokenRefresh:     http.StatusConflict,
 
@@ -129,12 +131,17 @@ func ParseExternal(err error) *Error {
 	if strings.Contains(response.Message, "permission has failed") {
 		response.Type = ErrorTypePermissionDenied
 		response.Message = response.GenerateMessage("Permission Denied")
+	} else if strings.Contains(strings.ToLower(response.Message), "malformed authorization header") {
+		response.Type = ErrorTypeMalformedHeader
+		response.Message = response.GenerateMessage("Malformed Authorization header")
 	}
 
 	if len(payload) > 2 {
 		switch strings.TrimSpace(payload[2]) {
 		case "JWTExpired":
 			response.Type = ErrorTypeJWTExpired
+		case "Unauthorized":
+			response.Type = ErrorTypeUnauthorized
 		}
 	}
 

@@ -3,6 +3,8 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+
+	"github.com/envsecrets/envsecrets/internal/users"
 )
 
 type SigninWithPATOptions struct {
@@ -64,6 +66,12 @@ type NhostSigninResponse struct {
 	Session map[string]interface{} `json:"session"`
 }
 
+type RefreshTokenResponse struct {
+	AccessToken  string     `json:"accessToken"`
+	RefreshToken string     `json:"refreshToken"`
+	User         users.User `json:"user"`
+}
+
 type NhostSession struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
@@ -83,4 +91,8 @@ type UpdatePasswordOptions struct {
 type DecryptKeysFromSessionOptions struct {
 	Password string `json:"password"`
 	Session  map[string]interface{}
+}
+
+type RefreshTokenOptions struct {
+	RefreshToken string `json:"refreshToken"`
 }

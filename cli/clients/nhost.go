@@ -1,9 +1,6 @@
 package clients
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
@@ -47,46 +44,4 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 	c.log.Debug("[NhostClient] Request to: ", req.URL.String())
 
 	return c.NhostClient.Run(ctx, req, &response)
-}
-
-func RefreshToken(payload map[string]interface{}) (*LoginResponse, error) {
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(
-		http.MethodPost,
-		NHOST_AUTH_URL+"/v1/token",
-		bytes.NewBuffer(body),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, nil
-	}
-
-	var response LoginResponse
-	if err := json.Unmarshal(data, &response.Session); err != nil {
-		return nil, err
-	}
-
-	return &response, nil
 }
