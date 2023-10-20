@@ -31,16 +31,15 @@ POSSIBILITY OF SUCH DAMAGE.
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"os"
-	"path/filepath"
 	"strings"
-
-	internalErrors "errors"
 
 	"github.com/envsecrets/envsecrets/cli/commons"
 	"github.com/envsecrets/envsecrets/cli/internal/secrets"
 	"github.com/envsecrets/envsecrets/dto"
+	"github.com/hashicorp/go-envparse"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +62,7 @@ NOTE: This command auto-capitalizes your keys.`,
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 
-		if importFile == "" && len(args) != 1 {
+		if importFile == "" && len(args) < 1 {
 			return errors.New("either an import file is required to load variables from or at least 1 key=value pair (of secret) is required")
 		}
 
@@ -72,49 +71,50 @@ NOTE: This command auto-capitalizes your keys.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if importFile != "" {
-			filedata, err := os.ReadFile(importFile)
+
+			f, err := os.Open(importFile)
 			if err != nil {
 				commons.Log.Debug(err)
 				commons.Log.Fatal("Failed to read file: ", importFile)
 			}
-
-			switch filepath.Ext(importFile) {
-			default:
-
-				lines := strings.Split(string(filedata), "\n")
-
-				for index, item := range lines {
-
-					//	Clean the line.
-					item = strings.TrimSpace(item)
-
-					key, payload, err := readPair(item)
-					if err != nil {
-						commons.Log.Error("Error on line ", index, " of your file")
-						commons.Log.Fatal(err)
-					}
-					commons.Secret.Set(key, payload)
-				}
-
-			case ".csv", ".json", ".yaml":
-				commons.Log.Error("This file format is not yet supported")
-				commons.Log.Info("Use `--help` for more information")
-				os.Exit(1)
-
+			pairs, err := envparse.Parse(f)
+			if err != nil {
+				commons.Log.Debug(err)
+				commons.Log.Fatal("Failed to parse file: ", importFile)
 			}
+
+			for k, v := range pairs {
+
+				//	Auto capitalize the key.
+				key := strings.ToUpper(k)
+				commons.Secret.Set(key, &dto.Payload{
+					Value: v,
+				})
+			}
+
 		} else {
 
-			//	Run sanity checks
-			if len(args) < 1 {
-				commons.Log.Fatal("Invalid key=value pair")
-			}
+			//	Parse all the key=value pairs from args.
+			for _, arg := range args {
 
-			key, payload, err := readPair(args[0])
-			if err != nil {
-				commons.Log.Fatal(err)
-			}
+				//	Initialize a new reader.
+				reader := bytes.NewBufferString(arg)
 
-			commons.Secret.Set(key, payload)
+				pairs, err := envparse.Parse(reader)
+				if err != nil {
+					commons.Log.Debug(err)
+					commons.Log.Fatal("Failed to parse file: ", importFile)
+				}
+
+				for k, v := range pairs {
+
+					//	Auto capitalize the key.
+					key := strings.ToUpper(k)
+					commons.Secret.Set(key, &dto.Payload{
+						Value: v,
+					})
+				}
+			}
 		}
 
 		//	Encrypt the values.
@@ -133,28 +133,6 @@ NOTE: This command auto-capitalizes your keys.`,
 			commons.Log.Info("Secrets set in local environment!")
 		}
 	},
-}
-
-func readPair(data string) (string, *dto.Payload, error) {
-
-	if !strings.Contains(data, "=") {
-		return "", nil, internalErrors.New("invalid key=value pair")
-	}
-
-	pair := strings.Split(data, "=")
-
-	if len(pair) != 2 {
-		return "", nil, internalErrors.New("invalid key=value pair")
-	}
-
-	key := pair[0]
-	value := pair[1]
-
-	key = strings.ToUpper(key)
-
-	return key, &dto.Payload{
-		Value: value,
-	}, nil
 }
 
 func init() {
