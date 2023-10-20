@@ -78,6 +78,13 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 		return err
 	}
 
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
 	//	Unmarshal any errors in the response.
 	var nhostError struct {
 		Error   string `json:"error"`
@@ -85,16 +92,12 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 		Status  int    `json:"status"`
 	}
 
-	if err := c.unmarshalResponse(resp, &nhostError); err != nil {
-		return err
-	}
-
-	if nhostError.Error != "" {
+	if err := json.Unmarshal(body, &nhostError); err == nil && nhostError.Error != "" {
 		return fmt.Errorf("%v:%s:%s", nhostError.Status, nhostError.Error, nhostError.Message)
 	}
 
 	//	Unmarshal the remaining response.
-	if err := c.unmarshalResponse(resp, &response); err != nil {
+	if err := json.Unmarshal(body, &response); err != nil {
 		return err
 	}
 
@@ -102,8 +105,6 @@ func (c *NhostClient) Run(ctx context.ServiceContext, req *http.Request, respons
 }
 
 func (c *NhostClient) unmarshalResponse(resp *http.Response, structure interface{}) error {
-
-	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
