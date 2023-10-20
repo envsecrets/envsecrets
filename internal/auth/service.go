@@ -24,6 +24,7 @@ type Service interface {
 	SigninWithMFA(context.ServiceContext, *clients.NhostClient, *SigninWithMFAOptions) (*SigninResponse, error)
 	SigninWithPassword(context.ServiceContext, *clients.NhostClient, *SigninWithPasswordOptions) (*SigninResponse, error)
 	SigninWithPAT(context.ServiceContext, *clients.NhostClient, *SigninWithPATOptions) (*SigninResponse, error)
+	RefreshToken(context.ServiceContext, *clients.NhostClient, *RefreshTokenOptions) (*RefreshTokenResponse, error)
 	DecryptKeysFromSession(context.ServiceContext, *clients.GQLClient, *DecryptKeysFromSessionOptions) (*keyCommons.Payload, error)
 }
 
@@ -150,6 +151,28 @@ func (*DefaultService) SigninWithPAT(ctx context.ServiceContext, client *clients
 		MFA:     response.MFA,
 		Session: response.Session,
 	}, nil
+}
+
+func (*DefaultService) RefreshToken(ctx context.ServiceContext, client *clients.NhostClient, options *RefreshTokenOptions) (*RefreshTokenResponse, error) {
+
+	body, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Initialize a new request
+	req, err := http.NewRequest(http.MethodPost, client.BaseURL+"/token", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	//	Send the request to Nhost signin endpoint.
+	var response RefreshTokenResponse
+	if err := client.Run(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 
 func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *SignupOptions) error {

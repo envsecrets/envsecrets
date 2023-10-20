@@ -9,6 +9,7 @@ import (
 
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
+	"github.com/envsecrets/envsecrets/internal/auth"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/sirupsen/logrus"
 )
@@ -122,8 +123,13 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		accountConfig := accountConfigPayload.(*configCommons.Account)
 
-		authResponse, refreshErr := RefreshToken(map[string]interface{}{
-			"refreshToken": accountConfig.RefreshToken,
+		//	Initialize a new Nhost client.
+		nhostClient := NewNhostClient(&NhostConfig{
+			Logger: c.log,
+		})
+
+		authResponse, refreshErr := auth.GetService().RefreshToken(ctx, nhostClient.NhostClient, &auth.RefreshTokenOptions{
+			RefreshToken: accountConfig.RefreshToken,
 		})
 
 		if refreshErr != nil {
@@ -132,9 +138,9 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 
 		//	Save the refreshed account config
 		refreshConfig := configCommons.Account{
-			AccessToken:  authResponse.Session.AccessToken,
-			RefreshToken: authResponse.Session.RefreshToken,
-			User:         authResponse.Session.User,
+			AccessToken:  authResponse.AccessToken,
+			RefreshToken: authResponse.RefreshToken,
+			User:         authResponse.User,
 		}
 
 		if err := config.GetService().Save(refreshConfig, configCommons.AccountConfig); err != nil {
@@ -142,7 +148,7 @@ func (c *HTTPClient) Run(ctx context.ServiceContext, req *http.Request, response
 		}
 
 		//	Update the authorization header in client.
-		c.Authorization = "Bearer " + authResponse.Session.AccessToken
+		c.Authorization = "Bearer " + authResponse.AccessToken
 
 		//	Re-set the body in the request, because it would have already been read once.
 		if body != nil {

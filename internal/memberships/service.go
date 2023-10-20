@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
-
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/machinebox/graphql"
 )
