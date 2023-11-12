@@ -86,7 +86,11 @@ func (e *Event) GetEntityTitle() string {
 	case integrations.Railway:
 		project := e.EntityDetails["project"].(map[string]interface{})
 		environment := e.EntityDetails["environment"].(map[string]interface{})
-		return project["name"].(string) + "/" + environment["name"].(string)
+		result := project["name"].(string) + "/" + environment["name"].(string)
+		if e.EntityDetails["service"] != nil {
+			result += "/" + e.EntityDetails["service"].(map[string]interface{})["name"].(string)
+		}
+		return result
 	default:
 		return ""
 	}
@@ -97,7 +101,12 @@ func (e *Event) GetEntityType() string {
 	switch e.Integration.Type {
 	case integrations.Github:
 		return "repository"
-	case integrations.Vercel, integrations.CircleCI, integrations.Supabase, integrations.Railway, integrations.Hasura:
+	case integrations.Railway:
+		if e.EntityDetails["service"] != nil {
+			return "service"
+		}
+		return "environment"
+	case integrations.Vercel, integrations.CircleCI, integrations.Supabase, integrations.Hasura:
 		return "project"
 	case integrations.Gitlab:
 		return "project/group"

@@ -40,6 +40,16 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 								}
 							}
 						}
+
+						//	Get all the services of the project.
+						Services struct {
+							Edges []struct {
+								Node struct {
+									Name string
+									ID   string
+								}
+							}
+						}
 					}
 				}
 			}
@@ -58,6 +68,7 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 			"name":         project.Node.Name,
 			"id":           project.Node.ID,
 			"environments": []map[string]interface{}{},
+			"services":     []map[string]interface{}{},
 		}
 
 		//	Traverse through all the environments of the project.
@@ -65,6 +76,14 @@ func ListEntities(ctx context.ServiceContext, options *ListOptions) (interface{}
 			projectData["environments"] = append(projectData["environments"].([]map[string]interface{}), map[string]interface{}{
 				"name": environment.Node.Name,
 				"id":   environment.Node.ID,
+			})
+		}
+
+		//	Traverse through all the services of the project.
+		for _, service := range project.Node.Services.Edges {
+			projectData["services"] = append(projectData["services"].([]map[string]interface{}), map[string]interface{}{
+				"name": service.Node.Name,
+				"id":   service.Node.ID,
 			})
 		}
 
@@ -89,12 +108,17 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 	type VariableUpsertInput struct {
 		ProjectID     graphql.String `json:"projectId"`
 		EnvironmentID graphql.String `json:"environmentId"`
+		ServiceID     graphql.String `json:"serviceId,omitempty"`
 		Name          graphql.String `json:"name"`
 		Value         graphql.String `json:"value"`
 	}
 
 	project := options.EntityDetails["project"].(map[string]interface{})
 	environment := options.EntityDetails["environment"].(map[string]interface{})
+	var service map[string]interface{}
+	if options.EntityDetails["service"] != nil {
+		service = options.EntityDetails["service"].(map[string]interface{})
+	}
 
 	for key, payload := range *options.Data {
 
@@ -107,6 +131,10 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 			EnvironmentID: graphql.String(environment["id"].(string)),
 			Name:          graphql.String(key),
 			Value:         graphql.String(payload.Value),
+		}
+
+		if service != nil {
+			inputs.ServiceID = graphql.String(service["id"].(string))
 		}
 
 		err := client.Mutate(ctx, &mutation, map[string]interface{}{
