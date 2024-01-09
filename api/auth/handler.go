@@ -83,17 +83,6 @@ func SigninHandler(c echo.Context) error {
 		})
 	}
 
-	//	[Later Patch] If the user doesn't have a sync key, create one for them.
-	if pair.SyncKey == nil {
-		pair.SyncKey, err = keys.CreateSyncKey(ctx, gqlClient)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-				Message: "Login failed. Could not create a sync key for you.",
-				Error:   err.Error(),
-			})
-		}
-	}
-
 	//	Encrypt the sync key using the user's public key.
 	var publicKey [32]byte
 	copy(publicKey[:], pair.PublicKey)
@@ -308,6 +297,65 @@ func ToggleMFAHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: message,
+	})
+}
+
+func GetSyncKeyHandler(c echo.Context) error {
+
+	//	Initialize a new default context
+	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
+
+	//	Initialize a new HTTP client
+	client := clients.NewGQLClient(&clients.GQLConfig{
+		Authorization: c.Request().Header.Get(echo.HeaderAuthorization),
+		Type:          clients.HasuraClientType,
+	})
+
+	//	Call the appropriate service handler.
+	syncKeyBytes, err := keys.GetSyncKey(ctx, client)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get sync key.",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Decrypt the sync key using the server's own encryption key.
+	syncKey, err := keys.OpenSymmetricallyByServer(syncKeyBytes)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to decrypt the sync key by the server.",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Get the user's public key.
+	publicKeyBytes, err := keys.GetPublicKey(ctx, client)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get user's public key.",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Encrypt the sync key using the user's public key.
+	var publicKey [32]byte
+	copy(publicKey[:], publicKeyBytes)
+	encryptedSyncKey, err := keys.SealAsymmetricallyAnonymous(syncKey, publicKey)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Login failed. Could not encrypt your sync key.",
+			Error:   err.Error(),
+		})
+	}
+
+	response := keyCommons.Key{
+		SyncKey: base64.StdEncoding.EncodeToString(encryptedSyncKey),
+	}
+
+	return c.JSON(http.StatusOK, &clients.APIResponse{
+		Message: "Sync key fetched successfully.",
+		Data:    &response,
 	})
 }
 

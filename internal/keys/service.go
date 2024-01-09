@@ -34,8 +34,14 @@ func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byt
 		return nil, err
 	}
 
+	//	Encrypt the sync key using server's symmetric key.
+	encryptedSyncKeyBytes, err := SealSymmetricallyByServer(syncKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := graphql.CreateSyncKey(ctx, client, &commons.CreateSyncKeyOptions{
-		SyncKey: base64.StdEncoding.EncodeToString(syncKeyBytes),
+		SyncKey: base64.StdEncoding.EncodeToString(encryptedSyncKeyBytes),
 	}); err != nil {
 		return nil, err
 	}
@@ -47,8 +53,16 @@ func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id 
 	return graphql.GetByUserID(ctx, client, user_id)
 }
 
+func GetPublicKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+	return graphql.GetPublicKey(ctx, client)
+}
+
 func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
 	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
+}
+
+func GetSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+	return graphql.GetSyncKey(ctx, client)
 }
 
 func GetSyncKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
@@ -148,7 +162,7 @@ func OpenSymmetricallyByServer(payload []byte) ([]byte, error) {
 	//	Encrypt the sync key using server's symmetric key
 	encodedServerKey := os.Getenv("SERVER_SYMMETRIC_KEY")
 	if encodedServerKey == "" {
-		return nil, errors.New("SERVER_SYMMETRIC_KEY is not set")
+		return nil, commons.ErrNoServerKey
 	}
 
 	decodedServerKey, err := base64.StdEncoding.DecodeString(encodedServerKey)
@@ -242,13 +256,12 @@ func DecryptPayload(payload *commons.Payload, password string) error {
 	payload.PrivateKey = privateKey
 
 	//	Decrypt the sync key using the server's own encryption key.
-	if payload.SyncKey != nil {
-		syncKey, err := OpenSymmetricallyByServer(payload.SyncKey)
-		if err != nil {
-			return err
-		}
-		payload.SyncKey = syncKey
+	syncKey, err := OpenSymmetricallyByServer(payload.SyncKey)
+	if err != nil && err != commons.ErrNoServerKey {
+		return err
 	}
+
+	payload.SyncKey = syncKey
 
 	return nil
 }

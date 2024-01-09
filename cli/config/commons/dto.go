@@ -97,17 +97,20 @@ func (p *Project) UnmarshalJSON(data []byte) error {
 type Keys struct {
 	Public  []byte `json:"public_key" yaml:"public_key"`
 	Private []byte `json:"private_key" yaml:"private_key"`
+	Sync    []byte `json:"sync_key" yaml:"sync_key"`
 }
 
 type KeysStringified struct {
 	Public  string `json:"public_key" yaml:"public_key"`
 	Private string `json:"private_key" yaml:"private_key"`
+	Sync    string `json:"sync_key" yaml:"sync_key"`
 }
 
 func (k *Keys) Stringify() *KeysStringified {
 	return &KeysStringified{
 		Public:  base64.StdEncoding.EncodeToString(k.Public),
 		Private: base64.StdEncoding.EncodeToString(k.Private),
+		Sync:    base64.StdEncoding.EncodeToString(k.Sync),
 	}
 }
 
@@ -123,8 +126,14 @@ func (k *KeysStringified) Unstringify() (*Keys, error) {
 		return nil, err
 	}
 
+	sync, err := base64.StdEncoding.DecodeString(k.Sync)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Keys{
 		Public:  public,
 		Private: private,
+		Sync:    sync,
 	}, nil
 }

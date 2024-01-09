@@ -148,6 +148,45 @@ func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id 
 }
 
 // Fetches only the public key by User ID
+func GetPublicKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery {
+		keys {
+		  public_key
+		}
+	  }			
+	`)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["keys"])
+	if err != nil {
+		return nil, err
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []commons.Key
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, err
+	}
+
+	if len(resp) == 0 {
+		return nil, errors.New("failed to fetch the key")
+	}
+
+	result, err := base64.StdEncoding.DecodeString(resp[0].PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// Fetches only the public key by User ID
 func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
 
 	req := graphql.NewRequest(`
@@ -240,6 +279,45 @@ func GetSyncKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, u
 	`)
 
 	req.Var("user_id", user_id)
+
+	var response map[string]interface{}
+	if err := client.Do(ctx, req, &response); err != nil {
+		return nil, err
+	}
+
+	returning, err := json.Marshal(response["keys"])
+	if err != nil {
+		return nil, err
+	}
+
+	//	Unmarshal the response from "returning"
+	var resp []commons.Key
+	if err := json.Unmarshal(returning, &resp); err != nil {
+		return nil, err
+	}
+
+	if len(resp) == 0 {
+		return nil, errors.New("failed to fetch the key")
+	}
+
+	result, err := base64.StdEncoding.DecodeString(resp[0].SyncKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// Fetches only the sync key by User ID
+func GetSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+
+	req := graphql.NewRequest(`
+	query MyQuery {
+		keys {
+		  sync_key
+		}
+	  }			
+	`)
 
 	var response map[string]interface{}
 	if err := client.Do(ctx, req, &response); err != nil {

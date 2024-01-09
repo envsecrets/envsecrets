@@ -9,6 +9,7 @@ func AddRoutes(sg *echo.Group) {
 	group := sg.Group("/auth")
 
 	group.GET("/qr", GenerateQRHandler)
+	group.GET("/sync-key", GetSyncKeyHandler)
 	group.POST("/mfa", ToggleMFAHandler)
 	group.DELETE("/mfa", ToggleMFAHandler)
 	group.POST("/signin", SigninHandler)

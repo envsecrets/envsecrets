@@ -11,7 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func GetPublicKey(c echo.Context) error {
+func GetPublicKeyHandler(c echo.Context) error {
 
 	//	Unmarshal the incoming payload
 	var payload commons.GetPublicKeyOptions

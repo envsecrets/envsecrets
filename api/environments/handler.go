@@ -163,7 +163,7 @@ func SyncWithPasswordHandler(c echo.Context) error {
 
 	//	Extract the user's email from JWT
 	token := c.Get("user").(*jwt.Token)
-	claims := token.Claims.(*auth.Claims)
+	claims := token.Claims.(*clients.Claims)
 
 	//	Decrypt and get the bytes of user's own copy of organisation's encryption key.
 	key, err := keys.DecryptMemberKey(ctx, client, claims.Hasura.UserID, &keysCommons.DecryptOptions{

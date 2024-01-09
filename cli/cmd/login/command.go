@@ -31,7 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 package login
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/http"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/envsecrets/envsecrets/cli/clients"
@@ -39,6 +41,8 @@ import (
 	"github.com/envsecrets/envsecrets/cli/config"
 	configCommons "github.com/envsecrets/envsecrets/cli/config/commons"
 	"github.com/envsecrets/envsecrets/internal/auth"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
 	"github.com/envsecrets/envsecrets/internal/users"
 	"github.com/envsecrets/envsecrets/utils"
 	"github.com/spf13/cobra"
@@ -155,10 +159,49 @@ var Cmd = &cobra.Command{
 			commons.Log.Fatal("Failed to decrypt your keys")
 		}
 
+		//	We have to exclusively fetch the sync key.
+		req, err := http.NewRequestWithContext(commons.DefaultContext, http.MethodGet, clients.API+"/v1/auth/sync-key", nil)
+		if err != nil {
+			commons.Log.Debug(err)
+			commons.Log.Fatal("failed to create your HTTP request")
+		}
+
+		var keyResponse clients.APIResponse
+		err = commons.HTTPClient.Run(commons.DefaultContext, req, &keyResponse)
+		if err != nil {
+			commons.Log.Fatal(err)
+		}
+
+		if keyResponse.Error != "" {
+			commons.Log.Fatal(keyResponse.Error)
+		}
+
+		//	Unmarshal the response.
+		var keyPayload keyCommons.Key
+		if err := utils.MapToStruct(keyResponse.Data, &keyPayload); err != nil {
+			commons.Log.Fatal(err)
+		}
+
+		var publicKey, privateKey [32]byte
+		copy(publicKey[:], pair.PublicKey)
+		copy(privateKey[:], pair.PrivateKey)
+
+		//	Decrypt the sync key using user's private key.
+		decodedSyncKey, err := base64.StdEncoding.DecodeString(keyPayload.SyncKey)
+		if err != nil {
+			commons.Log.Fatal(err)
+		}
+
+		syncKey, err := keys.OpenAsymmetricallyAnonymous(decodedSyncKey, publicKey, privateKey)
+		if err != nil {
+			commons.Log.Fatal(err)
+		}
+
 		//	Save the public-private keys locally.
 		if err := config.GetService().Save(configCommons.Keys{
 			Public:  pair.PublicKey,
 			Private: pair.PrivateKey,
+			Sync:    syncKey,
 		}, configCommons.KeysConfig); err != nil {
 			commons.Log.Debug(err)
 			commons.Log.Fatal("Failed to save key configuration locally")
