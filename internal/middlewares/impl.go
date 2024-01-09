@@ -57,6 +57,12 @@ func TokenHeader() echo.MiddlewareFunc {
 		KeyLookup: "header:" + string(clients.TokenHeader),
 		Validator: func(key string, c echo.Context) (bool, error) {
 
+			//	Decode the token
+			payload, err := hex.DecodeString(key)
+			if err != nil {
+				return false, err
+			}
+
 			//	Initialize a new default context
 			ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
 
@@ -67,12 +73,6 @@ func TokenHeader() echo.MiddlewareFunc {
 					clients.XHasuraAdminSecretHeader,
 				},
 			})
-
-			//	Decode the token
-			payload, err := hex.DecodeString(key)
-			if err != nil {
-				return false, err
-			}
 
 			//	Hash the token to fetch it from database.
 			hash := utils.SHA256Hash(payload)

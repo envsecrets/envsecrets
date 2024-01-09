@@ -18,6 +18,7 @@ insert_permissions:
         - protected_key
         - public_key
         - salt
+        - sync_key
 select_permissions:
   - role: user
     permission:
@@ -28,11 +29,21 @@ select_permissions:
         - protected_key
         - public_key
         - salt
+        - sync_key
         - updated_at
         - user_id
       filter:
         user_id:
           _eq: X-Hasura-User-Id
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - sync_key
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check: null
 delete_permissions:
   - role: user
     permission:

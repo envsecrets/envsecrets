@@ -200,12 +200,19 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *Sign
 		return err
 	}
 
+	//	Encrypt the sync key using server's symmetric key
+	syncKeyBytes, err := keys.SealSymmetricallyByServer(pair.SyncKey[:])
+	if err != nil {
+		return err
+	}
+
 	//	Upload the keys to their cloud account.
 	if err := keys.CreateWithUserID(ctx, client, &keyCommons.CreateWithUserIDOptions{
 		PublicKey:    base64.StdEncoding.EncodeToString(pair.PublicKey),
 		PrivateKey:   base64.StdEncoding.EncodeToString(pair.PrivateKey),
 		ProtectedKey: base64.StdEncoding.EncodeToString(pair.ProtectedKey),
 		Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
+		SyncKey:      base64.StdEncoding.EncodeToString(syncKeyBytes),
 		UserID:       user.ID,
 	}); err != nil {
 		return err
@@ -256,6 +263,16 @@ func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client
 	ks, err := keys.GetByUserID(ctx, client, user.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	//	[Later Patch] If the user doesn't have a sync key, create one for them.
+	if ks.SyncKey == "" {
+		syncKey, err := keys.UpdateSyncKey(ctx, client, ks.ID)
+		if err != nil && err != keyCommons.ErrNoServerKey {
+			return nil, err
+		}
+
+		ks.SyncKey = base64.StdEncoding.EncodeToString(syncKey)
 	}
 
 	//	Decode the keys.

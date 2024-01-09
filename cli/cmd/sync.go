@@ -88,6 +88,14 @@ You can activate your connected integrations on the "integrations" page of your 
 		//	Decrypt and decode the common secret.
 		DecryptAndDecode()
 
+		//	Encrypt the secrets with the sync key.
+		var syncKey [32]byte
+		copy(syncKey[:], commons.KeysConfig.Sync)
+		if err := commons.Secret.Encrypt(syncKey); err != nil {
+			commons.Log.Debug(err)
+			commons.Log.Fatal("Failed to decrypt the secret")
+		}
+
 		//	Copy the dto.KPMap to keypayload.KPMap
 		kpMap := keypayload.KPMap{}
 		for key, value := range commons.Secret.Data.GetMapping() {
@@ -95,9 +103,7 @@ You can activate your connected integrations on the "integrations" page of your 
 				Value: value.GetValue(),
 			}
 		}
-
-		//	Encode all the values before sending them to the server.
-		kpMap.Encode()
+		kpMap.MarkAllEncoded()
 
 		options := environments.SyncOptions{
 			Pairs: &kpMap,
