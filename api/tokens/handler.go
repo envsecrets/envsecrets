@@ -1,7 +1,7 @@
 package tokens
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -93,8 +93,28 @@ func CreateHandler(c echo.Context) error {
 		})
 	}
 
+	//	Get the user's public key.
+	publicKeyBytes, err := keys.GetPublicKey(ctx, client)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Failed to get user's public key.",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Encrypt the sync key using the user's public key.
+	var publicKey [32]byte
+	copy(publicKey[:], publicKeyBytes)
+	encryptedToken, err := keys.SealAsymmetricallyAnonymous(token, publicKey)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Login failed. Could not encrypt your sync key.",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Encode the token
-	hash := hex.EncodeToString(token)
+	hash := base64.StdEncoding.EncodeToString(encryptedToken)
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "successfully generated token",
