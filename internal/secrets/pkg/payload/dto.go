@@ -174,10 +174,10 @@ func (p *Payload) Decrypt(key [32]byte) error {
 		return err
 	}
 
-	p.Set(string(decrypted))
-
 	//	Encode the value once again after saving it.
-	p.Encode()
+	encoded := base64.StdEncoding.EncodeToString(decrypted)
+	p.Set(encoded)
+	p.MarkEncoded()
 
 	return nil
 }
