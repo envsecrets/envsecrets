@@ -267,7 +267,7 @@ func (*DefaultService) DecryptKeysFromSession(ctx context.ServiceContext, client
 
 	//	[Later Patch] If the user doesn't have a sync key, create one for them.
 	if ks.SyncKey == "" {
-		syncKey, err := keys.CreateSyncKey(ctx, client)
+		syncKey, err := keys.UpdateSyncKey(ctx, client, ks.ID)
 		if err != nil && err != keyCommons.ErrNoServerKey {
 			return nil, err
 		}

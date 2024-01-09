@@ -78,16 +78,17 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 }
 
 // Create a new key with User ID
-func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.CreateSyncKeyOptions) error {
+func UpdateSyncKey(ctx context.ServiceContext, client *clients.GQLClient, options *commons.UpdateSyncKeyOptions) error {
 
 	req := graphql.NewRequest(`
-	mutation MyMutation($sync_key: String!) {
-		insert_keys(objects: {sync_key: $sync_key}) {
+	mutation MyMutation($id: uuid!, $sync_key: String!) {
+		update_keys(where: {id: {_eq: $id}}, _set: {sync_key: $sync_key}) {
 		  affected_rows
 		}
-	  }				  
+	  }						
 	`)
 
+	req.Var("id", options.KeyID)
 	req.Var("sync_key", options.SyncKey)
 
 	var response map[string]interface{}
@@ -95,7 +96,7 @@ func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient, option
 		return err
 	}
 
-	returned := response["insert_keys"].(map[string]interface{})
+	returned := response["update_keys"].(map[string]interface{})
 
 	affectedRows := returned["affected_rows"].(float64)
 	if affectedRows == 0 {

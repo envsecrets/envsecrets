@@ -26,7 +26,7 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 	return graphql.CreateWithUserID(ctx, client, options)
 }
 
-func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+func UpdateSyncKey(ctx context.ServiceContext, client *clients.GQLClient, key_id string) ([]byte, error) {
 
 	//	Generate a separate random symmetric key
 	syncKeyBytes, err := utils.GenerateRandomBytes(commons.KEY_BYTES)
@@ -40,13 +40,14 @@ func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byt
 		return nil, err
 	}
 
-	if err := graphql.CreateSyncKey(ctx, client, &commons.CreateSyncKeyOptions{
+	if err := graphql.UpdateSyncKey(ctx, client, &commons.UpdateSyncKeyOptions{
+		KeyID:   key_id,
 		SyncKey: base64.StdEncoding.EncodeToString(encryptedSyncKeyBytes),
 	}); err != nil {
 		return nil, err
 	}
 
-	return syncKeyBytes, nil
+	return encryptedSyncKeyBytes, nil
 }
 
 func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) (*commons.Key, error) {

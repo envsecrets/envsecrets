@@ -35,6 +35,15 @@ select_permissions:
       filter:
         user_id:
           _eq: X-Hasura-User-Id
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - sync_key
+      filter:
+        user_id:
+          _eq: X-Hasura-User-Id
+      check: null
 delete_permissions:
   - role: user
     permission:

@@ -92,7 +92,8 @@ type CreateWithUserIDOptions struct {
 	UserID       string `json:"user_id,omitempty"`
 }
 
-type CreateSyncKeyOptions struct {
+type UpdateSyncKeyOptions struct {
+	KeyID   string `json:"key_id"`
 	SyncKey string `json:"sync_key,omitempty"`
 }
 
