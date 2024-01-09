@@ -36,9 +36,18 @@ func generateGithuAppJWT(file []byte) (string, error) {
 
 // Encrypt a secret value using libsodium equivalent NACL secret box method.
 func encryptSecret(pk, secret string) (string, error) {
+	publicKey, err := base64.StdEncoding.DecodeString(pk)
+	if err != nil {
+		return "", err
+	}
+
+	secretBytes, err := base64.StdEncoding.DecodeString(secret)
+	if err != nil {
+		return "", err
+	}
+
 	var pkBytes [32]byte
-	copy(pkBytes[:], pk)
-	secretBytes := []byte(secret)
+	copy(pkBytes[:], publicKey)
 
 	out := make([]byte, 0,
 		len(secretBytes)+
