@@ -200,12 +200,19 @@ func Signup(ctx context.ServiceContext, client *clients.GQLClient, options *Sign
 		return err
 	}
 
+	//	Encrypt the sync key using server's symmetric key
+	syncKeyBytes, err := keys.SealSymmetricallyByServer(pair.SyncKey[:])
+	if err != nil {
+		return err
+	}
+
 	//	Upload the keys to their cloud account.
 	if err := keys.CreateWithUserID(ctx, client, &keyCommons.CreateWithUserIDOptions{
 		PublicKey:    base64.StdEncoding.EncodeToString(pair.PublicKey),
 		PrivateKey:   base64.StdEncoding.EncodeToString(pair.PrivateKey),
 		ProtectedKey: base64.StdEncoding.EncodeToString(pair.ProtectedKey),
 		Salt:         base64.StdEncoding.EncodeToString(pair.Salt),
+		SyncKey:      base64.StdEncoding.EncodeToString(syncKeyBytes),
 		UserID:       user.ID,
 	}); err != nil {
 		return err

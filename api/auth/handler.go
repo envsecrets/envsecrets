@@ -83,10 +83,33 @@ func SigninHandler(c echo.Context) error {
 		})
 	}
 
+	//	[Later Patch] If the user doesn't have a sync key, create one for them.
+	if pair.SyncKey == nil {
+		pair.SyncKey, err = keys.CreateSyncKey(ctx, gqlClient)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+				Message: "Login failed. Could not create a sync key for you.",
+				Error:   err.Error(),
+			})
+		}
+	}
+
+	//	Encrypt the sync key using the user's public key.
+	var publicKey [32]byte
+	copy(publicKey[:], pair.PublicKey)
+	encryptedSyncKey, err := keys.SealAsymmetricallyAnonymous(pair.SyncKey, publicKey)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "Login failed. Could not encrypt your sync key.",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Include the decrypted keys in response.
 	response.Keys = map[string]string{
 		"publicKey":  base64.StdEncoding.EncodeToString(pair.PublicKey),
 		"privateKey": base64.StdEncoding.EncodeToString(pair.PrivateKey),
+		"syncKey":    base64.StdEncoding.EncodeToString(encryptedSyncKey),
 	}
 
 	return c.JSON(http.StatusOK, response)

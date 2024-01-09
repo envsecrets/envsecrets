@@ -14,4 +14,8 @@ func AddRoutes(sg *echo.Group) {
 	group.POST("/signin", SigninHandler)
 	group.POST("/signup", SignupHandler)
 	group.POST("/update-password", UpdatePasswordHandler)
+
+	srpGroup := group.Group("/srp")
+	srpGroup.POST("/getB", nil)
+	srpGroup.POST("/getM2", nil)
 }

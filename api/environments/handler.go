@@ -259,6 +259,37 @@ func SyncHandler(c echo.Context) error {
 		})
 	}
 
+	//	Extract the user's email from JWT
+	token := c.Get("user").(*jwt.Token)
+	claims := token.Claims.(*auth.Claims)
+
+	//	Get the user's sync key and decrypt it with server's own encryption key.
+	syncKey, err := keys.GetSyncKeyByUserID(ctx, client, claims.Hasura.UserID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to get the user's sync key",
+			Error:   err.Error(),
+		})
+	}
+
+	decryptedSyncKeyBytes, err := keys.OpenSymmetricallyByServer(syncKey)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to decrypt the user's sync key",
+			Error:   err.Error(),
+		})
+	}
+
+	//	Now decrypt the secrets using the decrypted sync key.
+	var decryptedSyncKey [32]byte
+	copy(decryptedSyncKey[:], decryptedSyncKeyBytes)
+	if err := payload.Pairs.Decrypt(decryptedSyncKey); err != nil {
+		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
+			Message: "failed to decrypt the secrets",
+			Error:   err.Error(),
+		})
+	}
+
 	//	Call the service function.
 	if err := environments.GetService().Sync(ctx, client, &environments.SyncOptions{
 		EnvID:    envID,

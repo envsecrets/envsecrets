@@ -15,6 +15,7 @@ type Key struct {
 	PublicKey    string `json:"public_key,omitempty"`
 	PrivateKey   string `json:"private_key,omitempty"`
 	ProtectedKey string `json:"protected_key,omitempty"`
+	SyncKey      string `json:"sync_key,omitempty"`
 	Salt         string `json:"salt,omitempty"`
 }
 
@@ -40,10 +41,19 @@ func (k *Key) Decode() (*Payload, error) {
 		return nil, err
 	}
 
+	var syncKey []byte
+	if k.SyncKey != "" {
+		syncKey, err = base64.StdEncoding.DecodeString(k.SyncKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Payload{
 		PublicKey:    publicKey,
 		PrivateKey:   privateKey,
 		ProtectedKey: protectedKey,
+		SyncKey:      syncKey,
 		Salt:         salt,
 	}, nil
 }
@@ -52,6 +62,7 @@ type Payload struct {
 	PublicKey    []byte
 	PrivateKey   []byte
 	ProtectedKey []byte
+	SyncKey      []byte
 	Salt         []byte
 }
 
@@ -68,6 +79,7 @@ type CreateOptions struct {
 	PublicKey    string `json:"public_key"`
 	PrivateKey   string `json:"private_key"`
 	ProtectedKey string `json:"protected_key"`
+	SyncKey      string `json:"sync_key,omitempty"`
 	Salt         string `json:"salt,omitempty"`
 }
 
@@ -76,7 +88,12 @@ type CreateWithUserIDOptions struct {
 	PrivateKey   string `json:"private_key"`
 	ProtectedKey string `json:"protected_key"`
 	Salt         string `json:"salt,omitempty"`
+	SyncKey      string `json:"sync_key,omitempty"`
 	UserID       string `json:"user_id,omitempty"`
+}
+
+type CreateSyncKeyOptions struct {
+	SyncKey string `json:"sync_key,omitempty"`
 }
 
 type GetPublicKeyOptions struct {
@@ -90,4 +107,5 @@ type IssueKeyPairResponse struct {
 	DecryptedPrivateKey []byte `json:"decrypted_private_key"`
 	ProtectedKey        []byte `json:"protected_key"`
 	Salt                []byte `json:"salt,omitempty"`
+	SyncKey             []byte `json:"sync_key,omitempty"`
 }

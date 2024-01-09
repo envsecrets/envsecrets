@@ -2,8 +2,10 @@ package keys
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"io"
+	"os"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
@@ -24,12 +26,33 @@ func CreateWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 	return graphql.CreateWithUserID(ctx, client, options)
 }
 
+func CreateSyncKey(ctx context.ServiceContext, client *clients.GQLClient) ([]byte, error) {
+
+	//	Generate a separate random symmetric key
+	syncKeyBytes, err := utils.GenerateRandomBytes(commons.KEY_BYTES)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := graphql.CreateSyncKey(ctx, client, &commons.CreateSyncKeyOptions{
+		SyncKey: base64.StdEncoding.EncodeToString(syncKeyBytes),
+	}); err != nil {
+		return nil, err
+	}
+
+	return syncKeyBytes, nil
+}
+
 func GetByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) (*commons.Key, error) {
 	return graphql.GetByUserID(ctx, client, user_id)
 }
 
 func GetPublicKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
 	return graphql.GetPublicKeyByUserID(ctx, client, user_id)
+}
+
+func GetSyncKeyByUserID(ctx context.ServiceContext, client *clients.GQLClient, user_id string) ([]byte, error) {
+	return graphql.GetSyncKeyByUserID(ctx, client, user_id)
 }
 
 func GetPublicKeyByUserEmail(ctx context.ServiceContext, client *clients.GQLClient, email string) ([]byte, error) {
@@ -101,9 +124,53 @@ func OpenAsymmetricallyAnonymous(message []byte, publicKey, privateKey [commons.
 	return result, nil
 }
 
+func SealSymmetricallyByServer(message []byte) ([]byte, error) {
+
+	//	Encrypt the sync key using server's symmetric key
+	encodedServerKey := os.Getenv("SERVER_SYMMETRIC_KEY")
+	if encodedServerKey == "" {
+		return nil, errors.New("SERVER_SYMMETRIC_KEY is not set")
+	}
+
+	decodedServerKey, err := base64.StdEncoding.DecodeString(encodedServerKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var serverKey [32]byte
+	copy(serverKey[:], decodedServerKey)
+
+	return SealSymmetrically(message[:], serverKey)
+}
+
+func OpenSymmetricallyByServer(payload []byte) ([]byte, error) {
+
+	//	Encrypt the sync key using server's symmetric key
+	encodedServerKey := os.Getenv("SERVER_SYMMETRIC_KEY")
+	if encodedServerKey == "" {
+		return nil, errors.New("SERVER_SYMMETRIC_KEY is not set")
+	}
+
+	decodedServerKey, err := base64.StdEncoding.DecodeString(encodedServerKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var serverKey [32]byte
+	copy(serverKey[:], decodedServerKey)
+
+	return OpenSymmetrically(payload[:], serverKey)
+}
+
 func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 
 	publicKeyBytes, privateKeyBytes, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Generate a separate random symmetric key
+	syncKeyBytes, err := utils.GenerateRandomBytes(commons.KEY_BYTES)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +212,7 @@ func GenerateKeyPair(password string) (*commons.IssueKeyPairResponse, error) {
 		DecryptedPrivateKey: privateKeyBytes[:],
 		ProtectedKey:        encryptedProtectionKeyBytes,
 		Salt:                saltBytes,
+		SyncKey:             syncKeyBytes,
 	}, nil
 }
 
@@ -172,6 +240,15 @@ func DecryptPayload(payload *commons.Payload, password string) error {
 	}
 
 	payload.PrivateKey = privateKey
+
+	//	Decrypt the sync key using the server's own encryption key.
+	if payload.SyncKey != nil {
+		syncKey, err := OpenSymmetricallyByServer(payload.SyncKey)
+		if err != nil {
+			return err
+		}
+		payload.SyncKey = syncKey
+	}
 
 	return nil
 }

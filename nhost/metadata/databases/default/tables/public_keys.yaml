@@ -18,6 +18,7 @@ insert_permissions:
         - protected_key
         - public_key
         - salt
+        - sync_key
 select_permissions:
   - role: user
     permission:
@@ -28,6 +29,7 @@ select_permissions:
         - protected_key
         - public_key
         - salt
+        - sync_key
         - updated_at
         - user_id
       filter:
