@@ -1,10 +1,16 @@
 package organisations
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
+	"github.com/envsecrets/envsecrets/internal/keys"
+	keyCommons "github.com/envsecrets/envsecrets/internal/keys/commons"
+	"github.com/envsecrets/envsecrets/internal/memberships"
+	"github.com/envsecrets/envsecrets/internal/roles"
+	"github.com/envsecrets/envsecrets/utils"
 	"github.com/machinebox/graphql"
 )
 
@@ -135,13 +141,115 @@ func (*DefaultService) List(ctx context.ServiceContext, client *clients.GQLClien
 	return &response.Organisations, nil
 }
 
-func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (*Organisation, error) {
+func (*DefaultService) Create(ctx context.ServiceContext, client *clients.GQLClient, options *CreateOptions) (organisation *Organisation, err error) {
 
 	if options.UserID != "" {
-		return createWithUserID(ctx, client, options)
+		organisation, err = createWithUserID(ctx, client, options)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		organisation, err = create(ctx, client, options.Name)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return create(ctx, client, options.Name)
+	//	Generate default roles for the organisation.
+	if _, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: organisation.ID,
+		Name:  "viewer",
+		Permissions: roles.Permissions{
+			Projects: roles.CRUD{
+				Read: true,
+			},
+		},
+	}); err != nil {
+		return nil, err
+	}
+
+	if _, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: organisation.ID,
+		Name:  "editor",
+		Permissions: roles.Permissions{
+			Projects: roles.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Environments: roles.CRUD{
+				Create: true,
+				Update: true,
+				Delete: true,
+			},
+		},
+	}); err != nil {
+		return nil, err
+	}
+
+	adminRole, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
+		OrgID: organisation.ID,
+		Name:  "admin",
+		Permissions: roles.Permissions{
+			Integrations: roles.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Permissions: roles.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Projects: roles.CRUD{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			},
+			Environments: roles.CRUD{
+				Create: true,
+				Update: true,
+				Delete: true,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//	Generate a symmetric key for cryptographic operations in this organisation.
+	keyBytes, err := utils.GenerateRandomBytes(keyCommons.KEY_BYTES)
+	if err != nil {
+		return nil, err
+	}
+
+	//	Encrypt the key using owner's public key
+	publicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, organisation.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var publicKey [32]byte
+	copy(publicKey[:], publicKeyBytes)
+	result, err := keys.SealAsymmetricallyAnonymous(keyBytes, publicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := memberships.CreateWithUserID(ctx, client, &memberships.CreateOptions{
+		UserID: organisation.UserID,
+		OrgID:  organisation.ID,
+		RoleID: adminRole.ID,
+		Key:    base64.StdEncoding.EncodeToString(result),
+	}); err != nil {
+		return nil, err
+	}
+
+	return organisation, nil
 }
 
 func (*DefaultService) UpdateInviteLimit(ctx context.ServiceContext, client *clients.GQLClient, options *UpdateInviteLimitOptions) error {
@@ -187,6 +295,7 @@ func create(ctx context.ServiceContext, client *clients.GQLClient, name string) 
 		  returning {
 			id
 			name
+			user_id
 		  }
 		}
 	  }
@@ -216,6 +325,7 @@ func createWithUserID(ctx context.ServiceContext, client *clients.GQLClient, opt
 		  returning {
 			id
 			name
+			user_id
 		  }
 		}
 	  }

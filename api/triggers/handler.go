@@ -1,26 +1,20 @@
 package triggers
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/envsecrets/envsecrets/internal/clients"
 	"github.com/envsecrets/envsecrets/internal/context"
 	"github.com/envsecrets/envsecrets/internal/environments"
 	"github.com/envsecrets/envsecrets/internal/invites"
-	"github.com/envsecrets/envsecrets/internal/keys"
 	"github.com/envsecrets/envsecrets/internal/mail"
 	"github.com/envsecrets/envsecrets/internal/mail/commons"
-	"github.com/envsecrets/envsecrets/internal/memberships"
 	"github.com/envsecrets/envsecrets/internal/organisations"
 	"github.com/envsecrets/envsecrets/internal/projects"
-	"github.com/envsecrets/envsecrets/internal/roles"
 	"github.com/envsecrets/envsecrets/internal/secrets"
 	secretCommons "github.com/envsecrets/envsecrets/internal/secrets/commons"
 	"github.com/envsecrets/envsecrets/internal/subscriptions"
 	"github.com/envsecrets/envsecrets/internal/users"
-	"github.com/envsecrets/envsecrets/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -141,160 +135,6 @@ func UserInserted(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, &clients.APIResponse{
 		Message: "trigger completed successfully",
-	})
-}
-
-// Called when a new row is inserted inside the `organisations` table.
-func OrganisationCreated(c echo.Context) error {
-
-	//	Unmarshal the incoming payload
-	var payload clients.HasuraTriggerPayload
-	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "failed to parse the body",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Unmarshal the data interface to our required entity.
-	var row organisations.Organisation
-	if err := MapToStruct(payload.Event.Data.New, &row); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "failed to unmarshal new data",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Initialize a new default context
-	ctx := context.NewContext(&context.Config{Type: context.APIContext, EchoContext: c})
-
-	//	Initialize Hasura client with admin privileges
-	client := clients.NewGQLClient(&clients.GQLConfig{
-		Type: clients.HasuraClientType,
-		Headers: []clients.Header{
-			clients.XHasuraAdminSecretHeader,
-		},
-	})
-
-	//	Generate default roles for the organisation.
-	_, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
-		OrgID: row.ID,
-		Name:  "viewer",
-		Permissions: roles.Permissions{
-			Projects: roles.CRUD{
-				Read: true,
-			},
-		},
-	})
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: fmt.Sprintf("Failed to create role: %s", "viewer"),
-			Error:   err.Error(),
-		})
-	}
-
-	_, err = roles.Insert(ctx, client, &roles.RoleInsertOptions{
-		OrgID: row.ID,
-		Name:  "editor",
-		Permissions: roles.Permissions{
-			Projects: roles.CRUD{
-				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
-			},
-			Environments: roles.CRUD{
-				Create: true,
-				Update: true,
-				Delete: true,
-			},
-		},
-	})
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: fmt.Sprintf("Failed to create role: %s", "editor"),
-			Error:   err.Error(),
-		})
-	}
-
-	adminRole, err := roles.Insert(ctx, client, &roles.RoleInsertOptions{
-		OrgID: row.ID,
-		Name:  "admin",
-		Permissions: roles.Permissions{
-			Integrations: roles.CRUD{
-				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
-			},
-			Permissions: roles.CRUD{
-				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
-			},
-			Projects: roles.CRUD{
-				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
-			},
-			Environments: roles.CRUD{
-				Create: true,
-				Update: true,
-				Delete: true,
-			},
-		},
-	})
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: fmt.Sprintf("Failed to create role: %s", "admin"),
-			Error:   err.Error(),
-		})
-	}
-
-	//	Generate a symmetric key for cryptographic operations in this organisation.
-	keyBytes, err := utils.GenerateRandomBytes(KEY_BYTES)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: "Failed to generate symmetric key for this org",
-			Error:   err.Error(),
-		})
-	}
-
-	//	Encrypt the key using owner's public key
-	publicKeyBytes, err := keys.GetPublicKeyByUserID(ctx, client, row.UserID)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &clients.APIResponse{
-			Message: "Failed to fetch owner's public key",
-			Error:   err.Error(),
-		})
-	}
-
-	var publicKey [32]byte
-	copy(publicKey[:], publicKeyBytes)
-	result, err := keys.SealAsymmetricallyAnonymous(keyBytes, publicKey)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to seal org's symmetric key with owner's public key",
-			Error:   err.Error(),
-		})
-	}
-
-	if err := memberships.CreateWithUserID(ctx, client, &memberships.CreateOptions{
-		UserID: row.UserID,
-		OrgID:  row.ID,
-		RoleID: adminRole.ID,
-		Key:    base64.StdEncoding.EncodeToString(result),
-	}); err != nil {
-		return c.JSON(http.StatusBadRequest, &clients.APIResponse{
-			Message: "Failed to add the owner as an admin member",
-			Error:   err.Error(),
-		})
-	}
-
-	return c.JSON(http.StatusOK, &clients.APIResponse{
-		Message: "successfully generated symmetric key and created default roles",
 	})
 }
 

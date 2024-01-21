@@ -48,6 +48,16 @@ array_relationships:
         table:
           name: subscriptions
           schema: public
+insert_permissions:
+  - role: user
+    permission:
+      check:
+        user_id:
+          _eq: X-Hasura-User-Id
+      set:
+        user_id: x-hasura-User-Id
+      columns:
+        - name
 select_permissions:
   - role: user
     permission:
@@ -95,26 +105,6 @@ event_triggers:
       num_retries: 0
       timeout_sec: 60
     webhook: '{{API}}/v1/triggers/organisations/delete'
-    headers:
-      - name: x-hasura-webhook-secret
-        value_from_env: NHOST_WEBHOOK_SECRET
-    cleanup_config:
-      batch_size: 10000
-      clean_invocation_logs: false
-      clear_older_than: 168
-      paused: true
-      schedule: 0 0 * * *
-      timeout: 60
-  - name: org_new
-    definition:
-      enable_manual: false
-      insert:
-        columns: '*'
-    retry_conf:
-      interval_sec: 10
-      num_retries: 0
-      timeout_sec: 60
-    webhook: '{{API}}/v1/triggers/organisations/new'
     headers:
       - name: x-hasura-webhook-secret
         value_from_env: NHOST_WEBHOOK_SECRET
