@@ -32,9 +32,8 @@ func AddRoutes(sg *echo.Group) {
 	invites.POST("/new", InviteInserted)
 
 	//	organisations group
-	organisations := triggers.Group("/organisations")
-
-	organisations.POST("/new", OrganisationCreated)
+	//organisations := triggers.Group("/organisations")
+	//organisations.POST("/new", OrganisationCreated)
 
 	//	projects group
 	projects := triggers.Group("/projects")
