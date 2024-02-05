@@ -475,8 +475,6 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 					clients.XHasuraAdminSecretHeader,
 				},
 			})
-			fmt.Println("Updating details")
-			fmt.Println(options.EntityDetails)
 			return graphql.UpdateDetails(ctx, gqlClient, &graphql.UpdateDetailsOptions{
 				ID:            options.EventID,
 				EntityDetails: options.EntityDetails,
