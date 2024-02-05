@@ -240,6 +240,7 @@ func (*DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLClien
 			if err != nil {
 				return err
 			}
+			event.ID = item
 			list = append(list, *event)
 		}
 	}
