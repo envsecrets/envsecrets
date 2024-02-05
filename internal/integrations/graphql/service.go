@@ -138,15 +138,16 @@ func UpdateDetails(ctx context.ServiceContext, client *clients.GQLClient, option
 	req.Var("id", options.ID)
 	req.Var("details", options.EntityDetails)
 
-	var response map[string]interface{}
+	var response struct {
+		UpdateEvents struct {
+			AffectedRows float64 `json:"affected_rows"`
+		} `json:"update_events"`
+	}
 	if err := client.Do(ctx, req, &response); err != nil {
 		return err
 	}
 
-	returned := response["update_events"].(map[string]interface{})
-
-	affectedRows := returned["affected_rows"].(float64)
-	if affectedRows == 0 {
+	if response.UpdateEvents.AffectedRows == 0 {
 		return errors.New(errorMessage)
 	}
 

@@ -87,11 +87,8 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) error {
 				return err
 			}
 
-			//	Base64 decode the value of the secrets.
-			//payload.Decode()
-
 			//	Encrypt the secret value.
-			encryptedValue, err := encryptSecret(publicKey.Key, payload.GetValue())
+			encryptedValue, err := encryptSecret(publicKey.Key, []byte(payload.GetValue()))
 			if err != nil {
 				return err
 			}

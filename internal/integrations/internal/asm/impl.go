@@ -70,7 +70,7 @@ func Sync(ctx context.ServiceContext, options *SyncOptions) (*secretsmanager.Cre
 		//	If the secret already exists, it returns HTTP Status Code 400.
 		//	Use that response code for error handling.
 		_, err = client.PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
-			SecretId:     aws.String(options.EntityDetails["role_arn"].(string)),
+			SecretId:     aws.String(options.EntityDetails["secret_arn"].(string)),
 			SecretString: aws.String(string(payload)),
 		})
 		if err != nil {

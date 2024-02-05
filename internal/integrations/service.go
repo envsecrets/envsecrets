@@ -374,6 +374,9 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 		}
 	}
 
+	//	Decode the secrets.
+	options.Data.Decode()
+
 	switch Type(integration.Type) {
 	case Github:
 		return github.Sync(ctx, &github.SyncOptions{
@@ -398,7 +401,6 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 			OrgID:         integration.OrgID,
 		})
 	case Vercel:
-
 		//	Umarshal the credentials to appropriate structure.
 		var vercelCredentials vercel.Credentials
 		if err := utils.MapToStruct(credentials, &vercelCredentials); err != nil {
@@ -473,6 +475,8 @@ func (d *DefaultService) Sync(ctx context.ServiceContext, client *clients.GQLCli
 					clients.XHasuraAdminSecretHeader,
 				},
 			})
+			fmt.Println("Updating details")
+			fmt.Println(options.EntityDetails)
 			return graphql.UpdateDetails(ctx, gqlClient, &graphql.UpdateDetailsOptions{
 				ID:            options.EventID,
 				EntityDetails: options.EntityDetails,
