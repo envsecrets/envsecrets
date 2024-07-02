@@ -38,7 +38,7 @@ clientUrl = '{{ secrets.CLIENT_URL }}'
 allowedUrls = ['http://localhost:3000']
 
 [auth.signUp]
-enabled = true
+enabled = false
 
 [auth.user]
 [auth.user.roles]
