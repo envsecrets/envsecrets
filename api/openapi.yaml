@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: API Documentation
+  description: Automatically generated OpenAPI specification from endpoints.
+  version: 1.0.0
+servers:
+  - url: /v1
+paths:
+  /auth/qr:
+    get:
+      summary: Generate QR code
+      description: This endpoint is used to generate a QR code.
+      responses:
+        '200':
+          description: Successful response
+  /auth/sync-key:
+    get:
+      summary: Get Sync Key
+      description: This endpoint provides the sync key.
+      responses:
+        '200':
+          description: Successful response
+  /auth/mfa:
+    post:
+      summary: Enable MFA
+      description: Enables Multi-Factor Authentication for a user.
+      responses:
+        '200':
+          description: Successful response
+    delete:
+      summary: Disable MFA
+      description: Disables Multi-Factor Authentication for a user.
+      responses:
+        '200':
+          description: Successful response
+  /auth/signin:
+    post:
+      summary: User Signin
+      description: Allows a user to sign in.
+      responses:
+        '200':
+          description: Successful response
+  /auth/signup:
+    post:
+      summary: User Signup
+      description: Allows a new user to sign up.
+      responses:
+        '200':
+          description: Successful response
+  /auth/update-password:
+    post:
+      summary: Update Password
+      description: Allows a user to update their password.
+      responses:
+        '200':
+          description: Password updated successfully
+  /environments/validate-input:
+    post:
+      summary: Validate Environment Input
+      description: Validates the input provided for an environment.
+      responses:
+        '200':
+          description: Input validated successfully
+  /projects/validate-input:
+    post:
+      summary: Validate Project Input
+      description: Validates the input provided for a project.
+      responses:
+        '200':
+          description: Input validated successfully
+  /invites/accept:
+    post:
+      summary: Accept Invite
+      description: Allows a user to accept an invitation.
+      responses:
+        '200':
+          description: Invitation accepted

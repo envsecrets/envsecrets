@@ -66,6 +66,12 @@ func main() {
 	//	Add API routes.
 	api.AddRoutes(e)
 
+	// Serve Swagger UI
+	e.Static("/docs", "api/swagger-ui") // Serve Swagger UI static files
+	e.GET("/api/openapi.yaml", func(c echo.Context) error {
+		return c.File("api/openapi.yaml") // Serve OpenAPI spec
+	})
+
 	// Start server
 	e.Logger.Fatal(e.Start(":" + os.Getenv("PORT")))
 }
